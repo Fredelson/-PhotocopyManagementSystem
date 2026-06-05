@@ -1,27 +1,25 @@
 // ============================================
 // ARAB UNITY SCHOOL
-// Photocopy Management System
-// Teacher Request Details Page
+// Teacher - Request Details Page
+// Uses reusable DashboardLayout, PageHeader,
+// DashboardCard, StatusChip, and ApprovalTimeline
 // ============================================
 
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Chip,
-  Button,
-  Divider,
-} from "@mui/material";
+import { Box, Typography, Button } from "@mui/material";
 
 import DownloadIcon from "@mui/icons-material/Download";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import PendingIcon from "@mui/icons-material/Pending";
 
 import { useNavigate } from "react-router-dom";
 
 import DashboardLayout from "../../layouts/DashboardLayout";
+
+import Sidebar from "../../components/common/Sidebar";
+import Topbar from "../../components/common/Topbar";
+import PageHeader from "../../components/common/PageHeader";
+import DashboardCard from "../../components/common/DashboardCard";
+import StatusChip from "../../components/common/StatusChip";
+import ApprovalTimeline from "../../components/common/ApprovalTimeline";
 
 const request = {
   id: "REQ-2026-002",
@@ -63,42 +61,27 @@ export default function RequestDetails() {
   const navigate = useNavigate();
 
   return (
-    <DashboardLayout>
-      {/* Header */}
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          mb: 3,
-        }}
-      >
-        <Box>
-          <Typography
-            sx={{
-              fontSize: "1.8rem",
-              fontWeight: 700,
-              color: "#0F172A",
-            }}
+    <DashboardLayout
+      sidebar={<Sidebar role="teacher" />}
+      topbar={<Topbar userName="Ahmed Khan" role="Teacher" />}
+    >
+      {/* Page Header */}
+      <PageHeader
+        title="Request Details"
+        subtitle="Track your request status and uploaded documents."
+        action={
+          <Button
+            variant="outlined"
+            startIcon={<ArrowBackIcon />}
+            onClick={() => navigate("/teacher/my-requests")}
+            sx={{ textTransform: "none" }}
           >
-            Request Details
-          </Typography>
+            Back
+          </Button>
+        }
+      />
 
-          <Typography sx={{ color: "#64748B" }}>
-            Track your request status and uploaded documents.
-          </Typography>
-        </Box>
-
-        <Button
-          variant="outlined"
-          startIcon={<ArrowBackIcon />}
-          onClick={() => navigate("/teacher/my-requests")}
-        >
-          Back
-        </Button>
-      </Box>
-
-      {/* Main Grid */}
+      {/* Main Content Grid */}
       <Box
         sx={{
           display: "grid",
@@ -112,96 +95,68 @@ export default function RequestDetails() {
         {/* Left Column */}
         <Box>
           {/* Request Information */}
-          <Card sx={{ borderRadius: 4, mb: 3 }}>
-            <CardContent>
-              <Typography variant="h6" fontWeight={700} mb={2}>
-                Request Information
-              </Typography>
+          <DashboardCard title="Request Information" sx={{ mb: 3 }}>
+            <InfoRow label="Request ID" value={request.id} />
+            <InfoRow label="Purpose" value={request.purpose} />
+            <InfoRow label="Submitted Date" value={request.submittedDate} />
+            <InfoRow label="Required Date" value={request.requiredDate} />
+            <InfoRow label="Total Pages" value={request.totalPages} />
+            <InfoRow label="Total Sheets" value={request.totalSheets} />
 
-              <InfoRow label="Request ID" value={request.id} />
-              <InfoRow label="Purpose" value={request.purpose} />
-              <InfoRow label="Submitted Date" value={request.submittedDate} />
-              <InfoRow label="Required Date" value={request.requiredDate} />
-              <InfoRow label="Total Pages" value={request.totalPages} />
-              <InfoRow label="Total Sheets" value={request.totalSheets} />
-
-              <Box mt={2}>
-                <Chip label={request.status} color="warning" />
-              </Box>
-            </CardContent>
-          </Card>
+            <Box mt={2}>
+              <StatusChip status={request.status} />
+            </Box>
+          </DashboardCard>
 
           {/* Documents */}
-          <Card sx={{ borderRadius: 4 }}>
-            <CardContent>
-              <Typography variant="h6" fontWeight={700} mb={2}>
-                Documents
-              </Typography>
+          <DashboardCard title="Documents">
+            {request.documents.map((doc) => (
+              <Box
+                key={doc.name}
+                sx={{
+                  p: 2,
+                  border: "1px solid #E5E7EB",
+                  borderRadius: 3,
+                  mb: 2,
+                  backgroundColor: "#F8FAFC",
+                }}
+              >
+                <Typography fontWeight={700}>{doc.name}</Typography>
 
-              {request.documents.map((doc) => (
-                <Box
-                  key={doc.name}
+                <Typography color="text.secondary" fontSize={14}>
+                  {doc.pages} pages • {doc.copies} copies • {doc.sheets} sheets
+                </Typography>
+
+                <Button
+                  size="small"
+                  startIcon={<DownloadIcon />}
                   sx={{
-                    p: 2,
-                    border: "1px solid #E5E7EB",
-                    borderRadius: 3,
-                    mb: 2,
+                    mt: 1,
+                    textTransform: "none",
                   }}
                 >
-                  <Typography fontWeight={700}>{doc.name}</Typography>
-
-                  <Typography color="text.secondary" fontSize={14}>
-                    {doc.pages} pages • {doc.copies} copies • {doc.sheets} sheets
-                  </Typography>
-
-                  <Button
-                    size="small"
-                    startIcon={<DownloadIcon />}
-                    sx={{ mt: 1 }}
-                  >
-                    Download
-                  </Button>
-                </Box>
-              ))}
-            </CardContent>
-          </Card>
+                  Download
+                </Button>
+              </Box>
+            ))}
+          </DashboardCard>
         </Box>
 
         {/* Right Column */}
         <Box>
-          <Card sx={{ borderRadius: 4 }}>
-            <CardContent>
-              <Typography variant="h6" fontWeight={700} mb={2}>
-                Approval Flow
-              </Typography>
-
-              {request.approvalFlow.map((item, index) => (
-                <Box key={item.step}>
-                  <Box sx={{ display: "flex", gap: 1.5, mb: 2 }}>
-                    {item.status === "Completed" ? (
-                      <CheckCircleIcon sx={{ color: "#10B981" }} />
-                    ) : (
-                      <PendingIcon sx={{ color: "#F59E0B" }} />
-                    )}
-
-                    <Box>
-                      <Typography fontWeight={700}>{item.step}</Typography>
-                      <Typography color="text.secondary" fontSize={13}>
-                        {item.remarks}
-                      </Typography>
-                    </Box>
-                  </Box>
-
-                  {index !== request.approvalFlow.length - 1 && <Divider sx={{ mb: 2 }} />}
-                </Box>
-              ))}
-            </CardContent>
-          </Card>
+          <DashboardCard title="Approval Flow">
+            <ApprovalTimeline steps={request.approvalFlow} />
+          </DashboardCard>
         </Box>
       </Box>
     </DashboardLayout>
   );
 }
+
+// ============================================
+// Reusable Info Row
+// Displays label and value inside request details
+// ============================================
 
 function InfoRow({ label, value }) {
   return (

@@ -1,6 +1,16 @@
+// ============================================
+// ARAB UNITY SCHOOL
+// Teacher Dashboard Page
+// ============================================
+
 import DashboardLayout from "../../layouts/DashboardLayout";
 
-import { Typography, Box } from "@mui/material";
+import Sidebar from "../../components/common/Sidebar";
+import Topbar from "../../components/common/Topbar";
+import PageHeader from "../../components/common/PageHeader";
+import DateFilter from "../../components/common/DateFilter";
+
+import { Box } from "@mui/material";
 
 import {
   Assignment,
@@ -11,8 +21,8 @@ import {
   TaskAlt,
 } from "@mui/icons-material";
 
-import StatCard from "../../components/dashboard/StatCard";
 import { dashboardStats } from "../../data/dashboardData";
+import KPIGrid from "../../components/dashboard/KPIGrid";
 import MonthlyUsageChart from "../../components/dashboard/MonthlyUsageChart";
 import PurposeBreakdownChart from "../../components/dashboard/PurposeBreakdownChart";
 import StatusOverview from "../../components/dashboard/StatusOverview";
@@ -23,7 +33,8 @@ import RecentAttachments from "../../components/dashboard/RecentAttachments";
 import QuickActions from "../../components/dashboard/QuickActions";
 import PurposeUsageTrend from "../../components/dashboard/PurposeUsageTrend";
 
-export default function Dashboard() {
+export default function TeacherDashboard() {
+  // Icons matched with dashboardStats order
   const icons = [
     <Assignment />,
     <Print />,
@@ -34,78 +45,21 @@ export default function Dashboard() {
   ];
 
   return (
-    <DashboardLayout>
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          mb: 4,
-        }}
-      >
-        <Box>
-          <Typography
-            sx={{
-              fontSize: "2rem",
-              fontWeight: 700,
-              color: "#0F172A",
-            }}
-          >
-            Welcome Back, Ahmed Khan! 👋
-          </Typography>
+    <DashboardLayout
+      sidebar={<Sidebar role="teacher" />}
+      topbar={<Topbar userName="Ahmed Khan" role="Teacher" />}
+    >
+      {/* Page Header */}
+      <PageHeader
+        title="Welcome Back, Ahmed Khan! 👋"
+        subtitle="Here's your request summary and activity overview."
+        action={<DateFilter label="May 1 - May 31, 2025" />}
+      />
 
-          <Typography
-            sx={{
-              color: "#64748B",
-              fontSize: "0.95rem",
-            }}
-          >
-            Here's your request summary and activity overview.
-          </Typography>
-        </Box>
+      {/* KPI Cards */}
+      <KPIGrid stats={dashboardStats} icons={icons} />
 
-        {/* Date Filter */}
-        <Box
-          sx={{
-            px: 2,
-            py: 1,
-            border: "1px solid #E5E7EB",
-            borderRadius: 2,
-            backgroundColor: "#fff",
-            fontWeight: 600,
-            fontSize: 14,
-          }}
-        >
-          📅 May 1 - May 31, 2025
-        </Box>
-      </Box>
-
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns: {
-            xs: "1fr",
-            sm: "repeat(2, 1fr)",
-            md: "repeat(3, 1fr)",
-            lg: "repeat(4, 1fr)",
-            xl: "repeat(6, 1fr)",
-          },
-          gap: 3,
-          width: "100%",
-        }}
-      >
-        {dashboardStats.map((item, index) => (
-          <StatCard
-            key={item.title}
-            title={item.title}
-            value={item.value}
-            icon={icons[index]}
-            color={item.color}
-          />
-        ))}
-      </Box>
-
-      {/* Analytics Row */}
+      {/* Analytics Section */}
       <Box
         sx={{
           mt: 4,
@@ -115,7 +69,6 @@ export default function Dashboard() {
             lg: "2fr 1fr 1fr",
           },
           gap: 3,
-          width: "100%",
         }}
       >
         <MonthlyUsageChart />
@@ -123,7 +76,7 @@ export default function Dashboard() {
         <StatusOverview />
       </Box>
 
-      {/* Operations Row */}
+      {/* Operations Section */}
       <Box
         sx={{
           mt: 4,
@@ -133,7 +86,6 @@ export default function Dashboard() {
             lg: "2fr 1fr 1fr",
           },
           gap: 3,
-          width: "100%",
         }}
       >
         <RecentRequestsTable />
@@ -141,7 +93,7 @@ export default function Dashboard() {
         <AttachmentSummary />
       </Box>
 
-      {/* Bottom Row: Recent Attachments + Purpose Trend + Quick Actions */}
+      {/* Bottom Dashboard Section */}
       <Box
         sx={{
           mt: 4,
@@ -151,16 +103,12 @@ export default function Dashboard() {
             lg: "1fr 1fr 1fr",
           },
           gap: 3,
-          width: "100%",
-          minWidth: 0,
-          overflow: "hidden",
         }}
       >
         <RecentAttachments />
         <PurposeUsageTrend />
         <QuickActions />
       </Box>
-
     </DashboardLayout>
   );
 }

@@ -1,8 +1,7 @@
 // ============================================
 // ARAB UNITY SCHOOL
-// Photocopy Management System
-// Teacher Create Request Page
-// Dynamic Multi-Document Request Flow
+// Teacher - Create Request Page
+// Uses reusable DashboardLayout, Sidebar, and Topbar
 // ============================================
 
 import { useMemo, useState } from "react";
@@ -27,6 +26,8 @@ import SaveIcon from "@mui/icons-material/Save";
 import SendIcon from "@mui/icons-material/Send";
 
 import DashboardLayout from "../../layouts/DashboardLayout";
+import Sidebar from "../../components/common/Sidebar";
+import Topbar from "../../components/common/Topbar";
 
 const purposeOptions = [
   "Worksheet",
@@ -60,67 +61,34 @@ export default function CreateRequest() {
   const [requiredDate, setRequiredDate] = useState("");
   const [priority, setPriority] = useState("Normal");
   const [remarks, setRemarks] = useState("");
-
-  const [documents, setDocuments] = useState([
-    createEmptyDocument(),
-  ]);
-
-  // ============================================
-  // Update document field
-  // ============================================
+  const [documents, setDocuments] = useState([createEmptyDocument()]);
 
   const updateDocument = (id, field, value) => {
     setDocuments((prev) =>
       prev.map((doc) =>
-        doc.id === id
-          ? {
-              ...doc,
-              [field]: value,
-            }
-          : doc
+        doc.id === id ? { ...doc, [field]: value } : doc
       )
     );
   };
 
-  // ============================================
-  // Add new document card
-  // ============================================
-
   const addDocument = () => {
     setDocuments((prev) => [
       ...prev,
-      {
-        ...createEmptyDocument(),
-        id: Date.now() + Math.random(),
-      },
+      { ...createEmptyDocument(), id: Date.now() + Math.random() },
     ]);
   };
 
-  // ============================================
-  // Remove document card
-  // ============================================
-
   const removeDocument = (id) => {
     setDocuments((prev) =>
-      prev.length === 1
-        ? prev
-        : prev.filter((doc) => doc.id !== id)
+      prev.length === 1 ? prev : prev.filter((doc) => doc.id !== id)
     );
   };
-
-  // ============================================
-  // Calculate totals
-  // totalPrintedPages = pages × copies
-  // Single-Sided sheets = totalPrintedPages
-  // Double-Sided sheets = ceiling(totalPrintedPages / 2)
-  // ============================================
 
   const summary = useMemo(() => {
     return documents.reduce(
       (total, doc) => {
         const pages = Number(doc.pages) || 0;
         const copies = Number(doc.copies) || 0;
-
         const printedPages = pages * copies;
 
         const sheets =
@@ -132,12 +100,8 @@ export default function CreateRequest() {
           totalPages: total.totalPages + printedPages,
           totalSheets: total.totalSheets + sheets,
           totalCopies: total.totalCopies + copies,
-          totalA4:
-            total.totalA4 +
-            (doc.paperSize === "A4" ? sheets : 0),
-          totalA3:
-            total.totalA3 +
-            (doc.paperSize === "A3" ? sheets : 0),
+          totalA4: total.totalA4 + (doc.paperSize === "A4" ? sheets : 0),
+          totalA3: total.totalA3 + (doc.paperSize === "A3" ? sheets : 0),
         };
       },
       {
@@ -150,19 +114,16 @@ export default function CreateRequest() {
     );
   }, [documents]);
 
-  // ============================================
-  // Approval flow based on total sheets
-  // <= 500: Teacher → HOD → Admin Printing
-  // > 500: Teacher → HOS → Admin Printing
-  // ============================================
-
   const approvalFlow =
     summary.totalSheets <= 500
       ? ["Teacher", "HOD", "Admin Printing"]
       : ["Teacher", "HOS", "Admin Printing"];
 
   return (
-    <DashboardLayout>
+    <DashboardLayout
+      sidebar={<Sidebar role="teacher" />}
+      topbar={<Topbar userName="Ahmed Khan" role="Teacher" />}
+    >
       {/* Page Header */}
       <Box sx={{ mb: 3 }}>
         <Typography
@@ -202,17 +163,12 @@ export default function CreateRequest() {
           <Card
             sx={{
               borderRadius: 4,
-              boxShadow:
-                "0 8px 25px rgba(0,0,0,0.08)",
+              boxShadow: "0 8px 25px rgba(0,0,0,0.08)",
               mb: 3,
             }}
           >
             <CardContent>
-              <Typography
-                variant="h6"
-                fontWeight={700}
-                mb={3}
-              >
+              <Typography variant="h6" fontWeight={700} mb={3}>
                 Request Information
               </Typography>
 
@@ -230,16 +186,11 @@ export default function CreateRequest() {
                   select
                   label="Purpose"
                   value={purpose}
-                  onChange={(e) =>
-                    setPurpose(e.target.value)
-                  }
+                  onChange={(e) => setPurpose(e.target.value)}
                   fullWidth
                 >
                   {purposeOptions.map((option) => (
-                    <MenuItem
-                      key={option}
-                      value={option}
-                    >
+                    <MenuItem key={option} value={option}>
                       {option}
                     </MenuItem>
                   ))}
@@ -249,9 +200,7 @@ export default function CreateRequest() {
                   type="date"
                   label="Required Date"
                   value={requiredDate}
-                  onChange={(e) =>
-                    setRequiredDate(e.target.value)
-                  }
+                  onChange={(e) => setRequiredDate(e.target.value)}
                   InputLabelProps={{ shrink: true }}
                   fullWidth
                 />
@@ -260,9 +209,7 @@ export default function CreateRequest() {
                   <TextField
                     label="Custom Purpose"
                     value={customPurpose}
-                    onChange={(e) =>
-                      setCustomPurpose(e.target.value)
-                    }
+                    onChange={(e) => setCustomPurpose(e.target.value)}
                     fullWidth
                   />
                 )}
@@ -271,17 +218,11 @@ export default function CreateRequest() {
                   select
                   label="Priority"
                   value={priority}
-                  onChange={(e) =>
-                    setPriority(e.target.value)
-                  }
+                  onChange={(e) => setPriority(e.target.value)}
                   fullWidth
                 >
-                  <MenuItem value="Normal">
-                    Normal
-                  </MenuItem>
-                  <MenuItem value="Urgent">
-                    Urgent
-                  </MenuItem>
+                  <MenuItem value="Normal">Normal</MenuItem>
+                  <MenuItem value="Urgent">Urgent</MenuItem>
                 </TextField>
               </Box>
 
@@ -289,9 +230,7 @@ export default function CreateRequest() {
                 <TextField
                   label="Remarks"
                   value={remarks}
-                  onChange={(e) =>
-                    setRemarks(e.target.value)
-                  }
+                  onChange={(e) => setRemarks(e.target.value)}
                   multiline
                   rows={4}
                   fullWidth
@@ -304,24 +243,19 @@ export default function CreateRequest() {
           <Card
             sx={{
               borderRadius: 4,
-              boxShadow:
-                "0 8px 25px rgba(0,0,0,0.08)",
+              boxShadow: "0 8px 25px rgba(0,0,0,0.08)",
             }}
           >
             <CardContent>
               <Box
                 sx={{
                   display: "flex",
-                  justifyContent:
-                    "space-between",
+                  justifyContent: "space-between",
                   alignItems: "center",
                   mb: 3,
                 }}
               >
-                <Typography
-                  variant="h6"
-                  fontWeight={700}
-                >
+                <Typography variant="h6" fontWeight={700}>
                   Documents
                 </Typography>
 
@@ -337,8 +271,7 @@ export default function CreateRequest() {
 
               {documents.map((doc, index) => {
                 const printedPages =
-                  (Number(doc.pages) || 0) *
-                  (Number(doc.copies) || 0);
+                  (Number(doc.pages) || 0) * (Number(doc.copies) || 0);
 
                 const sheets =
                   doc.printType === "Double-Sided"
@@ -351,8 +284,7 @@ export default function CreateRequest() {
                     sx={{
                       p: 2.5,
                       mb: 3,
-                      border:
-                        "1px solid #E5E7EB",
+                      border: "1px solid #E5E7EB",
                       borderRadius: 3,
                       backgroundColor: "#F8FAFC",
                     }}
@@ -360,26 +292,19 @@ export default function CreateRequest() {
                     <Box
                       sx={{
                         display: "flex",
-                        justifyContent:
-                          "space-between",
+                        justifyContent: "space-between",
                         alignItems: "center",
                         mb: 2,
                       }}
                     >
-                      <Typography
-                        fontWeight={700}
-                      >
+                      <Typography fontWeight={700}>
                         Document #{index + 1}
                       </Typography>
 
                       <IconButton
                         color="error"
-                        disabled={
-                          documents.length === 1
-                        }
-                        onClick={() =>
-                          removeDocument(doc.id)
-                        }
+                        disabled={documents.length === 1}
+                        onClick={() => removeDocument(doc.id)}
                       >
                         <DeleteIcon />
                       </IconButton>
@@ -399,11 +324,7 @@ export default function CreateRequest() {
                         label="Document Name"
                         value={doc.documentName}
                         onChange={(e) =>
-                          updateDocument(
-                            doc.id,
-                            "documentName",
-                            e.target.value
-                          )
+                          updateDocument(doc.id, "documentName", e.target.value)
                         }
                         fullWidth
                       />
@@ -411,28 +332,19 @@ export default function CreateRequest() {
                       <Button
                         component="label"
                         variant="outlined"
-                        startIcon={
-                          <UploadFileIcon />
-                        }
+                        startIcon={<UploadFileIcon />}
                         sx={{
-                          justifyContent:
-                            "flex-start",
+                          justifyContent: "flex-start",
                           textTransform: "none",
                           height: 56,
                         }}
                       >
-                        {doc.file
-                          ? doc.file.name
-                          : "Upload File"}
+                        {doc.file ? doc.file.name : "Upload File"}
                         <input
                           hidden
                           type="file"
                           onChange={(e) =>
-                            updateDocument(
-                              doc.id,
-                              "file",
-                              e.target.files[0]
-                            )
+                            updateDocument(doc.id, "file", e.target.files[0])
                           }
                         />
                       </Button>
@@ -442,11 +354,7 @@ export default function CreateRequest() {
                         label="Pages"
                         value={doc.pages}
                         onChange={(e) =>
-                          updateDocument(
-                            doc.id,
-                            "pages",
-                            e.target.value
-                          )
+                          updateDocument(doc.id, "pages", e.target.value)
                         }
                         fullWidth
                       />
@@ -456,11 +364,7 @@ export default function CreateRequest() {
                         label="Copies"
                         value={doc.copies}
                         onChange={(e) =>
-                          updateDocument(
-                            doc.id,
-                            "copies",
-                            e.target.value
-                          )
+                          updateDocument(doc.id, "copies", e.target.value)
                         }
                         fullWidth
                       />
@@ -470,20 +374,12 @@ export default function CreateRequest() {
                         label="Paper Size"
                         value={doc.paperSize}
                         onChange={(e) =>
-                          updateDocument(
-                            doc.id,
-                            "paperSize",
-                            e.target.value
-                          )
+                          updateDocument(doc.id, "paperSize", e.target.value)
                         }
                         fullWidth
                       >
-                        <MenuItem value="A4">
-                          A4
-                        </MenuItem>
-                        <MenuItem value="A3">
-                          A3
-                        </MenuItem>
+                        <MenuItem value="A4">A4</MenuItem>
+                        <MenuItem value="A3">A3</MenuItem>
                       </TextField>
 
                       <TextField
@@ -491,20 +387,12 @@ export default function CreateRequest() {
                         label="Print Type"
                         value={doc.printType}
                         onChange={(e) =>
-                          updateDocument(
-                            doc.id,
-                            "printType",
-                            e.target.value
-                          )
+                          updateDocument(doc.id, "printType", e.target.value)
                         }
                         fullWidth
                       >
-                        <MenuItem value="Single-Sided">
-                          Single-Sided
-                        </MenuItem>
-                        <MenuItem value="Double-Sided">
-                          Double-Sided
-                        </MenuItem>
+                        <MenuItem value="Single-Sided">Single-Sided</MenuItem>
+                        <MenuItem value="Double-Sided">Double-Sided</MenuItem>
                       </TextField>
 
                       <TextField
@@ -512,36 +400,23 @@ export default function CreateRequest() {
                         label="Print Color"
                         value={doc.printColor}
                         onChange={(e) =>
-                          updateDocument(
-                            doc.id,
-                            "printColor",
-                            e.target.value
-                          )
+                          updateDocument(doc.id, "printColor", e.target.value)
                         }
                         fullWidth
                       >
-                        <MenuItem value="Black & White">
-                          Black & White
-                        </MenuItem>
-                        <MenuItem value="Color">
-                          Color
-                        </MenuItem>
+                        <MenuItem value="Black & White">Black & White</MenuItem>
+                        <MenuItem value="Color">Color</MenuItem>
                       </TextField>
 
                       <Box
                         sx={{
                           p: 2,
                           borderRadius: 2,
-                          backgroundColor:
-                            "#FFFFFF",
-                          border:
-                            "1px solid #E5E7EB",
+                          backgroundColor: "#FFFFFF",
+                          border: "1px solid #E5E7EB",
                         }}
                       >
-                        <Typography
-                          variant="body2"
-                          color="text.secondary"
-                        >
+                        <Typography variant="body2" color="text.secondary">
                           Printed Pages
                         </Typography>
 
@@ -557,9 +432,7 @@ export default function CreateRequest() {
                           Sheets
                         </Typography>
 
-                        <Typography fontWeight={800}>
-                          {sheets}
-                        </Typography>
+                        <Typography fontWeight={800}>{sheets}</Typography>
                       </Box>
                     </Box>
                   </Box>
@@ -575,48 +448,24 @@ export default function CreateRequest() {
           <Card
             sx={{
               borderRadius: 4,
-              boxShadow:
-                "0 8px 25px rgba(0,0,0,0.08)",
+              boxShadow: "0 8px 25px rgba(0,0,0,0.08)",
               mb: 3,
             }}
           >
             <CardContent>
-              <Typography
-                variant="h6"
-                fontWeight={700}
-                mb={3}
-              >
+              <Typography variant="h6" fontWeight={700} mb={3}>
                 Request Summary
               </Typography>
 
-              <SummaryRow
-                label="Total Pages"
-                value={summary.totalPages}
-              />
-              <SummaryRow
-                label="Total Copies"
-                value={summary.totalCopies}
-              />
-              <SummaryRow
-                label="Total Sheets"
-                value={summary.totalSheets}
-              />
-              <SummaryRow
-                label="A4 Sheets"
-                value={summary.totalA4}
-              />
-              <SummaryRow
-                label="A3 Sheets"
-                value={summary.totalA3}
-              />
+              <SummaryRow label="Total Pages" value={summary.totalPages} />
+              <SummaryRow label="Total Copies" value={summary.totalCopies} />
+              <SummaryRow label="Total Sheets" value={summary.totalSheets} />
+              <SummaryRow label="A4 Sheets" value={summary.totalA4} />
+              <SummaryRow label="A3 Sheets" value={summary.totalA3} />
 
               <Divider sx={{ my: 2 }} />
 
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                mb={1}
-              >
+              <Typography variant="body2" color="text.secondary" mb={1}>
                 Approval Route
               </Typography>
 
@@ -660,16 +509,11 @@ export default function CreateRequest() {
           <Card
             sx={{
               borderRadius: 4,
-              boxShadow:
-                "0 8px 25px rgba(0,0,0,0.08)",
+              boxShadow: "0 8px 25px rgba(0,0,0,0.08)",
             }}
           >
             <CardContent>
-              <Typography
-                variant="h6"
-                fontWeight={700}
-                mb={2}
-              >
+              <Typography variant="h6" fontWeight={700} mb={2}>
                 Actions
               </Typography>
 
@@ -677,10 +521,7 @@ export default function CreateRequest() {
                 fullWidth
                 variant="outlined"
                 startIcon={<SaveIcon />}
-                sx={{
-                  mb: 2,
-                  textTransform: "none",
-                }}
+                sx={{ mb: 2, textTransform: "none" }}
               >
                 Save Draft
               </Button>
@@ -710,13 +551,9 @@ function SummaryRow({ label, value }) {
         mb: 1.5,
       }}
     >
-      <Typography color="text.secondary">
-        {label}
-      </Typography>
+      <Typography color="text.secondary">{label}</Typography>
 
-      <Typography fontWeight={800}>
-        {value}
-      </Typography>
+      <Typography fontWeight={800}>{value}</Typography>
     </Box>
   );
 }
