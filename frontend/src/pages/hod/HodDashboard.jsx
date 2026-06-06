@@ -14,7 +14,6 @@ import Sidebar from "../../components/common/Sidebar";
 import Topbar from "../../components/common/Topbar";
 import PageHeader from "../../components/common/PageHeader";
 import DateFilter from "../../components/common/DateFilter";
-import DepartmentFilter from "../../components/common/DepartmentFilter";
 
 // MUI components
 import { Box, Alert } from "@mui/material";
@@ -31,9 +30,16 @@ import {
 
 // Dashboard components
 import KPIGrid from "../../components/dashboard/KPIGrid";
-import DashboardCard from "../../components/dashboard/DashboardCard";
-import ApprovalQueue from "../../components/dashboard/ApprovalQueue";
+// import DashboardCard from "../../components/dashboard/DashboardCard";
+// import ApprovalQueue from "../../components/dashboard/ApprovalQueue";
 import RequestDetailsDialog from "../../components/dashboard/RequestDetailsDialog";
+import HodApprovalTrend from "../../components/dashboard/HodApprovalTrend";
+import DepartmentDistributionChart from "../../components/dashboard/DepartmentDistributionChart";
+// import SubjectAnalyticsCards from "../../components/dashboard/SubjectAnalyticsCards";
+import RecentApprovedRequests from "../../components/dashboard/RecentApprovedRequests";
+import ApprovalHistory from "../../components/dashboard/ApprovalHistory";
+import HodPendingRequestsTable from "../../components/dashboard/HodPendingRequestsTable";
+import RecentRejectedRequests from "../../components/dashboard/RecentRejectedRequests";
 
 // HOD data
 import {
@@ -53,17 +59,6 @@ export default function HodDashboard() {
 
   // Store HOD comment/remarks
   const [comment, setComment] = useState("");
-
-  // Store selected department filter
-  const [selectedDepartment, setSelectedDepartment] = useState("All");
-
-  // Filter requests based on selected department
-  const filteredRequests =
-    selectedDepartment === "All"
-      ? requests
-      : requests.filter(
-          (request) => request.department === selectedDepartment
-        );
 
   // Open review dialog
   const handleReview = (request) => {
@@ -175,28 +170,46 @@ export default function HodDashboard() {
       {/* KPI Cards */}
       <KPIGrid stats={hodDashboardStats} icons={icons} />
 
-      {/* Department Filter */}
+      {/* HOD Analytics Charts */}
+      <Box
+        sx={{
+          mt: 4,
+          display: "grid",
+          gridTemplateColumns: {
+            xs: "1fr",
+            lg: "2fr 1fr",
+          },
+          gap: 3,
+        }}
+      >
+        <HodApprovalTrend />
+        <DepartmentDistributionChart />
+      </Box>
+
+      {/* Subject Analytics Cards */}
+      {/* <SubjectAnalyticsCards /> */}
+
+      {/* Pending Requests Table */}
       <Box sx={{ mt: 4 }}>
-        <DepartmentFilter
-          selectedDepartment={selectedDepartment}
-          onChange={setSelectedDepartment}
+        <HodPendingRequestsTable
+          requests={requests}
+          onReview={handleReview}
         />
       </Box>
 
-      {/* Approval Queue */}
-      <Box sx={{ mt: 2 }}>
-        <DashboardCard title="Pending Approval Queue">
-          {filteredRequests.length > 0 ? (
-            <ApprovalQueue
-              requests={filteredRequests}
-              onReview={handleReview}
-            />
-          ) : (
-            <Alert severity="info">
-              No requests found for this department.
-            </Alert>
-          )}
-        </DashboardCard>
+      {/* Recent Approved Requests */}
+      <Box sx={{ mt: 4 }}>
+        <RecentApprovedRequests />
+      </Box>
+
+      {/* Recent Rejected Requests */}
+      <Box sx={{ mt: 4 }}>
+        <RecentRejectedRequests />
+      </Box>
+
+      {/* Approval History */}
+      <Box sx={{ mt: 4 }}>
+        <ApprovalHistory />
       </Box>
 
       {/* Request Details Dialog */}
