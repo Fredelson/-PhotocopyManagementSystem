@@ -3,17 +3,18 @@
 // HOD Dashboard Page
 // ============================================
 
-// React state for dialog and approval actions
+// React state
 import { useState } from "react";
 
 // Main dashboard layout
 import DashboardLayout from "../../layouts/DashboardLayout";
 
-// Common layout components
+// Common components
 import Sidebar from "../../components/common/Sidebar";
 import Topbar from "../../components/common/Topbar";
 import PageHeader from "../../components/common/PageHeader";
 import DateFilter from "../../components/common/DateFilter";
+import DepartmentFilter from "../../components/common/DepartmentFilter";
 
 // MUI components
 import { Box, Alert } from "@mui/material";
@@ -24,54 +25,45 @@ import {
   PendingActions,
   CheckCircle,
   Cancel,
+  Send,
+  TaskAlt,
 } from "@mui/icons-material";
 
-// Reusable dashboard components
+// Dashboard components
 import KPIGrid from "../../components/dashboard/KPIGrid";
 import DashboardCard from "../../components/dashboard/DashboardCard";
 import ApprovalQueue from "../../components/dashboard/ApprovalQueue";
 import RequestDetailsDialog from "../../components/dashboard/RequestDetailsDialog";
 
-// Temporary HOD request data
-const sampleRequests = [
-  {
-    id: 1,
-    requestNumber: "REQ-2026-001",
-    teacher: "Ms. Aisha",
-    department: "Primary",
-    purpose: "Worksheet",
-    pages: 20,
-    copies: 15,
-    sheets: 300,
-    status: "Pending HOD",
-    attachments: ["worksheet-grade1.pdf"],
-  },
-  {
-    id: 2,
-    requestNumber: "REQ-2026-002",
-    teacher: "Mr. John",
-    department: "Secondary",
-    purpose: "Exam Paper",
-    pages: 30,
-    copies: 20,
-    sheets: 600,
-    status: "Pending HOD",
-    attachments: ["math-exam.pdf"],
-  },
-];
+// HOD data
+import {
+  hodDashboardStats,
+  hodApprovalQueueData,
+} from "../../data/hodDashboardData";
 
 export default function HodDashboard() {
-  // Store all HOD requests
-  const [requests, setRequests] = useState(sampleRequests);
+  // Store all HOD approval requests
+  const [requests, setRequests] = useState(hodApprovalQueueData);
 
-  // Store selected request for the review dialog
+  // Store selected request for review dialog
   const [selectedRequest, setSelectedRequest] = useState(null);
 
-  // Control review dialog open/close
+  // Control request details dialog open/close
   const [openDialog, setOpenDialog] = useState(false);
 
-  // Store HOD comment
+  // Store HOD comment/remarks
   const [comment, setComment] = useState("");
+
+  // Store selected department filter
+  const [selectedDepartment, setSelectedDepartment] = useState("All");
+
+  // Filter requests based on selected department
+  const filteredRequests =
+    selectedDepartment === "All"
+      ? requests
+      : requests.filter(
+          (request) => request.department === selectedDepartment
+        );
 
   // Open review dialog
   const handleReview = (request) => {
@@ -95,8 +87,8 @@ export default function HodDashboard() {
           ? {
               ...req,
 
-              // If sheets are more than 500, send to HOS approval
-              // If sheets are 500 or below, send to Admin Printing
+              // If sheets are more than 500, forward to HOS
+              // If sheets are 500 or below, approve directly to Admin Printing
               status:
                 req.sheets > 500
                   ? "Forwarded to HOS"
@@ -158,36 +150,14 @@ export default function HodDashboard() {
     handleClose();
   };
 
-  // KPI data for HOD dashboard
-  const hodStats = [
-    {
-      title: "Total Requests",
-      value: requests.length,
-      color: "#1976d2",
-    },
-    {
-      title: "Pending HOD",
-      value: requests.filter((r) => r.status === "Pending HOD").length,
-      color: "#ed6c02",
-    },
-    {
-      title: "Approved",
-      value: requests.filter((r) => r.status === "Approved by HOD").length,
-      color: "#2e7d32",
-    },
-    {
-      title: "Rejected",
-      value: requests.filter((r) => r.status === "Rejected by HOD").length,
-      color: "#d32f2f",
-    },
-  ];
-
-  // Icons matched with hodStats order
+  // KPI icons matched with hodDashboardStats order
   const icons = [
     <Assignment />,
     <PendingActions />,
     <CheckCircle />,
     <Cancel />,
+    <Send />,
+    <TaskAlt />,
   ];
 
   return (
@@ -202,16 +172,29 @@ export default function HodDashboard() {
         action={<DateFilter label="May 1 - May 31, 2025" />}
       />
 
-      {/* HOD KPI Cards */}
-      <KPIGrid stats={hodStats} icons={icons} />
+      {/* KPI Cards */}
+      <KPIGrid stats={hodDashboardStats} icons={icons} />
 
-      {/* Approval Queue Section */}
+      {/* Department Filter */}
       <Box sx={{ mt: 4 }}>
+        <DepartmentFilter
+          selectedDepartment={selectedDepartment}
+          onChange={setSelectedDepartment}
+        />
+      </Box>
+
+      {/* Approval Queue */}
+      <Box sx={{ mt: 2 }}>
         <DashboardCard title="Pending Approval Queue">
-          {requests.length > 0 ? (
-            <ApprovalQueue requests={requests} onReview={handleReview} />
+          {filteredRequests.length > 0 ? (
+            <ApprovalQueue
+              requests={filteredRequests}
+              onReview={handleReview}
+            />
           ) : (
-            <Alert severity="info">No requests found.</Alert>
+            <Alert severity="info">
+              No requests found for this department.
+            </Alert>
           )}
         </DashboardCard>
       </Box>
