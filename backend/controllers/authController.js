@@ -16,11 +16,21 @@ const login = async (req, res) => {
 
     const result = await pool
       .request()
-      .input("schoolEmail", sql.VarChar, schoolEmail)
+      .input("schoolEmail", sql.NVarChar, schoolEmail)
       .query(`
-        SELECT TOP 1 *
+        SELECT TOP 1
+          Id,
+          FullName,
+          EmployeeId,
+          SchoolEmail,
+          PasswordHash,
+          Role,
+          Department,
+          Section,
+          MustChangePassword
         FROM Users
-        WHERE schoolEmail = @schoolEmail
+        WHERE SchoolEmail = @schoolEmail
+          AND IsActive = 1
       `);
 
     const user = result.recordset[0];
@@ -31,7 +41,10 @@ const login = async (req, res) => {
       });
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+    const isPasswordValid = await bcrypt.compare(
+      password,
+      user.PasswordHash
+    );
 
     if (!isPasswordValid) {
       return res.status(401).json({
@@ -41,11 +54,11 @@ const login = async (req, res) => {
 
     const token = jwt.sign(
       {
-        id: user.id,
-        schoolEmail: user.schoolEmail,
-        role: user.role,
-        department: user.department,
-        section: user.section,
+        id: user.Id,
+        schoolEmail: user.SchoolEmail,
+        role: user.Role,
+        department: user.Department,
+        section: user.Section,
       },
       process.env.JWT_SECRET,
       { expiresIn: "1d" }
@@ -55,18 +68,22 @@ const login = async (req, res) => {
       message: "Login successful",
       token,
       user: {
-        id: user.id,
-        name: user.name,
-        schoolEmail: user.schoolEmail,
-        role: user.role,
-        department: user.department,
-        section: user.section,
+        id: user.Id,
+        fullName: user.FullName,
+        employeeId: user.EmployeeId,
+        schoolEmail: user.SchoolEmail,
+        role: user.Role,
+        department: user.Department,
+        section: user.Section,
+        mustChangePassword: user.MustChangePassword,
       },
     });
   } catch (error) {
     console.error("Login error:", error);
+
     res.status(500).json({
       message: "Server error during login",
+      error: error.message,
     });
   }
 };
