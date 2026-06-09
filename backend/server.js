@@ -1,80 +1,76 @@
-// Import required packages
-const express = require("express");
-const cors = require("cors");
+// ============================================
+// ARAB UNITY SCHOOL
+// Backend Server
+// ============================================
+
 require("dotenv").config();
 
-// Import MSSQL connection pool
+const express = require("express");
+const cors = require("cors");
+
 const { poolPromise } = require("./config/db");
 
-// Import API routes
+// Routes
 const authRoutes = require("./routes/authRoutes");
+const requestRoutes = require("./routes/requestRoutes");
 
-// Create Express application
 const app = express();
 
-/*
-|--------------------------------------------------------------------------
-| Middleware
-|--------------------------------------------------------------------------
-*/
+// ============================================
+// Middleware
+// ============================================
 
 app.use(cors());
-app.use(express.json());
 
-/*
-|--------------------------------------------------------------------------
-| Health Check Route
-|--------------------------------------------------------------------------
-*/
+app.use(
+  express.json({
+    limit: "50mb",
+  })
+);
+
+app.use(
+  express.urlencoded({
+    extended: true,
+  })
+);
+
+// ============================================
+// Health Check
+// ============================================
 
 app.get("/", (req, res) => {
-  res.send("ARAB UNITY SCHOOL Photocopy Backend is running");
+  res.json({
+    success: true,
+    message: "ARAB UNITY SCHOOL Backend API Running",
+  });
 });
 
-/*
-|--------------------------------------------------------------------------
-| Database Connection Test Route
-|--------------------------------------------------------------------------
-*/
-
-app.get("/api/test-db", async (req, res) => {
-  try {
-    const pool = await poolPromise;
-
-    const result = await pool
-      .request()
-      .query("SELECT GETDATE() AS CurrentDate");
-
-    res.json({
-      message: "Database connected successfully",
-      data: result.recordset,
-    });
-  } catch (error) {
-    console.error("Database Test Error:", error);
-
-    res.status(500).json({
-      message: "Database connection failed",
-      error: error.message,
-    });
-  }
-});
-
-/*
-|--------------------------------------------------------------------------
-| API Routes
-|--------------------------------------------------------------------------
-*/
+// ============================================
+// API Routes
+// ============================================
 
 app.use("/api/auth", authRoutes);
+app.use("/api/requests", requestRoutes);
 
-/*
-|--------------------------------------------------------------------------
-| Start Server
-|--------------------------------------------------------------------------
-*/
+// ============================================
+// Start Server
+// ============================================
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-  console.log(`🚀 ARAB UNITY SCHcOOL Backend running on port ${PORT}`);
-});
+const startServer = async () => {
+  try {
+    await poolPromise;
+
+    app.listen(PORT, () => {
+      console.log(
+        `🚀 ARAB UNITY SCHOOL Backend running on port ${PORT}`
+      );
+    });
+  } catch (error) {
+    console.error("❌ Failed to connect to MSSQL");
+    console.error(error);
+  }
+};
+
+startServer();
