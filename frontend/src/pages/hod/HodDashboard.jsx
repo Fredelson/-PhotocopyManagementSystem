@@ -1,14 +1,12 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // HOD Dashboard Page
-// Connected to Backend API
+// Connected to Backend Live Data
 // ============================================
 
-import { useEffect, useMemo, useState } from "react";
-import axios from "axios";
+import { useEffect, useState } from "react";
 
 import DashboardLayout from "../../layouts/DashboardLayout";
-
 import Sidebar from "../../components/common/Sidebar";
 import Topbar from "../../components/common/Topbar";
 import PageHeader from "../../components/common/PageHeader";
@@ -36,14 +34,27 @@ import RecentRejectedRequests from "../../components/dashboard/RecentRejectedReq
 
 import { useAuth } from "../../context/AuthContext";
 
-const API_URL = "http://localhost:5000/api";
+import {
+  getHodDashboard,
+  getHodRequests,
+  approveHodRequest,
+  rejectHodRequest,
+} from "../../services/hodService";
 
 export default function HodDashboard() {
-  const { user, token } = useAuth();
+  const { user } = useAuth();
 
   // ============================================
   // State
   // ============================================
+  const [dashboard, setDashboard] = useState({
+    TotalRequests: 0,
+    PendingReview: 0,
+    Approved: 0,
+    Rejected: 0,
+    Forwarded: 0,
+    Completed: 0,
+  });
 
   const [requests, setRequests] = useState([]);
   const [selectedRequest, setSelectedRequest] = useState(null);
@@ -54,122 +65,107 @@ export default function HodDashboard() {
   const [error, setError] = useState("");
 
   // ============================================
-  // Fetch HOD assigned requests
-  // GET /api/hod/requests
+  // Convert backend data to frontend table format
   // ============================================
+  const mapRequest = (item) => ({
+    id: item.RequestId,
+    requestNumber: item.RequestNumber,
+    teacher: item.TeacherName,
+    employeeId: item.EmployeeId,
+    department: item.DepartmentName,
+    subject: item.SubjectName,
+    purpose: item.PurposeName,
+    pages: item.TotalPages,
+    sheets: item.TotalSheets,
+    copies: item.Copies,
+    priority: item.PriorityLevel,
+    status: item.Status,
+    submittedDate: item.SubmittedAt
+      ? new Date(item.SubmittedAt).toLocaleDateString()
+      : "-",
+  });
 
-  useEffect(() => {
-    const fetchHodRequests = async () => {
-      try {
-        setLoading(true);
-        setError("");
+  // ============================================
+  // Fetch HOD Dashboard KPI + Pending Requests
+  // ============================================
+  const fetchHodData = async () => {
+    try {
+      setLoading(true);
+      setError("");
 
-        const response = await axios.get(`${API_URL}/hod/requests`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+      const [dashboardData, requestsData] = await Promise.all([
+        getHodDashboard(),
+        getHodRequests(),
+      ]);
 
-        // Convert backend field names to the format expected by
-        // HodPendingRequestsTable and RequestDetailsDialog.
-        const mappedRequests = response.data.map((item) => ({
-          id: item.RequestId,
-          requestNumber: item.RequestNumber,
-          teacher: item.TeacherName,
-          employeeId: item.EmployeeId,
-          department: item.DepartmentName,
-          subject: item.SubjectName,
-          purpose: item.PurposeName,
-          pages: item.TotalPages,
-          sheets: item.TotalSheets,
-          copies: item.Copies,
-          priority: item.PriorityLevel,
-          status: item.Status,
-          submittedDate: item.SubmittedAt
-            ? new Date(item.SubmittedAt).toLocaleDateString()
-            : "-",
-        }));
+      setDashboard({
+        TotalRequests: dashboardData.TotalRequests || 0,
+        PendingReview: dashboardData.PendingReview || 0,
+        Approved: dashboardData.Approved || 0,
+        Rejected: dashboardData.Rejected || 0,
+        Forwarded: dashboardData.Forwarded || 0,
+        Completed: dashboardData.Completed || 0,
+      });
 
-        setRequests(mappedRequests);
-      } catch (err) {
-        console.error("Fetch HOD Requests Error:", err);
+      setRequests(requestsData.map(mapRequest));
+    } catch (err) {
+      console.error("Fetch HOD Data Error:", err.response?.data || err);
 
-        setError("Unable to load HOD requests. Please try again.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (token) {
-      fetchHodRequests();
+      setError(
+        err.response?.data?.message ||
+          "Unable to load HOD dashboard data."
+      );
+    } finally {
+      setLoading(false);
     }
-  }, [token]);
+  };
 
   // ============================================
-  // KPI stats calculated from live request data
+  // Load data when page opens
   // ============================================
-
-  const hodDashboardStats = useMemo(() => {
-    const total = requests.length;
-
-    const pending = requests.filter(
-      (req) => req.status === "Pending"
-    ).length;
-
-    const approved = requests.filter((req) =>
-      req.status?.toLowerCase().includes("approved")
-    ).length;
-
-    const rejected = requests.filter((req) =>
-      req.status?.toLowerCase().includes("rejected")
-    ).length;
-
-    const forwarded = requests.filter((req) =>
-      req.status?.toLowerCase().includes("forwarded")
-    ).length;
-
-    const completed = requests.filter((req) =>
-      req.status?.toLowerCase().includes("completed")
-    ).length;
-
-    return [
-      {
-        title: "Total Requests",
-        value: total,
-        subtitle: "Assigned to you",
-      },
-      {
-        title: "Pending Review",
-        value: pending,
-        subtitle: "Awaiting HOD action",
-      },
-      {
-        title: "Approved",
-        value: approved,
-        subtitle: "Approved by HOD",
-      },
-      {
-        title: "Rejected",
-        value: rejected,
-        subtitle: "Rejected requests",
-      },
-      {
-        title: "Forwarded",
-        value: forwarded,
-        subtitle: "Forwarded to HOS",
-      },
-      {
-        title: "Completed",
-        value: completed,
-        subtitle: "Completed requests",
-      },
-    ];
-  }, [requests]);
+  useEffect(() => {
+    fetchHodData();
+  }, []);
 
   // ============================================
-  // Open request review dialog
+  // KPI Cards from Live Backend Dashboard API
   // ============================================
+  const hodDashboardStats = [
+    {
+      title: "Total Requests",
+      value: dashboard.TotalRequests,
+      subtitle: "All HOD Requests",
+    },
+    {
+      title: "Pending Review",
+      value: dashboard.PendingReview,
+      subtitle: "Awaiting HOD Action",
+    },
+    {
+      title: "Approved",
+      value: dashboard.Approved,
+      subtitle: "Approved by HOD",
+    },
+    {
+      title: "Rejected",
+      value: dashboard.Rejected,
+      subtitle: "Rejected by HOD",
+    },
+    {
+      title: "Forwarded",
+      value: dashboard.Forwarded,
+      subtitle: "Forwarded to HOS",
+    },
+    {
+      title: "Completed",
+      value: dashboard.Completed,
+      subtitle: "Completed Requests",
+    },
+  ];
 
+  // ============================================
+  // Open review dialog
+  // ============================================
   const handleReview = (request) => {
     setSelectedRequest(request);
     setComment("");
@@ -177,9 +173,8 @@ export default function HodDashboard() {
   };
 
   // ============================================
-  // Close request review dialog
+  // Close review dialog
   // ============================================
-
   const handleClose = () => {
     setOpenDialog(false);
     setSelectedRequest(null);
@@ -187,88 +182,77 @@ export default function HodDashboard() {
   };
 
   // ============================================
-  // TEMPORARY FRONTEND-ONLY APPROVE
-  // Later this will call:
-  // PATCH /api/hod/requests/:id/approve
+  // Approve Request
+  // PUT /api/hod/requests/:id/approve
   // ============================================
-
-  const handleApprove = () => {
-    setRequests((prev) =>
-      prev.map((req) =>
-        req.id === selectedRequest.id
-          ? {
-              ...req,
-              status:
-                req.sheets > 500
-                  ? "Forwarded to HOS"
-                  : "Approved by HOD",
-              comment,
-            }
-          : req
-      )
-    );
-
-    handleClose();
-  };
-
-  // ============================================
-  // TEMPORARY FRONTEND-ONLY RETURN
-  // Later this will call:
-  // PATCH /api/hod/requests/:id/return
-  // ============================================
-
-  const handleReturn = () => {
-    if (!comment.trim()) {
-      alert("Comment is required when returning a request.");
+  const handleApprove = async () => {
+    if (!selectedRequest) {
+      alert("No request selected.");
       return;
     }
 
-    setRequests((prev) =>
-      prev.map((req) =>
-        req.id === selectedRequest.id
-          ? {
-              ...req,
-              status: "Returned for Revision",
-              comment,
-            }
-          : req
-      )
-    );
+    try {
+      await approveHodRequest(
+        selectedRequest.id,
+        comment || "Approved by HOD"
+      );
 
-    handleClose();
+      alert("Request approved successfully.");
+
+      handleClose();
+      await fetchHodData();
+    } catch (err) {
+      console.error("Approve Request Error:", err.response?.data || err);
+
+      alert(
+        err.response?.data?.message ||
+          "Unable to approve request."
+      );
+    }
   };
 
   // ============================================
-  // TEMPORARY FRONTEND-ONLY REJECT
-  // Later this will call:
-  // PATCH /api/hod/requests/:id/reject
+  // Reject Request
+  // PUT /api/hod/requests/:id/reject
   // ============================================
+  const handleReject = async () => {
+    if (!selectedRequest) {
+      alert("No request selected.");
+      return;
+    }
 
-  const handleReject = () => {
     if (!comment.trim()) {
       alert("Comment is required when rejecting a request.");
       return;
     }
 
-    setRequests((prev) =>
-      prev.map((req) =>
-        req.id === selectedRequest.id
-          ? {
-              ...req,
-              status: "Rejected by HOD",
-              comment,
-            }
-          : req
-      )
-    );
+    try {
+      await rejectHodRequest(selectedRequest.id, comment);
 
-    handleClose();
+      alert("Request rejected successfully.");
+
+      handleClose();
+      await fetchHodData();
+    } catch (err) {
+      console.error("Reject Request Error:", err.response?.data || err);
+
+      alert(
+        err.response?.data?.message ||
+          "Unable to reject request."
+      );
+    }
   };
 
   // ============================================
-  // KPI icons matched with stats order
+  // Return Request - Not connected yet
   // ============================================
+  const handleReturn = () => {
+    alert("Return request API is not created yet.");
+  };
 
+  // ============================================
+  // KPI icons matched with cards order
+  // ============================================
   const icons = [
     <Assignment />,
     <PendingActions />,
@@ -301,7 +285,7 @@ export default function HodDashboard() {
       )}
 
       {loading ? (
-        <Typography>Loading HOD requests...</Typography>
+        <Typography>Loading HOD dashboard data...</Typography>
       ) : (
         <>
           <KPIGrid stats={hodDashboardStats} icons={icons} />

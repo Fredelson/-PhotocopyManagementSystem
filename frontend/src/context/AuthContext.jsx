@@ -1,13 +1,27 @@
+// ============================================
+// ARAB UNITY SCHOOL
+// Authentication Context
+// Handles login, logout, user session
+// ============================================
+
 import { createContext, useContext, useEffect, useState } from "react";
-import { getCurrentUser, loginUser } from "../services/authService";
+import {
+  loginUser,
+  getCurrentUser,
+} from "../services/authService";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem("token"));
+  const [token, setToken] = useState(
+    localStorage.getItem("token")
+  );
   const [loading, setLoading] = useState(true);
 
+  // ============================================
+  // Load Logged-in User on Refresh
+  // ============================================
   useEffect(() => {
     const loadUser = async () => {
       try {
@@ -16,10 +30,14 @@ export function AuthProvider({ children }) {
           return;
         }
 
-        const currentUser = await getCurrentUser(token);
+        const currentUser = await getCurrentUser();
+
         setUser(currentUser);
-      } catch {
+      } catch (error) {
+        console.error("Failed to load user:", error);
+
         localStorage.removeItem("token");
+
         setToken(null);
         setUser(null);
       } finally {
@@ -30,29 +48,59 @@ export function AuthProvider({ children }) {
     loadUser();
   }, [token]);
 
+  // ============================================
+  // Login User
+  // ============================================
   const login = async (employeeId, password) => {
-    const data = await loginUser(employeeId, password);
+    const data = await loginUser(
+      employeeId,
+      password
+    );
 
     localStorage.setItem("token", data.token);
+
     setToken(data.token);
     setUser(data.user);
 
     return data.user;
   };
 
+  // ============================================
+  // Logout User
+  // ============================================
   const logout = () => {
     localStorage.removeItem("token");
+
     setToken(null);
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        loading,
+        login,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
 }
 
+// ============================================
+// Custom Hook
+// ============================================
 export function useAuth() {
-  return useContext(AuthContext);
+  const context = useContext(AuthContext);
+
+  if (!context) {
+    throw new Error(
+      "useAuth must be used inside AuthProvider"
+    );
+  }
+
+  return context;
 }

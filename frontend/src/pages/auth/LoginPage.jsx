@@ -1,7 +1,6 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // Login Page
-// Connected to Backend Authentication
 // ============================================
 
 import { useState } from "react";
@@ -27,58 +26,38 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
-  // ============================================
-  // Redirect user based on role
-  // ============================================
   const redirectByRole = (role) => {
     switch (role) {
       case "Teacher":
         navigate("/teacher");
         break;
-
       case "HOD":
         navigate("/hod");
         break;
-
-      case "SuperAdmin":
-        navigate("/teacher");
-        break;
-
-      case "Admin":
-        navigate("/teacher");
-        break;
-
-      case "PrintingAdmin":
-        navigate("/teacher");
-        break;
-
       case "HOS":
-        navigate("/teacher");
+        navigate("/hos");
         break;
-
+      case "Admin":
+      case "PrintingAdmin":
+        navigate("/admin");
+        break;
+      case "SuperAdmin":
+        navigate("/superadmin");
+        break;
       default:
         navigate("/login");
     }
   };
 
-  // ============================================
-  // Handle Login
-  // ============================================
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     setError("");
 
     try {
-      const loggedUser = await login(
-        employeeId.trim(),
-        password.trim()
-      );
-
+      const loggedUser = await login(employeeId.trim(), password.trim());
       redirectByRole(loggedUser.role);
     } catch (err) {
       console.error(err);
-
       setError("Invalid employee ID or password");
     }
   };
@@ -101,43 +80,26 @@ export default function LoginPage() {
         }}
       >
         <CardContent sx={{ p: 5 }}>
-          {/* Title */}
-          <Typography
-            sx={{
-              fontSize: 28,
-              fontWeight: 700,
-              color: "#0F172A",
-            }}
-          >
+          <Typography sx={{ fontSize: 28, fontWeight: 700, color: "#0F172A" }}>
             ARAB UNITY SCHOOL
           </Typography>
 
-          <Typography
-            sx={{
-              fontSize: 18,
-              color: "#334155",
-              mb: 3,
-            }}
-          >
+          <Typography sx={{ fontSize: 18, color: "#334155", mb: 3 }}>
             Photocopy Management System
           </Typography>
 
-          {/* Error */}
           {error && (
             <Alert severity="error" sx={{ mb: 3 }}>
               {error}
             </Alert>
           )}
 
-          {/* Form */}
           <Box component="form" onSubmit={handleSubmit}>
             <TextField
               fullWidth
               label="Employee ID"
               value={employeeId}
-              onChange={(e) =>
-                setEmployeeId(e.target.value)
-              }
+              onChange={(e) => setEmployeeId(e.target.value)}
               margin="normal"
             />
 
@@ -146,9 +108,7 @@ export default function LoginPage() {
               label="Password"
               type="password"
               value={password}
-              onChange={(e) =>
-                setPassword(e.target.value)
-              }
+              onChange={(e) => setPassword(e.target.value)}
               margin="normal"
             />
 

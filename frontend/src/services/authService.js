@@ -1,9 +1,13 @@
-import axios from "axios";
+// ============================================
+// ARAB UNITY SCHOOL
+// Authentication Service
+// ============================================
 
-const API_URL = "http://localhost:5000/api/auth";
+import api from "./api";
 
+// Login User
 export const loginUser = async (employeeId, password) => {
-  const response = await axios.post(`${API_URL}/login`, {
+  const response = await api.post("/auth/login", {
     employeeId,
     password,
   });
@@ -11,12 +15,9 @@ export const loginUser = async (employeeId, password) => {
   return response.data;
 };
 
-export const getCurrentUser = async (token) => {
-  const response = await axios.get(`${API_URL}/me`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+// Get Logged-in User
+export const getCurrentUser = async () => {
+  const response = await api.get("/auth/me");
 
   return response.data;
 };

@@ -1,6 +1,7 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // HOD Controller
+// Handles HOD dashboard, request review, approve, reject
 // ============================================
 
 const { poolPromise, sql } = require("../config/db");
@@ -8,6 +9,7 @@ const { poolPromise, sql } = require("../config/db");
 /**
  * @desc    HOD Dashboard Statistics
  * @route   GET /api/hod/dashboard
+ * @access  Private - HOD / SuperAdmin
  */
 const getHodDashboard = async (req, res) => {
   try {
@@ -20,10 +22,12 @@ const getHodDashboard = async (req, res) => {
       .query(`
         SELECT
           COUNT(*) AS TotalRequests,
-          SUM(CASE WHEN Status = 'Pending' AND CurrentApproverId = @hodId THEN 1 ELSE 0 END) AS PendingReview,
+          SUM(CASE WHEN Status = 'Pending' THEN 1 ELSE 0 END) AS PendingReview,
           SUM(CASE WHEN Status = 'Approved by HOD' THEN 1 ELSE 0 END) AS Approved,
           SUM(CASE WHEN Status = 'Rejected by HOD' THEN 1 ELSE 0 END) AS Rejected
         FROM PhotocopyRequests
+        WHERE CurrentApproverId = @hodId
+           OR Status IN ('Approved by HOD', 'Rejected by HOD')
       `);
 
     return res.status(200).json(result.recordset[0]);
@@ -31,7 +35,7 @@ const getHodDashboard = async (req, res) => {
     console.error("Get HOD Dashboard Error:", error);
 
     return res.status(500).json({
-      message: "Server error while fetching dashboard",
+      message: "Server error while fetching HOD dashboard",
       error: error.message,
     });
   }
@@ -40,6 +44,7 @@ const getHodDashboard = async (req, res) => {
 /**
  * @desc    Get requests assigned to logged-in HOD
  * @route   GET /api/hod/requests
+ * @access  Private - HOD / SuperAdmin
  */
 const getHodRequests = async (req, res) => {
   try {
@@ -85,17 +90,20 @@ const getHodRequests = async (req, res) => {
 };
 
 /**
- * @desc    Get single HOD request details
+ * @desc    Get single request details
  * @route   GET /api/hod/requests/:id
+ * @access  Private - HOD / SuperAdmin
  */
 const getHodRequestById = async (req, res) => {
   try {
+    const hodId = req.user.id;
     const requestId = req.params.id;
     const pool = await poolPromise;
 
     const result = await pool
       .request()
       .input("requestId", sql.Int, requestId)
+      .input("hodId", sql.Int, hodId)
       .query(`
         SELECT
           r.RequestId,
@@ -117,11 +125,15 @@ const getHodRequestById = async (req, res) => {
         LEFT JOIN Subjects s ON r.SubjectId = s.SubjectId
         LEFT JOIN Purposes p ON r.PurposeId = p.PurposeId
         WHERE r.RequestId = @requestId
+          AND (
+            r.CurrentApproverId = @hodId
+            OR r.Status IN ('Approved by HOD', 'Rejected by HOD')
+          )
       `);
 
     if (result.recordset.length === 0) {
       return res.status(404).json({
-        message: "Request not found",
+        message: "Request not found or not assigned to this HOD",
       });
     }
 
@@ -139,11 +151,14 @@ const getHodRequestById = async (req, res) => {
 /**
  * @desc    Approve request assigned to logged-in HOD
  * @route   PUT /api/hod/requests/:id/approve
+ * @access  Private - HOD / SuperAdmin
  */
 const approveHodRequest = async (req, res) => {
   try {
     const hodId = req.user.id;
     const requestId = req.params.id;
+    const { remarks } = req.body || {};
+
     const pool = await poolPromise;
 
     const requestResult = await pool
@@ -155,11 +170,12 @@ const approveHodRequest = async (req, res) => {
         FROM PhotocopyRequests
         WHERE RequestId = @requestId
           AND CurrentApproverId = @hodId
+          AND Status = 'Pending'
       `);
 
     if (requestResult.recordset.length === 0) {
       return res.status(404).json({
-        message: "Request not found or not assigned to this HOD",
+        message: "Request not found, already processed, or not assigned to this HOD",
       });
     }
 
@@ -178,6 +194,7 @@ const approveHodRequest = async (req, res) => {
       .request()
       .input("requestId", sql.Int, requestId)
       .input("approverId", sql.Int, hodId)
+      .input("remarks", sql.NVarChar, remarks || "Approved by HOD")
       .query(`
         INSERT INTO RequestApprovals
         (
@@ -194,7 +211,7 @@ const approveHodRequest = async (req, res) => {
           @approverId,
           'HOD',
           'Approved',
-          'Approved by HOD',
+          @remarks,
           GETDATE()
         )
       `);
@@ -216,12 +233,13 @@ const approveHodRequest = async (req, res) => {
 /**
  * @desc    Reject request assigned to logged-in HOD
  * @route   PUT /api/hod/requests/:id/reject
+ * @access  Private - HOD / SuperAdmin
  */
 const rejectHodRequest = async (req, res) => {
   try {
     const hodId = req.user.id;
     const requestId = req.params.id;
-    const { comments } = req.body || {};
+    const { remarks } = req.body || {};
 
     const pool = await poolPromise;
 
@@ -234,11 +252,12 @@ const rejectHodRequest = async (req, res) => {
         FROM PhotocopyRequests
         WHERE RequestId = @requestId
           AND CurrentApproverId = @hodId
+          AND Status = 'Pending'
       `);
 
     if (requestResult.recordset.length === 0) {
       return res.status(404).json({
-        message: "Request not found or not assigned to this HOD",
+        message: "Request not found, already processed, or not assigned to this HOD",
       });
     }
 
@@ -257,7 +276,7 @@ const rejectHodRequest = async (req, res) => {
       .request()
       .input("requestId", sql.Int, requestId)
       .input("approverId", sql.Int, hodId)
-      .input("remarks", sql.NVarChar, comments || "Rejected by HOD")
+      .input("remarks", sql.NVarChar, remarks || "Rejected by HOD")
       .query(`
         INSERT INTO RequestApprovals
         (
