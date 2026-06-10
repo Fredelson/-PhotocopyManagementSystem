@@ -18,6 +18,7 @@ const app = express();
 
 const hodRoutes = require("./routes/hodRoutes");
 
+
 // ============================================
 // Middleware
 // ============================================
