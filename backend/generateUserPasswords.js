@@ -6,6 +6,7 @@ const users = [
   { email: "hod.primary@arabunityschool.ae", employeeId: "H1001" },
   { email: "hos.primary@arabunityschool.ae", employeeId: "S1001" },
   { email: "teacher@arabunityschool.ae", employeeId: "T1001" },
+  { email: "teacher2@arabunityschool.ae", employeeId: "T1002" },
   { email: "superadmin1@arabunityschool.ae", employeeId: "SA0001" },
   { email: "superadmin2@arabunityschool.ae", employeeId: "SA0002" }
 ];

@@ -316,8 +316,69 @@ const getRequestById = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Get logged-in teacher dashboard stats
+ * @route   GET /api/requests/dashboard
+ * @access  Private - Teacher / SuperAdmin
+ */
+const getTeacherDashboard = async (req, res) => {
+  try {
+    const teacherId = req.user.id;
+    const pool = await poolPromise;
+
+    const statsResult = await pool
+      .request()
+      .input("teacherId", sql.Int, teacherId)
+      .query(`
+        SELECT
+          COUNT(*) AS TotalRequests,
+          SUM(CASE WHEN Status = 'Pending' THEN 1 ELSE 0 END) AS PendingRequests,
+          SUM(CASE WHEN Status LIKE 'Approved%' THEN 1 ELSE 0 END) AS ApprovedRequests,
+          SUM(CASE WHEN Status LIKE 'Rejected%' THEN 1 ELSE 0 END) AS RejectedRequests,
+          SUM(CASE WHEN Status = 'Completed' THEN 1 ELSE 0 END) AS CompletedRequests
+        FROM PhotocopyRequests
+        WHERE TeacherId = @teacherId
+      `);
+
+    const recentResult = await pool
+      .request()
+      .input("teacherId", sql.Int, teacherId)
+      .query(`
+        SELECT TOP 5
+          r.RequestId,
+          r.RequestNumber,
+          r.TotalSheets,
+          r.PriorityLevel,
+          r.Status,
+          r.SubmittedAt,
+          d.DepartmentName,
+          s.SubjectName,
+          p.PurposeName
+        FROM PhotocopyRequests r
+        LEFT JOIN Departments d ON r.DepartmentId = d.DepartmentId
+        LEFT JOIN Subjects s ON r.SubjectId = s.SubjectId
+        LEFT JOIN Purposes p ON r.PurposeId = p.PurposeId
+        WHERE r.TeacherId = @teacherId
+        ORDER BY r.SubmittedAt DESC
+      `);
+
+    return res.status(200).json({
+      stats: statsResult.recordset[0],
+      recentRequests: recentResult.recordset,
+    });
+  } catch (error) {
+    console.error("Get Teacher Dashboard Error:", error);
+
+    return res.status(500).json({
+      message: "Server error while fetching teacher dashboard",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   createRequest,
+  getTeacherDashboard,
   getMyRequests,
   getRequestById,
 };
