@@ -39,8 +39,8 @@ export default function LoginPage() {
         break;
       case "Admin":
       case "PrintingAdmin":
-        navigate("/admin");
-        break;
+      navigate("/printing");
+      break;
       case "SuperAdmin":
         navigate("/superadmin");
         break;

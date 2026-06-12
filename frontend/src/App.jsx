@@ -12,6 +12,8 @@ import LoginPage from "./pages/auth/LoginPage";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
 
+import PrintingDashboard from "./pages/printing/PrintingDashboard";
+
 export default function App() {
   return (
     <Routes>
@@ -74,6 +76,15 @@ export default function App() {
         element={
           <ProtectedRoute allowedRoles={["HOS", "SuperAdmin"]}>
             <HosDashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/printing"
+        element={
+          <ProtectedRoute allowedRoles={["PrintingAdmin", "SuperAdmin"]}>
+            <PrintingDashboard />
           </ProtectedRoute>
         }
       />
