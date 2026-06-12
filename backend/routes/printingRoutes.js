@@ -1,10 +1,18 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // Printing Admin Routes
-// Temporary route file
 // ============================================
 
 const express = require("express");
+
+const {
+  getPrintingDashboard,
+  getPrintingRequests,
+  getPrintingRequestById,
+  startPrinting,
+  completePrinting,
+  getPrintingHistory,
+} = require("../controllers/printingController");
 
 const {
   protect,
@@ -13,17 +21,53 @@ const {
 
 const router = express.Router();
 
-// Test route to confirm Printing route is working
+// Printing dashboard KPI statistics
 router.get(
-  "/test",
+  "/dashboard",
   protect,
   authorizeRoles("PrintingAdmin", "SuperAdmin"),
-  (req, res) => {
-    res.json({
-      success: true,
-      message: "Printing route is working",
-    });
-  }
+  getPrintingDashboard
+);
+
+// Printing history
+// IMPORTANT: keep this before /requests/:id
+router.get(
+  "/history",
+  protect,
+  authorizeRoles("PrintingAdmin", "SuperAdmin"),
+  getPrintingHistory
+);
+
+// Get print queue requests
+router.get(
+  "/requests",
+  protect,
+  authorizeRoles("PrintingAdmin", "SuperAdmin"),
+  getPrintingRequests
+);
+
+// Get single printing request
+router.get(
+  "/requests/:id",
+  protect,
+  authorizeRoles("PrintingAdmin", "SuperAdmin"),
+  getPrintingRequestById
+);
+
+// Start printing
+router.put(
+  "/requests/:id/start",
+  protect,
+  authorizeRoles("PrintingAdmin", "SuperAdmin"),
+  startPrinting
+);
+
+// Complete printing
+router.put(
+  "/requests/:id/complete",
+  protect,
+  authorizeRoles("PrintingAdmin", "SuperAdmin"),
+  completePrinting
 );
 
 module.exports = router;
