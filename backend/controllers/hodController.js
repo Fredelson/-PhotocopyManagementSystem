@@ -273,29 +273,42 @@ const getHodApprovalHistory = async (req, res) => {
 
           d.DepartmentName,
           s.SubjectName,
-          p.PurposeName
+          p.PurposeName,
 
-        FROM RequestApprovals ra
+          approver.FullName AS ApproverName,
+          approver.EmployeeId AS ApproverEmployeeId,
 
-        INNER JOIN PhotocopyRequests r
+          CONCAT(
+              s.SubjectName,
+              ' ',
+              d.DepartmentName,
+              ' HOD'
+          ) AS DisplayApproverRole
+
+      FROM RequestApprovals ra
+
+      INNER JOIN PhotocopyRequests r
           ON ra.RequestId = r.RequestId
 
-        LEFT JOIN Users u
+      LEFT JOIN Users u
           ON r.TeacherId = u.UserId
 
-        LEFT JOIN Departments d
+      LEFT JOIN Departments d
           ON r.DepartmentId = d.DepartmentId
 
-        LEFT JOIN Subjects s
+      LEFT JOIN Subjects s
           ON r.SubjectId = s.SubjectId
 
-        LEFT JOIN Purposes p
+      LEFT JOIN Purposes p
           ON r.PurposeId = p.PurposeId
 
-        WHERE ra.ApproverId = @hodId
-          AND ra.ApprovalRole = 'HOD'
+      LEFT JOIN Users approver
+          ON ra.ApproverId = approver.UserId
 
-        ORDER BY ra.ActionDate DESC
+      WHERE ra.ApproverId = @hodId
+        AND ra.ApprovalRole = 'HOD'
+
+      ORDER BY ra.ActionDate DESC
       `);
 
     return res.status(200).json(result.recordset);

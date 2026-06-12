@@ -29,14 +29,13 @@ export default function ApprovalHistory({
 
       {/* Approval History List */}
       {history.map((item) => {
-        // Check approval status
+        // Check if action is approved
         const isApproved =
-          item.approvalStatus?.toLowerCase() ===
-          "approved";
+          item.approvalStatus?.toLowerCase() === "approved";
 
+        // Check if action is rejected
         const isRejected =
-          item.approvalStatus?.toLowerCase() ===
-          "rejected";
+          item.approvalStatus?.toLowerCase() === "rejected";
 
         return (
           <Box
@@ -57,7 +56,7 @@ export default function ApprovalHistory({
               }}
             >
               <Typography fontWeight={700}>
-                {item.requestNumber}
+                Request: {item.requestNumber}
               </Typography>
 
               <Chip
@@ -74,51 +73,39 @@ export default function ApprovalHistory({
             </Box>
 
             {/* Teacher */}
-            <Typography
-              variant="body2"
-              color="text.secondary"
-            >
+            <Typography variant="body2" color="text.secondary">
               Teacher: {item.teacher}
             </Typography>
 
             {/* Department */}
-            <Typography
-              variant="body2"
-              color="text.secondary"
-            >
+            <Typography variant="body2" color="text.secondary">
               Department: {item.department}
             </Typography>
 
             {/* Subject */}
-            <Typography
-              variant="body2"
-              color="text.secondary"
-            >
+            <Typography variant="body2" color="text.secondary">
               Subject: {item.subject}
             </Typography>
 
-            {/* Approval Role */}
-            <Typography
-              variant="body2"
-              color="text.secondary"
-            >
-              Role: {item.approvalRole}
+            {/* Action */}
+            <Typography variant="body2" color="text.secondary">
+              Action: {item.approvalStatus}
+            </Typography>
+
+            {/* Approver Display */}
+            <Typography variant="body2" color="text.secondary">
+              By: {item.displayApproverRole || item.approvalRole} /{" "}
+              {item.approverName || "Unknown"}
             </Typography>
 
             {/* Remarks */}
-            <Typography
-              variant="body2"
-              color="text.secondary"
-            >
+            <Typography variant="body2" color="text.secondary">
               Remarks: {item.remarks || "-"}
             </Typography>
 
             {/* Action Date */}
-            <Typography
-              variant="body2"
-              color="text.secondary"
-            >
-              Action Date: {item.actionDate}
+            <Typography variant="body2" color="text.secondary">
+              Date: {item.actionDate}
             </Typography>
           </Box>
         );
