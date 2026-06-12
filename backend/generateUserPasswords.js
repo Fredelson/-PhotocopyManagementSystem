@@ -1,26 +1,85 @@
-const bcrypt = require("bcrypt");
+// ============================================
+// ARAB UNITY SCHOOL
+// Generate Password Hashes
+// Password = Employee ID
+//
+// Example:
+// A001 -> Password A001
+// T010 -> Password T010
+// T120 -> Password T120
+// ============================================
 
-const users = [
-  { email: "admin@arabunityschool.ae", employeeId: "A1001" },
-  { email: "printing@arabunityschool.ae", employeeId: "P1001" },
-  { email: "hod.primary@arabunityschool.ae", employeeId: "H1001" },
-  { email: "hos.primary@arabunityschool.ae", employeeId: "S1001" },
-  { email: "teacher@arabunityschool.ae", employeeId: "T1001" },
-  { email: "teacher2@arabunityschool.ae", employeeId: "T1002" },
-  { email: "superadmin1@arabunityschool.ae", employeeId: "SA0001" },
-  { email: "superadmin2@arabunityschool.ae", employeeId: "SA0002" }
-];
+const bcrypt = require("bcryptjs");
 
 async function generateHashes() {
-  for (const user of users) {
-    const hash = await bcrypt.hash(user.employeeId, 10);
+  const users = [];
+
+  // ============================================
+  // Super Admin
+  // ============================================
+
+  users.push("A001");
+  users.push("A002");
+
+  // ============================================
+  // Printing Admin
+  // ============================================
+
+  users.push("A101");
+  users.push("A102");
+  users.push("A103");
+
+  // ============================================
+  // HOS
+  // ============================================
+
+  users.push("A201");
+  users.push("A202");
+  users.push("A203");
+  users.push("A204");
+  users.push("A205");
+
+  // ============================================
+  // HOD
+  // T001 - T040
+  // ============================================
+
+  for (let i = 1; i <= 40; i++) {
+    users.push(`T${String(i).padStart(3, "0")}`);
+  }
+
+  // ============================================
+  // Teachers
+  // T101 - T120
+  // ============================================
+
+  for (let i = 101; i <= 120; i++) {
+    users.push(`T${i}`);
+  }
+
+  console.log(`
+-- ============================================
+-- ARAB UNITY SCHOOL
+-- Password Update Script
+-- Password = Employee ID
+-- ============================================
+`);
+
+  for (const employeeId of users) {
+    const hash = await bcrypt.hash(employeeId, 10);
 
     console.log(`
 UPDATE Users
 SET PasswordHash = '${hash}'
-WHERE SchoolEmail = '${user.email}';
+WHERE EmployeeId = '${employeeId}';
 `);
   }
+
+  console.log(`
+-- ============================================
+-- Total Users: ${users.length}
+-- ============================================
+`);
 }
 
 generateHashes();

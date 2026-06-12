@@ -13,10 +13,10 @@ const { poolPromise, sql } = require("../config/db");
  */
 const createRequest = async (req, res) => {
   try {
-    // Logged-in user ID comes from JWT middleware
+    // Logged-in teacher ID from JWT middleware
     const teacherId = req.user.id;
 
-    // Get request data from frontend / Thunder Client body
+    // Request data from frontend
     const {
       departmentId,
       subjectId,
@@ -41,57 +41,70 @@ const createRequest = async (req, res) => {
       });
     }
 
+    // Connect to MSSQL
     const pool = await poolPromise;
 
     // Generate unique request number
     const requestNumber = `REQ-${Date.now()}`;
 
-    // Approval workflow:
-    // 500 sheets or below goes to HOD
-    // More than 500 sheets goes to HOS
-    const approvalRole = Number(totalSheets) > 500 ? "HOS" : "HOD";
-
-    // First try to find approver from the same department
-    const approverResult = await pool
+    // ============================================
+    // Get subject name from selected SubjectId
+    // Example: SubjectId 1 => English
+    // ============================================
+    const subjectResult = await pool
       .request()
-      .input("approvalRole", sql.NVarChar, approvalRole)
+      .input("subjectId", sql.Int, subjectId)
+      .query(`
+        SELECT SubjectName
+        FROM Subjects
+        WHERE SubjectId = @subjectId
+          AND IsActive = 1
+      `);
+
+    const subjectName = subjectResult.recordset[0]?.SubjectName;
+
+    if (!subjectName) {
+      return res.status(400).json({
+        message: "Selected subject was not found or is inactive",
+      });
+    }
+
+    // ============================================
+    // Find correct HOD using:
+    // DepartmentId + SubjectName
+    //
+    // Example:
+    // Department = Primary
+    // Subject = English
+    // Approver = Primary English HOD
+    // ============================================
+    const hodResult = await pool
+      .request()
       .input("departmentId", sql.Int, departmentId)
+      .input("subjectName", sql.NVarChar, subjectName)
       .query(`
         SELECT TOP 1 UserId
         FROM Users
-        WHERE Role = @approvalRole
+        WHERE Role = 'HOD'
           AND DepartmentId = @departmentId
+          AND Subject = @subjectName
           AND IsActive = 1
         ORDER BY UserId ASC
       `);
 
-    let approverId = approverResult.recordset[0]?.UserId;
+    const hodId = hodResult.recordset[0]?.UserId;
 
-    // Fallback: if no same-department approver exists,
-    // use any active approver with the required role
-    if (!approverId) {
-      const fallbackApproverResult = await pool
-        .request()
-        .input("approvalRole", sql.NVarChar, approvalRole)
-        .query(`
-          SELECT TOP 1 UserId
-          FROM Users
-          WHERE Role = @approvalRole
-            AND IsActive = 1
-          ORDER BY UserId ASC
-        `);
-
-      approverId = fallbackApproverResult.recordset[0]?.UserId;
-    }
-
-    // Stop request creation if no approver exists
-    if (!approverId) {
+    // Stop if no matching HOD exists
+    if (!hodId) {
       return res.status(400).json({
-        message: `No active ${approvalRole} approver found`,
+        message: `No active HOD found for ${subjectName} in the selected department`,
       });
     }
 
-    // Insert the main photocopy request
+    // ============================================
+    // Insert main photocopy request
+    // New requests always start with HOD approval
+    // ============================================
     const requestResult = await pool
       .request()
       .input("requestNumber", sql.NVarChar, requestNumber)
@@ -103,7 +116,7 @@ const createRequest = async (req, res) => {
       .input("totalPages", sql.Int, totalPages)
       .input("totalSheets", sql.Int, totalSheets)
       .input("priorityLevel", sql.NVarChar, priorityLevel || "Normal")
-      .input("approverId", sql.Int, approverId)
+      .input("approverId", sql.Int, hodId)
       .query(`
         INSERT INTO PhotocopyRequests
         (
@@ -140,12 +153,13 @@ const createRequest = async (req, res) => {
 
     const requestId = requestResult.recordset[0].RequestId;
 
-    // Insert the first approval step
+    // ============================================
+    // Insert first approval step for HOD
+    // ============================================
     await pool
       .request()
       .input("requestId", sql.Int, requestId)
-      .input("approverId", sql.Int, approverId)
-      .input("approvalRole", sql.NVarChar, approvalRole)
+      .input("approverId", sql.Int, hodId)
       .query(`
         INSERT INTO RequestApprovals
         (
@@ -160,7 +174,7 @@ const createRequest = async (req, res) => {
         (
           @requestId,
           @approverId,
-          @approvalRole,
+          'HOD',
           'Pending',
           NULL,
           GETDATE()
@@ -171,14 +185,16 @@ const createRequest = async (req, res) => {
       message: "Request created successfully",
       requestId,
       requestNumber,
-      approvalRole,
-      approverId,
+      approvalRole: "HOD",
+      approverId: hodId,
+      subjectName,
     });
   } catch (error) {
     console.error("Create Request Error:", error);
 
     return res.status(500).json({
       message: "Server error while creating request",
+      error: error.message,
     });
   }
 };
@@ -190,12 +206,13 @@ const createRequest = async (req, res) => {
  */
 const getMyRequests = async (req, res) => {
   try {
-    // Logged-in user ID from JWT middleware
+    // Logged-in teacher ID
     const teacherId = req.user.id;
 
+    // Connect to MSSQL
     const pool = await poolPromise;
 
-    // Get all requests created by the logged-in user
+    // Get teacher requests
     const result = await pool
       .request()
       .input("teacherId", sql.Int, teacherId)
@@ -213,9 +230,12 @@ const getMyRequests = async (req, res) => {
           s.SubjectName,
           p.PurposeName
         FROM PhotocopyRequests r
-        LEFT JOIN Departments d ON r.DepartmentId = d.DepartmentId
-        LEFT JOIN Subjects s ON r.SubjectId = s.SubjectId
-        LEFT JOIN Purposes p ON r.PurposeId = p.PurposeId
+        LEFT JOIN Departments d 
+          ON r.DepartmentId = d.DepartmentId
+        LEFT JOIN Subjects s 
+          ON r.SubjectId = s.SubjectId
+        LEFT JOIN Purposes p 
+          ON r.PurposeId = p.PurposeId
         WHERE r.TeacherId = @teacherId
         ORDER BY r.SubmittedAt DESC
       `);
@@ -226,6 +246,7 @@ const getMyRequests = async (req, res) => {
 
     return res.status(500).json({
       message: "Server error while fetching requests",
+      error: error.message,
     });
   }
 };
@@ -237,9 +258,10 @@ const getMyRequests = async (req, res) => {
  */
 const getRequestById = async (req, res) => {
   try {
-    // Request ID from URL parameter
+    // Request ID from URL
     const requestId = req.params.id;
 
+    // Connect to MSSQL
     const pool = await poolPromise;
 
     // Get main request details
@@ -255,23 +277,26 @@ const getRequestById = async (req, res) => {
           s.SubjectName,
           p.PurposeName
         FROM PhotocopyRequests r
-        LEFT JOIN Users u ON r.TeacherId = u.UserId
-        LEFT JOIN Departments d ON r.DepartmentId = d.DepartmentId
-        LEFT JOIN Subjects s ON r.SubjectId = s.SubjectId
-        LEFT JOIN Purposes p ON r.PurposeId = p.PurposeId
+        LEFT JOIN Users u 
+          ON r.TeacherId = u.UserId
+        LEFT JOIN Departments d 
+          ON r.DepartmentId = d.DepartmentId
+        LEFT JOIN Subjects s 
+          ON r.SubjectId = s.SubjectId
+        LEFT JOIN Purposes p 
+          ON r.PurposeId = p.PurposeId
         WHERE r.RequestId = @requestId
       `);
 
     const request = requestResult.recordset[0];
 
-    // Return 404 if request does not exist
     if (!request) {
       return res.status(404).json({
         message: "Request not found",
       });
     }
 
-    // Get approval history for this request
+    // Get approval history
     const approvalResult = await pool
       .request()
       .input("requestId", sql.Int, requestId)
@@ -286,12 +311,13 @@ const getRequestById = async (req, res) => {
           a.Remarks,
           a.ActionDate
         FROM RequestApprovals a
-        LEFT JOIN Users u ON a.ApproverId = u.UserId
+        LEFT JOIN Users u 
+          ON a.ApproverId = u.UserId
         WHERE a.RequestId = @requestId
         ORDER BY a.ActionDate ASC
       `);
 
-    // Get attachments for this request
+    // Get attachments
     const attachmentResult = await pool
       .request()
       .input("requestId", sql.Int, requestId)
@@ -312,6 +338,7 @@ const getRequestById = async (req, res) => {
 
     return res.status(500).json({
       message: "Server error while fetching request details",
+      error: error.message,
     });
   }
 };
@@ -323,9 +350,13 @@ const getRequestById = async (req, res) => {
  */
 const getTeacherDashboard = async (req, res) => {
   try {
+    // Logged-in teacher ID
     const teacherId = req.user.id;
+
+    // Connect to MSSQL
     const pool = await poolPromise;
 
+    // Get dashboard stats
     const statsResult = await pool
       .request()
       .input("teacherId", sql.Int, teacherId)
@@ -340,6 +371,7 @@ const getTeacherDashboard = async (req, res) => {
         WHERE TeacherId = @teacherId
       `);
 
+    // Get recent requests
     const recentResult = await pool
       .request()
       .input("teacherId", sql.Int, teacherId)
@@ -355,9 +387,12 @@ const getTeacherDashboard = async (req, res) => {
           s.SubjectName,
           p.PurposeName
         FROM PhotocopyRequests r
-        LEFT JOIN Departments d ON r.DepartmentId = d.DepartmentId
-        LEFT JOIN Subjects s ON r.SubjectId = s.SubjectId
-        LEFT JOIN Purposes p ON r.PurposeId = p.PurposeId
+        LEFT JOIN Departments d 
+          ON r.DepartmentId = d.DepartmentId
+        LEFT JOIN Subjects s 
+          ON r.SubjectId = s.SubjectId
+        LEFT JOIN Purposes p 
+          ON r.PurposeId = p.PurposeId
         WHERE r.TeacherId = @teacherId
         ORDER BY r.SubmittedAt DESC
       `);

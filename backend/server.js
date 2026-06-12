@@ -21,6 +21,8 @@ const hosRoutes = require("./routes/hosRoutes");
 // Printing Admin routes
 const printingRoutes = require("./routes/printingRoutes");
 
+const lookupRoutes = require("./routes/lookupRoutes");
+
 const app = express();
 
 // ============================================
@@ -59,6 +61,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/requests", requestRoutes);
 app.use("/api/hod", hodRoutes);
 app.use("/api/hos", hosRoutes);
+app.use("/api/lookups", lookupRoutes);
 
 // Printing Admin API route
 app.use("/api/printing", printingRoutes);
