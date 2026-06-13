@@ -1,4 +1,10 @@
-// Material UI components
+// ============================================
+// ARAB UNITY SCHOOL
+// Reusable Request Details Dialog
+// Used by HOD and HOS dashboards
+// Prevents double approve/reject clicks
+// ============================================
+
 import {
   Dialog,
   DialogTitle,
@@ -12,7 +18,6 @@ import {
   Chip,
 } from "@mui/material";
 
-// Reusable request details dialog
 export default function RequestDetailsDialog({
   open,
   request,
@@ -22,53 +27,126 @@ export default function RequestDetailsDialog({
   onApprove,
   onReturn,
   onReject,
+  actionLoading = false,
 }) {
-  // Do not show dialog if no request is selected
+  // Do not render if no request is selected
   if (!request) return null;
 
+  // Status chip color
+  const getStatusColor = (status) => {
+    if (!status) return "default";
+
+    if (status.includes("Rejected")) return "error";
+    if (status.includes("Approved")) return "success";
+    if (status.includes("Forwarded")) return "info";
+    if (status.includes("Completed")) return "success";
+    if (status.includes("Pending")) return "warning";
+
+    return "default";
+  };
+
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
+    <Dialog
+      open={open}
+      onClose={actionLoading ? undefined : onClose}
+      fullWidth
+      maxWidth="md"
+    >
       {/* Dialog title */}
       <DialogTitle fontWeight={700}>
         Request Details - {request.requestNumber}
       </DialogTitle>
 
       <DialogContent>
-        {/* Request information */}
+        {/* Basic request information */}
         <Box sx={{ display: "grid", gap: 1.5, mt: 1 }}>
           <Typography>
-            <strong>Teacher:</strong> {request.teacher}
+            <strong>Teacher:</strong> {request.teacher || "-"}
           </Typography>
 
           <Typography>
-            <strong>Department:</strong> {request.department}
+            <strong>Employee ID:</strong> {request.employeeId || "-"}
           </Typography>
 
           <Typography>
-            <strong>Purpose:</strong> {request.purpose}
+            <strong>Department:</strong> {request.department || "-"}
           </Typography>
 
           <Typography>
-            <strong>Pages:</strong> {request.pages}
+            <strong>Subject:</strong> {request.subject || "-"}
           </Typography>
 
           <Typography>
-            <strong>Copies:</strong> {request.copies}
+            <strong>Purpose:</strong> {request.purpose || "-"}
           </Typography>
 
           <Typography>
-            <strong>Total Sheets:</strong> {request.sheets}
+            <strong>Pages:</strong> {request.pages || 0}
+          </Typography>
+
+          <Typography>
+            <strong>Copies:</strong> {request.copies || 0}
+          </Typography>
+
+          <Typography>
+            <strong>Total Sheets:</strong> {request.sheets || 0}
+          </Typography>
+
+          <Typography>
+            <strong>Priority:</strong> {request.priority || "-"}
+          </Typography>
+
+          <Typography>
+            <strong>Submitted Date:</strong> {request.submittedDate || "-"}
           </Typography>
 
           <Typography>
             <strong>Status:</strong>{" "}
-            <Chip label={request.status} color="warning" size="small" />
+            <Chip
+              label={request.status || "-"}
+              color={getStatusColor(request.status)}
+              size="small"
+            />
           </Typography>
         </Box>
 
         <Divider sx={{ my: 3 }} />
 
-        {/* Attachment section */}
+        {/* Printing information */}
+        <Typography fontWeight={700} sx={{ mb: 1 }}>
+          Printing Details
+        </Typography>
+
+        <Box sx={{ display: "grid", gap: 1.5 }}>
+          <Typography>
+            <strong>Paper Size:</strong> {request.paperSize || "-"}
+          </Typography>
+
+          <Typography>
+            <strong>Print Type:</strong> {request.printType || "-"}
+          </Typography>
+
+          <Typography>
+            <strong>Print Side:</strong> {request.printSide || "-"}
+          </Typography>
+
+          <Typography>
+            <strong>Exam Paper:</strong>{" "}
+            {request.isExam === true || request.isExam === 1 ? "Yes" : "No"}
+          </Typography>
+
+          <Typography>
+            <strong>Due Date:</strong> {request.dueDate || "-"}
+          </Typography>
+
+          <Typography>
+            <strong>Request Remarks:</strong> {request.requestRemarks || "-"}
+          </Typography>
+        </Box>
+
+        <Divider sx={{ my: 3 }} />
+
+        {/* Attachment information */}
         <Typography fontWeight={700} sx={{ mb: 1 }}>
           Attachments
         </Typography>
@@ -87,7 +165,7 @@ export default function RequestDetailsDialog({
 
         <Divider sx={{ my: 3 }} />
 
-        {/* Approval comment box */}
+        {/* Approval comment */}
         <TextField
           label="Approval Comment / Remarks"
           placeholder="Add comment before approving, returning, or rejecting..."
@@ -96,23 +174,41 @@ export default function RequestDetailsDialog({
           fullWidth
           multiline
           minRows={4}
+          disabled={actionLoading}
         />
       </DialogContent>
 
-      {/* Dialog action buttons */}
+      {/* Action buttons */}
       <DialogActions sx={{ px: 3, pb: 3 }}>
-        <Button onClick={onClose}>Cancel</Button>
+        <Button onClick={onClose} disabled={actionLoading}>
+          Cancel
+        </Button>
 
-        <Button color="warning" variant="outlined" onClick={onReturn}>
+        <Button
+          color="warning"
+          variant="outlined"
+          onClick={onReturn}
+          disabled={actionLoading}
+        >
           Return for Revision
         </Button>
 
-        <Button color="error" variant="outlined" onClick={onReject}>
+        <Button
+          color="error"
+          variant="outlined"
+          onClick={onReject}
+          disabled={actionLoading}
+        >
           Reject
         </Button>
 
-        <Button color="success" variant="contained" onClick={onApprove}>
-          Approve
+        <Button
+          color="success"
+          variant="contained"
+          onClick={onApprove}
+          disabled={actionLoading}
+        >
+          {actionLoading ? "Processing..." : "Approve"}
         </Button>
       </DialogActions>
     </Dialog>

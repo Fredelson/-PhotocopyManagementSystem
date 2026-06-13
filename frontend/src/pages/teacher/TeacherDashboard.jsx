@@ -1,7 +1,10 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // Teacher Dashboard Page
+// Connected to Backend KPI API
 // ============================================
+
+import { useEffect, useState } from "react";
 
 import DashboardLayout from "../../layouts/DashboardLayout";
 
@@ -22,8 +25,8 @@ import {
 } from "@mui/icons-material";
 
 import { useAuth } from "../../context/AuthContext";
+import { getTeacherDashboardKpis } from "../../services/teacherDashboardService";
 
-import { dashboardStats } from "../../data/dashboardData";
 import KPIGrid from "../../components/dashboard/KPIGrid";
 import MonthlyUsageChart from "../../components/dashboard/MonthlyUsageChart";
 import PurposeBreakdownChart from "../../components/dashboard/PurposeBreakdownChart";
@@ -36,10 +39,69 @@ import QuickActions from "../../components/dashboard/QuickActions";
 import PurposeUsageTrend from "../../components/dashboard/PurposeUsageTrend";
 
 export default function TeacherDashboard() {
-  // Get logged-in user
   const { user } = useAuth();
 
-  // Icons matched with dashboardStats order
+  const [kpis, setKpis] = useState({
+    totalRequests: 0,
+    totalSheets: 0,
+    totalPages: 0,
+    pendingRequests: 0,
+    approvedRequests: 0,
+    rejectedRequests: 0,
+  });
+
+  useEffect(() => {
+    const loadKpis = async () => {
+      try {
+        const data = await getTeacherDashboardKpis();
+        setKpis(data);
+      } catch (error) {
+        console.error("Failed to load teacher dashboard KPIs:", error);
+      }
+    };
+
+    loadKpis();
+  }, []);
+
+  const dashboardStats = [
+    {
+      title: "Total Requests",
+      value: kpis.totalRequests,
+      change: "Live Data",
+      color: "#4f46e5",
+    },
+    {
+      title: "Total Sheets",
+      value: kpis.totalSheets,
+      change: "Live Data",
+      color: "#0ea5e9",
+    },
+    {
+      title: "Total Pages",
+      value: kpis.totalPages,
+      change: "Live Data",
+      color: "#8b5cf6",
+    },
+    {
+      title: "Pending",
+      value: kpis.pendingRequests,
+      change: "Live Data",
+      color: "#f59e0b",
+    },
+    {
+      title: "Approved",
+      value: kpis.approvedRequests,
+      change: "Live Data",
+      color: "#22c55e",
+    },
+    {
+      title: "Rejected",
+      value: kpis.rejectedRequests,
+      change: "Live Data",
+      color: "#ef4444",
+    },
+  ];
+
   const icons = [
     <Assignment />,
     <Print />,
@@ -59,17 +121,15 @@ export default function TeacherDashboard() {
         />
       }
     >
-      {/* Page Header */}
       <PageHeader
         title={`Welcome Back, ${user?.fullName || "Teacher"}! 👋`}
         subtitle="Here's your request summary and activity overview."
-        action={<DateFilter label="May 1 - May 31, 2025" />}
+        action={<DateFilter label="Live Dashboard" />}
       />
 
-      {/* KPI Cards */}
+      {/* Live KPI Cards */}
       <KPIGrid stats={dashboardStats} icons={icons} />
 
-      {/* Analytics Section */}
       <Box
         sx={{
           mt: 4,
@@ -86,7 +146,6 @@ export default function TeacherDashboard() {
         <StatusOverview />
       </Box>
 
-      {/* Operations Section */}
       <Box
         sx={{
           mt: 4,
@@ -103,7 +162,6 @@ export default function TeacherDashboard() {
         <AttachmentSummary />
       </Box>
 
-      {/* Bottom Dashboard Section */}
       <Box
         sx={{
           mt: 4,
