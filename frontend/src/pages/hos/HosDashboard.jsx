@@ -2,14 +2,14 @@
 // ARAB UNITY SCHOOL
 // HOS Dashboard Page
 // Connected to Backend Live Data
+// Updated to use new responsive DashboardLayout + Topbar
 // ============================================
 
-// React hooks
 import { useEffect, useState } from "react";
 
 // Layout components
 import DashboardLayout from "../../layouts/DashboardLayout";
-import Sidebar from "../../components/common/Sidebar";
+import Sidebar from "../../components/sidebar/Sidebar";
 import Topbar from "../../components/common/Topbar";
 import PageHeader from "../../components/common/PageHeader";
 import DateFilter from "../../components/common/DateFilter";
@@ -49,10 +49,8 @@ import {
 } from "../../services/hosService";
 
 export default function HosDashboard() {
-  // Get logged-in user
   const { user } = useAuth();
 
-  // HOS KPI state
   const [dashboard, setDashboard] = useState({
     TotalRequests: 0,
     PendingReview: 0,
@@ -61,22 +59,16 @@ export default function HosDashboard() {
     Completed: 0,
   });
 
-  // HOS request list state
   const [requests, setRequests] = useState([]);
-
-  // Real approval history from RequestApprovals table
   const [approvalHistory, setApprovalHistory] = useState([]);
 
-  // Dialog states
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [comment, setComment] = useState("");
 
-  // Page loading/error states
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Convert HOS request backend data to frontend format
   const mapRequest = (item) => ({
     id: item.RequestId,
     requestNumber: item.RequestNumber,
@@ -96,35 +88,28 @@ export default function HosDashboard() {
     isExam: item.IsExam,
     requestRemarks: item.RequestRemarks,
 
-    // Raw date for sorting/charts
     rawSubmittedAt: item.SubmittedAt,
 
-    // Display date
     submittedDate: item.SubmittedAt
       ? new Date(item.SubmittedAt).toLocaleDateString()
       : "-",
 
-    // HOD approved date before forwarding to HOS
     approvedAt: item.ApprovedAt
       ? new Date(item.ApprovedAt).toLocaleDateString()
       : "-",
 
-    // HOS approval data
     approvalRemarks: item.ApprovalRemarks,
     approvalStatus: item.ApprovalStatus,
 
-    // HOS action date
     actionDate: item.ActionDate
       ? new Date(item.ActionDate).toLocaleDateString()
       : "-",
 
-    // Due date if available
     dueDate: item.DueDate
       ? new Date(item.DueDate).toLocaleDateString()
       : "-",
   });
 
-  // Convert HOS approval history backend data to frontend format
   const mapApprovalHistory = (item) => ({
     approvalId: item.ApprovalId,
     requestId: item.RequestId,
@@ -158,24 +143,18 @@ export default function HosDashboard() {
       : "-",
   });
 
-  // Fetch HOS dashboard data
   const fetchHosData = async () => {
     try {
       setLoading(true);
       setError("");
 
-      // Load KPI, request list, and approval history together
-      const [
-        dashboardData,
-        requestsData,
-        historyData,
-      ] = await Promise.all([
-        getHosDashboard(),
-        getHosRequests(),
-        getHosApprovalHistory(),
-      ]);
+      const [dashboardData, requestsData, historyData] =
+        await Promise.all([
+          getHosDashboard(),
+          getHosRequests(),
+          getHosApprovalHistory(),
+        ]);
 
-      // Save KPI values
       setDashboard({
         TotalRequests: dashboardData.TotalRequests || 0,
         PendingReview: dashboardData.PendingReview || 0,
@@ -184,10 +163,7 @@ export default function HosDashboard() {
         Completed: dashboardData.Completed || 0,
       });
 
-      // Save formatted requests
       setRequests(requestsData.map(mapRequest));
-
-      // Save formatted approval history
       setApprovalHistory(historyData.map(mapApprovalHistory));
     } catch (err) {
       console.error("Fetch HOS Data Error:", err.response?.data || err);
@@ -201,12 +177,10 @@ export default function HosDashboard() {
     }
   };
 
-  // Load dashboard when page opens
   useEffect(() => {
     fetchHosData();
   }, []);
 
-  // HOS KPI card data
   const hosDashboardStats = [
     {
       title: "Total Requests",
@@ -235,7 +209,6 @@ export default function HosDashboard() {
     },
   ];
 
-  // KPI icons matched with KPI cards
   const icons = [
     <Assignment />,
     <PendingActions />,
@@ -244,21 +217,18 @@ export default function HosDashboard() {
     <TaskAlt />,
   ];
 
-  // Open request review dialog
   const handleReview = (request) => {
     setSelectedRequest(request);
     setComment("");
     setOpenDialog(true);
   };
 
-  // Close request review dialog
   const handleClose = () => {
     setOpenDialog(false);
     setSelectedRequest(null);
     setComment("");
   };
 
-  // Approve selected request
   const handleApprove = async () => {
     if (!selectedRequest) {
       alert("No request selected.");
@@ -285,7 +255,6 @@ export default function HosDashboard() {
     }
   };
 
-  // Reject selected request
   const handleReject = async () => {
     if (!selectedRequest) {
       alert("No request selected.");
@@ -314,7 +283,6 @@ export default function HosDashboard() {
     }
   };
 
-  // Return request placeholder
   const handleReturn = () => {
     alert("Return request API is not created yet.");
   };
@@ -322,14 +290,14 @@ export default function HosDashboard() {
   return (
     <DashboardLayout
       sidebar={<Sidebar role="hos" />}
-      topbar={
-        <Topbar
-          userName={user?.fullName || "HOS"}
-          role={user?.role || "HOS"}
-        />
-      }
+
+      // IMPORTANT:
+      // DashboardLayout now passes handleMenuClick to Topbar.
+      // This keeps the mobile hamburger menu working.
+      topbar={(handleMenuClick) => (
+        <Topbar onMenuClick={handleMenuClick} />
+      )}
     >
-      {/* Page header */}
       <PageHeader
         title={`${user?.displayRole || "HOS"} Dashboard`}
         subtitle={`Welcome back, ${
@@ -340,22 +308,18 @@ export default function HosDashboard() {
         action={<DateFilter label="May 1 - May 31, 2025" />}
       />
 
-      {/* Error display */}
       {error && (
         <Alert severity="error" sx={{ mb: 3 }}>
           {error}
         </Alert>
       )}
 
-      {/* Loading display */}
       {loading ? (
         <Typography>Loading HOS dashboard data...</Typography>
       ) : (
         <>
-          {/* KPI cards */}
           <KPIGrid stats={hosDashboardStats} icons={icons} />
 
-          {/* Charts */}
           <Box
             sx={{
               mt: 4,
@@ -371,7 +335,6 @@ export default function HosDashboard() {
             <DepartmentDistributionChart requests={requests} />
           </Box>
 
-          {/* HOS pending requests table */}
           <Box sx={{ mt: 4 }}>
             <HosPendingRequestsTable
               requests={requests}
@@ -379,24 +342,20 @@ export default function HosDashboard() {
             />
           </Box>
 
-          {/* Recent approved requests */}
           <Box sx={{ mt: 4 }}>
             <RecentApprovedRequests requests={requests} />
           </Box>
 
-          {/* Recent rejected requests */}
           <Box sx={{ mt: 4 }}>
             <RecentRejectedRequests requests={requests} />
           </Box>
 
-          {/* Real approval history */}
           <Box sx={{ mt: 4 }}>
             <ApprovalHistory history={approvalHistory} />
           </Box>
         </>
       )}
 
-      {/* Review dialog */}
       <RequestDetailsDialog
         open={openDialog}
         request={selectedRequest}
