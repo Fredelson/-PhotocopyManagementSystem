@@ -1,7 +1,10 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // HOS Pending Requests Table
-// Large Requests Awaiting HOS Approval
+// Shows Large Requests Awaiting HOS Approval
+// Supports both backend status names:
+// 1. Forwarded to HOS
+// 2. Pending HOS Approval
 // ============================================
 
 import {
@@ -23,13 +26,20 @@ export default function HosPendingRequestsTable({
   onReview,
 }) {
   // ============================================
-  // Show only requests currently awaiting HOS
+  // Filter only requests waiting for HOS action
+  // IMPORTANT:
+  // Your teacher page shows "Pending HOS Approval"
+  // but backend sometimes uses "Forwarded to HOS"
+  // so we allow both.
   // ============================================
-  const pendingRequests = requests.filter(
-    (request) =>
-      request.status?.toLowerCase() ===
-      "forwarded to hos"
-  );
+  const pendingRequests = requests.filter((request) => {
+    const status = request.status?.toLowerCase().trim();
+
+    return (
+      status === "forwarded to hos" ||
+      status === "pending hos approval"
+    );
+  });
 
   return (
     <DashboardCard title="Large Requests Awaiting HOS Approval">
@@ -51,32 +61,26 @@ export default function HosPendingRequestsTable({
           </TableHead>
 
           <TableBody>
-            {/* Empty State */}
+            {/* Empty state */}
             {pendingRequests.length === 0 && (
               <TableRow>
-                <TableCell
-                  colSpan={8}
-                  align="center"
-                >
-                  <Typography
-                    color="text.secondary"
-                  >
-                    No requests awaiting HOS
-                    approval.
+                <TableCell colSpan={8} align="center">
+                  <Typography color="text.secondary">
+                    No requests awaiting HOS approval.
                   </Typography>
                 </TableCell>
               </TableRow>
             )}
 
-            {/* Pending Requests */}
+            {/* Pending HOS request rows */}
             {pendingRequests.map((request) => (
               <TableRow key={request.id}>
-                {/* Request Number */}
+                {/* Request number */}
                 <TableCell>
                   {request.requestNumber}
                 </TableCell>
 
-                {/* Teacher */}
+                {/* Teacher name */}
                 <TableCell>
                   {request.teacher}
                 </TableCell>
@@ -88,10 +92,10 @@ export default function HosPendingRequestsTable({
 
                 {/* Subject */}
                 <TableCell>
-                  {request.subject}
+                  {request.subject || "-"}
                 </TableCell>
 
-                {/* Total Sheets */}
+                {/* Total sheets */}
                 <TableCell>
                   {request.sheets}
                 </TableCell>
@@ -99,15 +103,13 @@ export default function HosPendingRequestsTable({
                 {/* Priority */}
                 <TableCell>
                   <Chip
-                    label={
-                      request.priority ||
-                      "Normal"
-                    }
+                    label={request.priority || "Normal"}
                     size="small"
                     color={
-                      request.priority ===
-                      "High"
+                      request.priority === "Urgent"
                         ? "error"
+                        : request.priority === "High"
+                        ? "warning"
                         : "default"
                     }
                   />
@@ -122,14 +124,12 @@ export default function HosPendingRequestsTable({
                   />
                 </TableCell>
 
-                {/* Review Button */}
+                {/* Review action */}
                 <TableCell align="right">
                   <Button
                     variant="contained"
                     size="small"
-                    onClick={() =>
-                      onReview(request)
-                    }
+                    onClick={() => onReview(request)}
                   >
                     Final Review
                   </Button>

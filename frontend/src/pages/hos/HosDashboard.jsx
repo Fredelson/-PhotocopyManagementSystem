@@ -2,22 +2,20 @@
 // ARAB UNITY SCHOOL
 // HOS Dashboard Page
 // Connected to Backend Live Data
-// Updated to use new responsive DashboardLayout + Topbar
+// Recent Approved / Rejected / History in same grid
+// Shows latest top 5 records
 // ============================================
 
 import { useEffect, useState } from "react";
 
-// Layout components
 import DashboardLayout from "../../layouts/DashboardLayout";
 import Sidebar from "../../components/sidebar/Sidebar";
 import Topbar from "../../components/common/Topbar";
 import PageHeader from "../../components/common/PageHeader";
 import DateFilter from "../../components/common/DateFilter";
 
-// MUI components
 import { Box, Alert, Typography } from "@mui/material";
 
-// MUI icons
 import {
   Assignment,
   PendingActions,
@@ -26,7 +24,6 @@ import {
   TaskAlt,
 } from "@mui/icons-material";
 
-// Dashboard components
 import KPIGrid from "../../components/dashboard/KPIGrid";
 import RequestDetailsDialog from "../../components/dashboard/RequestDetailsDialog";
 import HodApprovalTrend from "../../components/dashboard/HodApprovalTrend";
@@ -36,10 +33,8 @@ import ApprovalHistory from "../../components/dashboard/ApprovalHistory";
 import HosPendingRequestsTable from "../../components/dashboard/HosPendingRequestsTable";
 import RecentRejectedRequests from "../../components/dashboard/RecentRejectedRequests";
 
-// Auth context
 import { useAuth } from "../../context/AuthContext";
 
-// HOS API services
 import {
   getHosDashboard,
   getHosRequests,
@@ -69,31 +64,40 @@ export default function HosDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // ============================================
+  // Format HOS request records from backend
+  // ============================================
   const mapRequest = (item) => ({
     id: item.RequestId,
     requestNumber: item.RequestNumber,
+
     teacher: item.TeacherName,
     employeeId: item.EmployeeId,
+
     department: item.DepartmentName,
     subject: item.SubjectName,
     purpose: item.PurposeName,
+
     pages: item.TotalPages,
     sheets: item.TotalSheets,
     copies: item.Copies,
+
     priority: item.PriorityLevel,
     status: item.Status,
+
     paperSize: item.PaperSize,
     printType: item.PrintType,
     printSide: item.PrintSide,
     isExam: item.IsExam,
+
     requestRemarks: item.RequestRemarks,
 
     rawSubmittedAt: item.SubmittedAt,
-
     submittedDate: item.SubmittedAt
       ? new Date(item.SubmittedAt).toLocaleDateString()
       : "-",
 
+    rawApprovedAt: item.ApprovedAt,
     approvedAt: item.ApprovedAt
       ? new Date(item.ApprovedAt).toLocaleDateString()
       : "-",
@@ -101,15 +105,20 @@ export default function HosDashboard() {
     approvalRemarks: item.ApprovalRemarks,
     approvalStatus: item.ApprovalStatus,
 
+    rawActionDate: item.ActionDate,
     actionDate: item.ActionDate
       ? new Date(item.ActionDate).toLocaleDateString()
       : "-",
 
+    rawDueDate: item.DueDate,
     dueDate: item.DueDate
       ? new Date(item.DueDate).toLocaleDateString()
       : "-",
   });
 
+  // ============================================
+  // Format HOS approval history records
+  // ============================================
   const mapApprovalHistory = (item) => ({
     approvalId: item.ApprovalId,
     requestId: item.RequestId,
@@ -143,6 +152,9 @@ export default function HosDashboard() {
       : "-",
   });
 
+  // ============================================
+  // Fetch all HOS dashboard data
+  // ============================================
   const fetchHosData = async () => {
     try {
       setLoading(true);
@@ -181,6 +193,9 @@ export default function HosDashboard() {
     fetchHosData();
   }, []);
 
+  // ============================================
+  // KPI Cards
+  // ============================================
   const hosDashboardStats = [
     {
       title: "Total Requests",
@@ -217,6 +232,38 @@ export default function HosDashboard() {
     <TaskAlt />,
   ];
 
+  // ============================================
+  // Top 5 recent records
+  // ============================================
+  const recentApprovedRequests = requests
+    .filter((request) => request.status === "Approved by HOS")
+    .sort(
+      (a, b) =>
+        new Date(b.rawApprovedAt || b.rawActionDate || b.rawSubmittedAt) -
+        new Date(a.rawApprovedAt || a.rawActionDate || a.rawSubmittedAt)
+    )
+    .slice(0, 5);
+
+  const recentRejectedRequests = requests
+    .filter((request) => request.status === "Rejected by HOS")
+    .sort(
+      (a, b) =>
+        new Date(b.rawActionDate || b.rawSubmittedAt) -
+        new Date(a.rawActionDate || a.rawSubmittedAt)
+    )
+    .slice(0, 5);
+
+  const recentApprovalHistory = approvalHistory
+    .sort(
+      (a, b) =>
+        new Date(b.rawActionDate || b.rawSubmittedAt) -
+        new Date(a.rawActionDate || a.rawSubmittedAt)
+    )
+    .slice(0, 5);
+
+  // ============================================
+  // Dialog Actions
+  // ============================================
   const handleReview = (request) => {
     setSelectedRequest(request);
     setComment("");
@@ -290,10 +337,6 @@ export default function HosDashboard() {
   return (
     <DashboardLayout
       sidebar={<Sidebar role="hos" />}
-
-      // IMPORTANT:
-      // DashboardLayout now passes handleMenuClick to Topbar.
-      // This keeps the mobile hamburger menu working.
       topbar={(handleMenuClick) => (
         <Topbar onMenuClick={handleMenuClick} />
       )}
@@ -320,6 +363,7 @@ export default function HosDashboard() {
         <>
           <KPIGrid stats={hosDashboardStats} icons={icons} />
 
+          {/* Charts Section */}
           <Box
             sx={{
               mt: 4,
@@ -335,6 +379,7 @@ export default function HosDashboard() {
             <DepartmentDistributionChart requests={requests} />
           </Box>
 
+          {/* Pending Large Requests */}
           <Box sx={{ mt: 4 }}>
             <HosPendingRequestsTable
               requests={requests}
@@ -342,16 +387,31 @@ export default function HosDashboard() {
             />
           </Box>
 
-          <Box sx={{ mt: 4 }}>
-            <RecentApprovedRequests requests={requests} />
-          </Box>
+          {/* Recent Approved, Rejected, and Approval History */}
+          <Box
+            sx={{
+              mt: 4,
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                md: "1fr",
+                lg: "1fr 1fr 1fr",
+              },
+              gap: 3,
+              alignItems: "stretch",
+            }}
+          >
+            <RecentApprovedRequests
+              requests={recentApprovedRequests}
+            />
 
-          <Box sx={{ mt: 4 }}>
-            <RecentRejectedRequests requests={requests} />
-          </Box>
+            <RecentRejectedRequests
+              requests={recentRejectedRequests}
+            />
 
-          <Box sx={{ mt: 4 }}>
-            <ApprovalHistory history={approvalHistory} />
+            <ApprovalHistory
+              history={recentApprovalHistory}
+            />
           </Box>
         </>
       )}

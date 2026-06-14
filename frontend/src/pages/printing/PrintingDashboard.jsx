@@ -2,6 +2,8 @@
 // ARAB UNITY SCHOOL
 // Printing Admin Dashboard
 // Connected to Backend Live Data
+// Includes KPI Cards, Print Queue, Start Printing,
+// Complete Printing, and Recent Printing History
 // ============================================
 
 // React hooks
@@ -53,11 +55,14 @@ import {
 } from "../../services/printingService";
 
 export default function PrintingDashboard() {
-  // Get logged-in user
+  // ============================================
+  // Logged-in user from AuthContext
+  // ============================================
   const { user } = useAuth();
 
   // ============================================
-  // KPI state
+  // Dashboard KPI State
+  // Values are loaded from GET /api/printing/dashboard
   // ============================================
   const [dashboard, setDashboard] = useState({
     TotalAssigned: 0,
@@ -67,36 +72,51 @@ export default function PrintingDashboard() {
     CompletedToday: 0,
   });
 
-  // Print queue requests
+  // ============================================
+  // Print queue request list
+  // Loaded from GET /api/printing/requests
+  // ============================================
   const [requests, setRequests] = useState([]);
 
-  // Printing history
+  // ============================================
+  // Printing history list
+  // Loaded from GET /api/printing/history
+  // ============================================
   const [history, setHistory] = useState([]);
 
-  // Page loading/error states
+  // ============================================
+  // Page state
+  // ============================================
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   // ============================================
   // Convert backend request data to frontend format
+  // This keeps the JSX clean and easy to read
   // ============================================
   const mapRequest = (item) => ({
     id: item.RequestId,
     requestNumber: item.RequestNumber,
+
     teacher: item.TeacherName,
     employeeId: item.EmployeeId,
+
     department: item.DepartmentName,
     subject: item.SubjectName,
     purpose: item.PurposeName,
+
     copies: item.Copies,
     pages: item.TotalPages,
     sheets: item.TotalSheets,
+
     priority: item.PriorityLevel,
     status: item.Status,
+
     paperSize: item.PaperSize,
     printType: item.PrintType,
     printSide: item.PrintSide,
     isExam: item.IsExam,
+
     requestRemarks: item.RequestRemarks,
 
     submittedDate: item.SubmittedAt
@@ -117,20 +137,25 @@ export default function PrintingDashboard() {
   });
 
   // ============================================
-  // Convert backend printing history to frontend format
+  // Convert backend printing history data
+  // to frontend format
   // ============================================
   const mapHistory = (item) => ({
     id: item.PrintingLogId,
     requestId: item.RequestId,
     requestNumber: item.RequestNumber,
+
     teacher: item.TeacherName,
     employeeId: item.EmployeeId,
+
     department: item.DepartmentName,
     subject: item.SubjectName,
     purpose: item.PurposeName,
+
     printedBy: item.PrintedByName,
     printedPages: item.PrintedPages,
     printedSheets: item.PrintedSheets,
+
     remarks: item.Remarks,
     status: item.Status,
 
@@ -140,7 +165,8 @@ export default function PrintingDashboard() {
   });
 
   // ============================================
-  // Fetch dashboard, print queue, and history
+  // Fetch dashboard, print queue, and printing history
+  // This runs when the page opens and after actions
   // ============================================
   const fetchPrintingData = async () => {
     try {
@@ -154,6 +180,7 @@ export default function PrintingDashboard() {
           getPrintingHistory(),
         ]);
 
+      // Save KPI data
       setDashboard({
         TotalAssigned: dashboardData.TotalAssigned || 0,
         PendingPrintQueue: dashboardData.PendingPrintQueue || 0,
@@ -162,7 +189,10 @@ export default function PrintingDashboard() {
         CompletedToday: dashboardData.CompletedToday || 0,
       });
 
+      // Save formatted queue data
       setRequests(requestsData.map(mapRequest));
+
+      // Save formatted history data
       setHistory(historyData.map(mapHistory));
     } catch (err) {
       console.error(
@@ -179,13 +209,16 @@ export default function PrintingDashboard() {
     }
   };
 
-  // Load data when page opens
+  // ============================================
+  // Load printing data on first page render
+  // ============================================
   useEffect(() => {
     fetchPrintingData();
   }, []);
 
   // ============================================
   // Start printing request
+  // Calls PUT /api/printing/requests/:id/start
   // ============================================
   const handleStartPrinting = async (requestId) => {
     try {
@@ -193,6 +226,7 @@ export default function PrintingDashboard() {
 
       alert("Printing started successfully.");
 
+      // Refresh dashboard after action
       await fetchPrintingData();
     } catch (err) {
       console.error(
@@ -209,6 +243,7 @@ export default function PrintingDashboard() {
 
   // ============================================
   // Complete printing request
+  // Calls PUT /api/printing/requests/:id/complete
   // ============================================
   const handleCompletePrinting = async (requestId) => {
     try {
@@ -219,6 +254,7 @@ export default function PrintingDashboard() {
 
       alert("Printing completed successfully.");
 
+      // Refresh dashboard after action
       await fetchPrintingData();
     } catch (err) {
       console.error(
@@ -234,7 +270,7 @@ export default function PrintingDashboard() {
   };
 
   // ============================================
-  // KPI cards
+  // KPI cards shown at the top
   // ============================================
   const printingStats = [
     {
@@ -259,7 +295,9 @@ export default function PrintingDashboard() {
     },
   ];
 
-  // KPI icons
+  // ============================================
+  // Icons for KPI cards
+  // ============================================
   const icons = [
     <Assignment />,
     <PendingActions />,
@@ -270,17 +308,20 @@ export default function PrintingDashboard() {
   return (
     <DashboardLayout
       sidebar={<Sidebar role="printing" />}
-      topbar={
-        <Topbar
-          userName={user?.fullName || "Printing Admin"}
-          role={user?.role || "PrintingAdmin"}
-        />
-      }
+
+      // Important:
+      // Use function topbar so DashboardLayout can pass
+      // mobile hamburger menu click handler
+      topbar={(handleMenuClick) => (
+        <Topbar onMenuClick={handleMenuClick} />
+      )}
     >
       {/* Page header */}
       <PageHeader
         title="Printing Dashboard"
-        subtitle="Manage approved photocopy requests and printing completion."
+        subtitle={`Welcome back, ${
+          user?.fullName || "Printing Admin"
+        }. Manage approved photocopy requests and printing completion.`}
         action={<DateFilter label="May 1 - May 31, 2025" />}
       />
 
@@ -291,7 +332,7 @@ export default function PrintingDashboard() {
         </Alert>
       )}
 
-      {/* Loading state */}
+      {/* Loading message */}
       {loading ? (
         <Typography>Loading printing dashboard data...</Typography>
       ) : (
@@ -299,7 +340,9 @@ export default function PrintingDashboard() {
           {/* KPI cards */}
           <KPIGrid stats={printingStats} icons={icons} />
 
+          {/* ============================================ */}
           {/* Print Queue Table */}
+          {/* ============================================ */}
           <Box sx={{ mt: 4 }}>
             <DashboardCard title="Print Queue">
               <Box sx={{ overflowX: "auto" }}>
@@ -361,6 +404,8 @@ export default function PrintingDashboard() {
                             color={
                               request.priority === "Urgent"
                                 ? "error"
+                                : request.priority === "High"
+                                ? "warning"
                                 : "default"
                             }
                           />
@@ -379,7 +424,7 @@ export default function PrintingDashboard() {
                         </TableCell>
 
                         <TableCell align="right">
-                          {/* Start Printing */}
+                          {/* Start Printing button */}
                           {request.status !== "Printing" && (
                             <Button
                               variant="contained"
@@ -393,7 +438,7 @@ export default function PrintingDashboard() {
                             </Button>
                           )}
 
-                          {/* Complete Printing */}
+                          {/* Complete Printing button */}
                           {request.status === "Printing" && (
                             <Button
                               variant="contained"
@@ -415,9 +460,12 @@ export default function PrintingDashboard() {
             </DashboardCard>
           </Box>
 
-          {/* Printing History */}
+          {/* ============================================ */}
+          {/* Recent Printing History Table */}
+          {/* Shows latest top 5 only */}
+          {/* ============================================ */}
           <Box sx={{ mt: 4 }}>
-            <DashboardCard title="Printing History">
+            <DashboardCard title="Recent Printing History">
               <Box sx={{ overflowX: "auto" }}>
                 <Table>
                   <TableHead>
@@ -444,8 +492,8 @@ export default function PrintingDashboard() {
                       </TableRow>
                     )}
 
-                    {/* History rows */}
-                    {history.map((item) => (
+                    {/* Recent top 5 history rows only */}
+                    {history.slice(0, 5).map((item) => (
                       <TableRow key={item.id}>
                         <TableCell>
                           {item.requestNumber}
