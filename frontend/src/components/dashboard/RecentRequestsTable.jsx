@@ -2,7 +2,7 @@
 // ARAB UNITY SCHOOL
 // Teacher Dashboard
 // Recent Requests Table Component
-// Uses reusable StatusChip
+// Connected to live backend dashboard data
 // ============================================
 
 import {
@@ -24,14 +24,25 @@ import DownloadIcon from "@mui/icons-material/Download";
 
 import StatusChip from "../common/StatusChip";
 
-// Centralized mock data
-import { recentRequestsData } from "../../data/dashboardData";
+// ============================================
+// Format Submitted Date
+// ============================================
+
+const formatDate = (dateValue) => {
+  if (!dateValue) return "-";
+
+  return new Date(dateValue).toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
 
 // ============================================
 // Recent Requests Table Component
 // ============================================
 
-export default function RecentRequestsTable() {
+export default function RecentRequestsTable({ requests = [] }) {
   return (
     <Card
       sx={{
@@ -85,42 +96,60 @@ export default function RecentRequestsTable() {
             </TableHead>
 
             <TableBody>
-              {recentRequestsData.map((request) => (
-                <TableRow key={request.id} hover>
-                  <TableCell sx={{ fontWeight: 700 }}>
-                    {request.id}
-                  </TableCell>
-
-                  <TableCell>{request.purpose}</TableCell>
-                  <TableCell>{request.sheets}</TableCell>
-                  <TableCell>{request.pages}</TableCell>
-
-                  <TableCell>
-                    <StatusChip status={request.status} />
-                  </TableCell>
-
-                  <TableCell>{request.submittedDate}</TableCell>
-
-                  <TableCell align="right">
-                    <VisibilityIcon
-                      sx={{
-                        fontSize: 18,
-                        mr: 1,
-                        color: "#1E3A8A",
-                        cursor: "pointer",
-                      }}
-                    />
-
-                    <DownloadIcon
-                      sx={{
-                        fontSize: 18,
-                        color: "#1E3A8A",
-                        cursor: "pointer",
-                      }}
-                    />
+              {requests.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} align="center">
+                    No recent requests found.
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                requests.map((request) => (
+                  <TableRow key={request.RequestId} hover>
+                    <TableCell sx={{ fontWeight: 700 }}>
+                      {request.RequestNumber || "-"}
+                    </TableCell>
+
+                    <TableCell>
+                      {request.PurposeName || "-"}
+                    </TableCell>
+
+                    <TableCell>
+                      {request.TotalSheets || 0}
+                    </TableCell>
+
+                    <TableCell>
+                      {request.TotalPages || 0}
+                    </TableCell>
+
+                    <TableCell>
+                      <StatusChip status={request.Status} />
+                    </TableCell>
+
+                    <TableCell>
+                      {formatDate(request.SubmittedAt)}
+                    </TableCell>
+
+                    <TableCell align="right">
+                      <VisibilityIcon
+                        sx={{
+                          fontSize: 18,
+                          mr: 1,
+                          color: "#1E3A8A",
+                          cursor: "pointer",
+                        }}
+                      />
+
+                      <DownloadIcon
+                        sx={{
+                          fontSize: 18,
+                          color: "#1E3A8A",
+                          cursor: "pointer",
+                        }}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </TableContainer>
@@ -131,7 +160,7 @@ export default function RecentRequestsTable() {
           color="text.secondary"
           sx={{ mt: 2 }}
         >
-          Showing {recentRequestsData.length} recent requests
+          Showing {requests.length} recent requests
         </Typography>
       </CardContent>
     </Card>

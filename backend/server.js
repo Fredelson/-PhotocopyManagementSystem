@@ -1,6 +1,7 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // Backend Server
+// Main Express API entry point
 // ============================================
 
 require("dotenv").config();
@@ -13,21 +14,29 @@ const { poolPromise } = require("./config/db");
 // ============================================
 // Routes
 // ============================================
+
 const authRoutes = require("./routes/authRoutes");
 const requestRoutes = require("./routes/requestRoutes");
 const hodRoutes = require("./routes/hodRoutes");
 const hosRoutes = require("./routes/hosRoutes");
+const lookupRoutes = require("./routes/lookupRoutes");
+
+// Teacher Dashboard routes
+const teacherDashboardRoutes = require("./routes/teacherDashboardRoutes");
 
 // Printing Admin routes
 const printingRoutes = require("./routes/printingRoutes");
 
-const lookupRoutes = require("./routes/lookupRoutes");
+// ============================================
+// Initialize Express App
+// ============================================
 
 const app = express();
 
 // ============================================
 // Middleware
 // ============================================
+
 app.use(cors());
 
 // Allow large JSON request bodies
@@ -45,8 +54,9 @@ app.use(
 );
 
 // ============================================
-// Health Check
+// Health Check Route
 // ============================================
+
 app.get("/", (req, res) => {
   res.json({
     success: true,
@@ -57,11 +67,16 @@ app.get("/", (req, res) => {
 // ============================================
 // API Routes
 // ============================================
+
 app.use("/api/auth", authRoutes);
 app.use("/api/requests", requestRoutes);
 app.use("/api/hod", hodRoutes);
 app.use("/api/hos", hosRoutes);
 app.use("/api/lookups", lookupRoutes);
+
+// Teacher Dashboard API route
+// Example: GET /api/teacher/dashboard/kpis
+app.use("/api/teacher/dashboard", teacherDashboardRoutes);
 
 // Printing Admin API route
 app.use("/api/printing", printingRoutes);
@@ -69,6 +84,7 @@ app.use("/api/printing", printingRoutes);
 // ============================================
 // Start Server
 // ============================================
+
 const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {

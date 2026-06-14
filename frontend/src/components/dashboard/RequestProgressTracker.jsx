@@ -3,6 +3,7 @@
 // Photocopy Management System
 // Teacher Dashboard
 // Request Progress Tracker Component
+// Connected to latest live request status
 // ============================================
 
 import {
@@ -16,9 +17,60 @@ import {
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
 
-import { requestProgressData } from "../../data/dashboardData";
+// ============================================
+// Build Progress Steps Based on Request Status
+// ============================================
 
-export default function RequestProgressTracker() {
+const buildProgressSteps = (status) => {
+  const normalizedStatus = status || "";
+
+  return [
+    {
+      label: "Submitted",
+      description: "Request has been submitted by teacher",
+      completed: true,
+    },
+    {
+      label: "Pending HOD",
+      description: "Waiting for HOD review and approval",
+      completed:
+        normalizedStatus.includes("HOD") ||
+        normalizedStatus.includes("HOS") ||
+        normalizedStatus.includes("Approved") ||
+        normalizedStatus.includes("Completed"),
+    },
+    {
+      label: "Pending HOS",
+      description: "Waiting for HOS review and approval",
+      completed:
+        normalizedStatus.includes("HOS") ||
+        normalizedStatus.includes("Approved") ||
+        normalizedStatus.includes("Completed"),
+    },
+    {
+      label: "Approved",
+      description: "Request approved for printing",
+      completed:
+        normalizedStatus.includes("Approved") ||
+        normalizedStatus.includes("Completed"),
+    },
+    {
+      label: "Completed",
+      description: "Request completed by printing team",
+      completed: normalizedStatus.includes("Completed"),
+    },
+  ];
+};
+
+// ============================================
+// Request Progress Tracker Component
+// ============================================
+
+export default function RequestProgressTracker({ request }) {
+  const steps = request
+    ? buildProgressSteps(request.Status)
+    : [];
+
   return (
     <Card
       sx={{
@@ -41,44 +93,62 @@ export default function RequestProgressTracker() {
             Request Progress Tracker
           </Typography>
 
-          <Chip label="Latest" size="small" color="primary" />
+          <Chip
+            label={request?.RequestNumber || "Latest"}
+            size="small"
+            color="primary"
+          />
         </Box>
 
-        {/* Progress Steps */}
-        <Box>
-          {requestProgressData.map((step, index) => (
-            <Box
-              key={step.label}
-              sx={{
-                display: "flex",
-                gap: 1.5,
-                mb: index === requestProgressData.length - 1 ? 0 : 2,
-              }}
-            >
-              {/* Step Icon */}
-              <Box>
-                {step.completed ? (
-                  <CheckCircleIcon sx={{ color: "#10B981", fontSize: 22 }} />
-                ) : (
-                  <RadioButtonUncheckedIcon
-                    sx={{ color: "#94A3B8", fontSize: 22 }}
-                  />
-                )}
-              </Box>
+        {/* Empty State */}
+        {!request ? (
+          <Typography color="text.secondary" fontSize={14}>
+            No recent request found.
+          </Typography>
+        ) : (
+          <Box>
+            {steps.map((step, index) => (
+              <Box
+                key={step.label}
+                sx={{
+                  display: "flex",
+                  gap: 1.5,
+                  mb: index === steps.length - 1 ? 0 : 2,
+                }}
+              >
+                {/* Step Icon */}
+                <Box>
+                  {step.completed ? (
+                    <CheckCircleIcon
+                      sx={{
+                        color: "#10B981",
+                        fontSize: 22,
+                      }}
+                    />
+                  ) : (
+                    <RadioButtonUncheckedIcon
+                      sx={{
+                        color: "#94A3B8",
+                        fontSize: 22,
+                      }}
+                    />
+                  )}
+                </Box>
 
-              {/* Step Text */}
-              <Box>
-                <Typography fontWeight={700} fontSize={14}>
-                  {step.label}
-                </Typography>
+                {/* Step Text */}
+                <Box>
+                  <Typography fontWeight={700} fontSize={14}>
+                    {step.label}
+                  </Typography>
 
-                <Typography color="text.secondary" fontSize={12}>
-                  {step.description}
-                </Typography>
+                  <Typography color="text.secondary" fontSize={12}>
+                    {step.description}
+                  </Typography>
+                </Box>
               </Box>
-            </Box>
-          ))}
-        </Box>
+            ))}
+          </Box>
+        )}
       </CardContent>
     </Card>
   );

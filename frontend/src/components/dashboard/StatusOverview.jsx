@@ -2,6 +2,7 @@
 // ARAB UNITY SCHOOL
 // Teacher Dashboard
 // Request Status Overview Component
+// Connected to live KPI data
 // ============================================
 
 import {
@@ -12,30 +13,52 @@ import {
   LinearProgress,
 } from "@mui/material";
 
-import { requestStatusData } from "../../data/dashboardData";
+// ============================================
+// Status Overview Component
+// ============================================
 
-export default function StatusOverview() {
-  const total = requestStatusData.reduce(
-    (sum, item) => sum + item.count,
-    0
-  );
+export default function StatusOverview({ kpis }) {
+  // Total requests from backend KPI
+  const total = kpis?.totalRequests || 0;
+
+  // Live status data
+  const requestStatusData = [
+    {
+      status: "Pending",
+      count: kpis?.pendingRequests || 0,
+      color: "#F59E0B",
+    },
+    {
+      status: "Approved",
+      count: kpis?.approvedRequests || 0,
+      color: "#22C55E",
+    },
+    {
+      status: "Rejected",
+      count: kpis?.rejectedRequests || 0,
+      color: "#EF4444",
+    },
+  ];
 
   return (
     <Card
-      sx={{           
+      sx={{
         height: "100%",
         minWidth: 0,
         borderRadius: 4,
         boxShadow: "0 8px 25px rgba(0,0,0,0.08)",
       }}
     >
-          <CardContent>
+      <CardContent>
         <Typography variant="h6" fontWeight={700} mb={3}>
           Request Status Overview
         </Typography>
 
         {requestStatusData.map((item) => {
-          const percentage = Math.round((item.count / total) * 100);
+          const percentage =
+            total > 0
+              ? Math.round((item.count / total) * 100)
+              : 0;
 
           return (
             <Box key={item.status} mb={2.5}>

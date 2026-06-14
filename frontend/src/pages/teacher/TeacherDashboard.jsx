@@ -1,7 +1,7 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // Teacher Dashboard Page
-// Connected to Backend KPI API
+// Connected to Backend Dashboard API
 // Uses responsive DashboardLayout
 // ============================================
 
@@ -26,7 +26,7 @@ import {
 } from "@mui/icons-material";
 
 import { useAuth } from "../../context/AuthContext";
-import { getTeacherDashboardKpis } from "../../services/teacherDashboardService";
+import { getTeacherDashboardData } from "../../services/teacherDashboardService";
 
 import KPIGrid from "../../components/dashboard/KPIGrid";
 import MonthlyUsageChart from "../../components/dashboard/MonthlyUsageChart";
@@ -53,18 +53,48 @@ export default function TeacherDashboard() {
     rejectedRequests: 0,
   });
 
-  // Load teacher dashboard KPI data
+  // Recent requests state from backend
+  const [recentRequests, setRecentRequests] = useState([]);
+  const [purposeBreakdown, setPurposeBreakdown] = useState([]);
+  const [monthlyUsage, setMonthlyUsage] = useState([]);
+  const [purposeTrend, setPurposeTrend] = useState([]);
+
+  // ============================================
+  // Load Teacher Dashboard Data
+  // Loads KPI cards and recent requests from same API
+  // ============================================
   useEffect(() => {
-    const loadKpis = async () => {
+    const loadDashboardData = async () => {
       try {
-        const data = await getTeacherDashboardKpis();
-        setKpis(data);
+        const data = await getTeacherDashboardData();
+
+        const stats = data.stats || {};
+
+        // Convert backend PascalCase fields
+        // into frontend camelCase state
+        setKpis({
+          totalRequests: stats.TotalRequests || 0,
+          totalSheets: stats.TotalSheets || 0,
+          totalPages: stats.TotalPages || 0,
+          pendingRequests: stats.PendingRequests || 0,
+          approvedRequests: stats.ApprovedRequests || 0,
+          rejectedRequests: stats.RejectedRequests || 0,
+        });
+
+        // Store recent requests for table
+        setRecentRequests(data.recentRequests || []);
+        setPurposeBreakdown(data.purposeBreakdown || []);
+        setMonthlyUsage(data.monthlyUsage || []);
+        setPurposeTrend(data.purposeTrend || []);
       } catch (error) {
-        console.error("Failed to load teacher dashboard KPIs:", error);
+        console.error(
+          "Failed to load teacher dashboard data:",
+          error
+        );
       }
     };
 
-    loadKpis();
+    loadDashboardData();
   }, []);
 
   // KPI card data
@@ -122,8 +152,8 @@ export default function TeacherDashboard() {
       sidebar={<Sidebar role="teacher" />}
 
       // IMPORTANT:
-      // DashboardLayout now sends handleMenuClick into Topbar
-      // This makes the hamburger menu work only on small screens
+      // DashboardLayout sends handleMenuClick into Topbar.
+      // This makes the hamburger menu work on small screens.
       topbar={(handleMenuClick) => (
         <Topbar onMenuClick={handleMenuClick} />
       )}
@@ -150,9 +180,9 @@ export default function TeacherDashboard() {
           gap: 3,
         }}
       >
-        <MonthlyUsageChart />
-        <PurposeBreakdownChart />
-        <StatusOverview />
+        <MonthlyUsageChart data={monthlyUsage} />
+        <PurposeBreakdownChart data={purposeBreakdown} />
+        <StatusOverview kpis={kpis} />
       </Box>
 
       {/* Second Analytics Row */}
@@ -167,8 +197,8 @@ export default function TeacherDashboard() {
           gap: 3,
         }}
       >
-        <RecentRequestsTable />
-        <RequestProgressTracker />
+        <RecentRequestsTable requests={recentRequests} />
+        <RequestProgressTracker request={recentRequests[0]} />
         <AttachmentSummary />
       </Box>
 
@@ -185,7 +215,7 @@ export default function TeacherDashboard() {
         }}
       >
         <RecentAttachments />
-        <PurposeUsageTrend />
+        <PurposeUsageTrend data={purposeTrend} />
         <QuickActions />
       </Box>
     </DashboardLayout>

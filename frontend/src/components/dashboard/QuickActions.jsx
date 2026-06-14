@@ -1,6 +1,7 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // Quick Actions Component
+// Connected to Teacher page navigation
 // Fixed responsive layout - no horizontal overflow
 // ============================================
 
@@ -15,19 +16,52 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import UploadIcon from "@mui/icons-material/Upload";
 import AssessmentIcon from "@mui/icons-material/Assessment";
-import DownloadIcon from "@mui/icons-material/Download";
+import HistoryIcon from "@mui/icons-material/History";
 
-import { quickActionsData } from "../../data/dashboardData";
+import { useNavigate } from "react-router-dom";
 
-const getActionIcon = (title) => {
-  if (title.includes("Create")) return <AddIcon />;
-  if (title.includes("Upload")) return <UploadIcon />;
-  if (title.includes("Reports")) return <AssessmentIcon />;
-  if (title.includes("Download")) return <DownloadIcon />;
-  return <AddIcon />;
-};
+// ============================================
+// Quick Action Data
+// ============================================
+
+const quickActionsData = [
+  {
+    title: "Create Request",
+    description: "Submit a new photocopy request",
+    color: "#2563EB",
+    path: "/teacher/create-request",
+    icon: <AddIcon />,
+  },
+  {
+    title: "My Requests",
+    description: "View and track your submitted requests",
+    color: "#10B981",
+    path: "/teacher/requests",
+    icon: <HistoryIcon />,
+  },
+  {
+    title: "Reports",
+    description: "View your request reports and analytics",
+    color: "#F59E0B",
+    path: "/teacher/reports",
+    icon: <AssessmentIcon />,
+  },
+  {
+    title: "Attachments",
+    description: "View uploaded request attachments",
+    color: "#8B5CF6",
+    path: "/teacher/attachments",
+    icon: <UploadIcon />,
+  },
+];
+
+// ============================================
+// Quick Actions Component
+// ============================================
 
 export default function QuickActions() {
+  const navigate = useNavigate();
+
   return (
     <Card
       sx={{
@@ -78,7 +112,7 @@ export default function QuickActions() {
                   mb: 1.5,
                 }}
               >
-                {getActionIcon(action.title)}
+                {action.icon}
               </Box>
 
               <Typography
@@ -102,7 +136,12 @@ export default function QuickActions() {
                 {action.description}
               </Typography>
 
-              <Button size="small" variant="outlined" fullWidth>
+              <Button
+                size="small"
+                variant="outlined"
+                fullWidth
+                onClick={() => navigate(action.path)}
+              >
                 Open
               </Button>
             </Box>

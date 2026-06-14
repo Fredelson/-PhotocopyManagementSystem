@@ -342,7 +342,6 @@ const getRequestById = async (req, res) => {
     });
   }
 };
-
 /**
  * @desc    Get logged-in teacher dashboard stats
  * @route   GET /api/requests/dashboard
@@ -350,28 +349,70 @@ const getRequestById = async (req, res) => {
  */
 const getTeacherDashboard = async (req, res) => {
   try {
-    // Logged-in teacher ID
+    // ============================================
+    // Logged-in teacher ID from JWT
+    // ============================================
     const teacherId = req.user.id;
 
+    // ============================================
     // Connect to MSSQL
+    // ============================================
     const pool = await poolPromise;
 
-    // Get dashboard stats
+    // ============================================
+    // Get Teacher KPI Statistics
+    // ============================================
     const statsResult = await pool
       .request()
       .input("teacherId", sql.Int, teacherId)
       .query(`
         SELECT
           COUNT(*) AS TotalRequests,
-          SUM(CASE WHEN Status = 'Pending' THEN 1 ELSE 0 END) AS PendingRequests,
-          SUM(CASE WHEN Status LIKE 'Approved%' THEN 1 ELSE 0 END) AS ApprovedRequests,
-          SUM(CASE WHEN Status LIKE 'Rejected%' THEN 1 ELSE 0 END) AS RejectedRequests,
-          SUM(CASE WHEN Status = 'Completed' THEN 1 ELSE 0 END) AS CompletedRequests
+
+          ISNULL(SUM(TotalSheets), 0) AS TotalSheets,
+
+          ISNULL(SUM(TotalPages), 0) AS TotalPages,
+
+          SUM(
+            CASE
+              WHEN Status = 'Pending'
+              THEN 1
+              ELSE 0
+            END
+          ) AS PendingRequests,
+
+          SUM(
+            CASE
+              WHEN Status LIKE 'Approved%'
+              THEN 1
+              ELSE 0
+            END
+          ) AS ApprovedRequests,
+
+          SUM(
+            CASE
+              WHEN Status LIKE 'Rejected%'
+              THEN 1
+              ELSE 0
+            END
+          ) AS RejectedRequests,
+
+          SUM(
+            CASE
+              WHEN Status = 'Completed'
+              THEN 1
+              ELSE 0
+            END
+          ) AS CompletedRequests
+
         FROM PhotocopyRequests
         WHERE TeacherId = @teacherId
       `);
 
-    // Get recent requests
+    // ============================================
+    // Get Recent Requests
+    // Latest 5 requests only
+    // ============================================
     const recentResult = await pool
       .request()
       .input("teacherId", sql.Int, teacherId)
@@ -379,6 +420,8 @@ const getTeacherDashboard = async (req, res) => {
         SELECT TOP 5
           r.RequestId,
           r.RequestNumber,
+          r.Copies,
+          r.TotalPages,
           r.TotalSheets,
           r.PriorityLevel,
           r.Status,
@@ -387,22 +430,98 @@ const getTeacherDashboard = async (req, res) => {
           s.SubjectName,
           p.PurposeName
         FROM PhotocopyRequests r
-        LEFT JOIN Departments d 
+        LEFT JOIN Departments d
           ON r.DepartmentId = d.DepartmentId
-        LEFT JOIN Subjects s 
+        LEFT JOIN Subjects s
           ON r.SubjectId = s.SubjectId
-        LEFT JOIN Purposes p 
+        LEFT JOIN Purposes p
           ON r.PurposeId = p.PurposeId
         WHERE r.TeacherId = @teacherId
         ORDER BY r.SubmittedAt DESC
       `);
 
+      // ============================================
+      // Get Purpose Breakdown
+      // Counts requests grouped by purpose
+      // ============================================
+
+      const purposeResult = await pool
+        .request()
+        .input("teacherId", sql.Int, teacherId)
+        .query(`
+          SELECT
+            ISNULL(p.PurposeName, 'Unknown') AS name,
+            COUNT(r.RequestId) AS value
+          FROM PhotocopyRequests r
+          LEFT JOIN Purposes p
+            ON r.PurposeId = p.PurposeId
+          WHERE r.TeacherId = @teacherId
+          GROUP BY p.PurposeName
+          ORDER BY value DESC
+        `);
+
+        // ============================================
+        // Get Monthly Usage
+        // Groups teacher requests by month
+        // ============================================
+
+        const monthlyUsageResult = await pool
+          .request()
+          .input("teacherId", sql.Int, teacherId)
+          .query(`
+            SELECT
+              FORMAT(SubmittedAt, 'MMM') AS month,
+              MONTH(SubmittedAt) AS monthNumber,
+              ISNULL(SUM(TotalPages), 0) AS pages,
+              ISNULL(SUM(TotalSheets), 0) AS sheets
+            FROM PhotocopyRequests
+            WHERE TeacherId = @teacherId
+            GROUP BY
+              FORMAT(SubmittedAt, 'MMM'),
+              MONTH(SubmittedAt)
+            ORDER BY monthNumber ASC
+          `);
+
+          // ============================================
+          // Get Purpose Usage Trend
+          // Groups teacher requests by month and purpose
+          // ============================================
+
+          const purposeTrendResult = await pool
+            .request()
+            .input("teacherId", sql.Int, teacherId)
+            .query(`
+              SELECT
+                FORMAT(r.SubmittedAt, 'MMM') AS month,
+                MONTH(r.SubmittedAt) AS monthNumber,
+                LOWER(REPLACE(ISNULL(p.PurposeName, 'others'), ' ', '')) AS purposeKey,
+                COUNT(r.RequestId) AS requestCount
+              FROM PhotocopyRequests r
+              LEFT JOIN Purposes p
+                ON r.PurposeId = p.PurposeId
+              WHERE r.TeacherId = @teacherId
+              GROUP BY
+                FORMAT(r.SubmittedAt, 'MMM'),
+                MONTH(r.SubmittedAt),
+                LOWER(REPLACE(ISNULL(p.PurposeName, 'others'), ' ', ''))
+              ORDER BY monthNumber ASC
+            `);
+
+    // ============================================
+    // Success Response
+    // ============================================
     return res.status(200).json({
       stats: statsResult.recordset[0],
       recentRequests: recentResult.recordset,
+      purposeBreakdown: purposeResult.recordset,
+      monthlyUsage: monthlyUsageResult.recordset,
+      purposeTrend: purposeTrendResult.recordset,
     });
   } catch (error) {
-    console.error("Get Teacher Dashboard Error:", error);
+    console.error(
+      "Get Teacher Dashboard Error:",
+      error
+    );
 
     return res.status(500).json({
       message: "Server error while fetching teacher dashboard",

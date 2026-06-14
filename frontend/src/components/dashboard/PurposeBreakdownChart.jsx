@@ -2,6 +2,7 @@
 // ARAB UNITY SCHOOL
 // Teacher Dashboard
 // Purpose Breakdown Donut Chart
+// Connected to live backend dashboard data
 // ============================================
 
 import {
@@ -20,8 +21,6 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-import { purposeBreakdownData } from "../../data/dashboardData";
-
 // Chart colors
 const COLORS = [
   "#2563EB",
@@ -32,7 +31,11 @@ const COLORS = [
   "#06B6D4",
 ];
 
-export default function PurposeBreakdownChart() {
+// ============================================
+// Purpose Breakdown Chart Component
+// ============================================
+
+export default function PurposeBreakdownChart({ data = [] }) {
   return (
     <Card
       sx={{
@@ -43,12 +46,10 @@ export default function PurposeBreakdownChart() {
       }}
     >
       <CardContent>
-        {/* Chart Title */}
         <Typography variant="h6" fontWeight={700} mb={3}>
           Purpose Breakdown
         </Typography>
 
-        {/* Responsive Chart Container */}
         <Box
           sx={{
             width: "100%",
@@ -56,28 +57,42 @@ export default function PurposeBreakdownChart() {
             height: 350,
           }}
         >
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={purposeBreakdownData}
-                dataKey="value"
-                nameKey="name"
-                innerRadius={70}
-                outerRadius={110}
-                paddingAngle={3}
-              >
-                {purposeBreakdownData.map((entry, index) => (
-                  <Cell
-                    key={entry.name}
-                    fill={COLORS[index % COLORS.length]}
-                  />
-                ))}
-              </Pie>
+          {data.length === 0 ? (
+            <Box
+              sx={{
+                height: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "text.secondary",
+              }}
+            >
+              No purpose data available.
+            </Box>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={data}
+                  dataKey="value"
+                  nameKey="name"
+                  innerRadius={70}
+                  outerRadius={110}
+                  paddingAngle={3}
+                >
+                  {data.map((entry, index) => (
+                    <Cell
+                      key={entry.name}
+                      fill={COLORS[index % COLORS.length]}
+                    />
+                  ))}
+                </Pie>
 
-              <Tooltip />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
         </Box>
       </CardContent>
     </Card>

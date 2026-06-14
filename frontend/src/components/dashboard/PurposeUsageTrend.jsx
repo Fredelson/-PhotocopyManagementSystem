@@ -1,7 +1,7 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // Purpose Usage Trend Chart
-// Fixed Recharts container sizing
+// Connected to live backend dashboard data
 // ============================================
 
 import {
@@ -21,9 +21,56 @@ import {
   Legend,
 } from "recharts";
 
-import { purposeTrendData } from "../../data/dashboardData";
+// ============================================
+// Convert backend flat rows into Recharts format
+// Example backend:
+// [
+//   { month: "Jun", purposeKey: "worksheet", requestCount: 2 },
+//   { month: "Jun", purposeKey: "exam", requestCount: 1 }
+// ]
+//
+// Recharts format:
+// [
+//   { month: "Jun", worksheet: 2, exam: 1 }
+// ]
+// ============================================
 
-export default function PurposeUsageTrend() {
+const transformPurposeTrendData = (rows = []) => {
+  const grouped = {};
+
+  rows.forEach((item) => {
+    const month = item.month;
+    const purposeKey = item.purposeKey || "others";
+
+    if (!grouped[month]) {
+      grouped[month] = {
+        month,
+      };
+    }
+
+    grouped[month][purposeKey] = item.requestCount || 0;
+  });
+
+  return Object.values(grouped);
+};
+
+// ============================================
+// Get unique purpose keys for dynamic chart lines
+// ============================================
+
+const getPurposeKeys = (rows = []) => {
+  const keys = rows.map((item) => item.purposeKey || "others");
+  return [...new Set(keys)];
+};
+
+// ============================================
+// Purpose Usage Trend Component
+// ============================================
+
+export default function PurposeUsageTrend({ data = [] }) {
+  const chartData = transformPurposeTrendData(data);
+  const purposeKeys = getPurposeKeys(data);
+
   return (
     <Card
       sx={{
@@ -45,19 +92,39 @@ export default function PurposeUsageTrend() {
             height: 300,
           }}
         >
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={purposeTrendData}>
-              <XAxis dataKey="month" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
+          {chartData.length === 0 ? (
+            <Box
+              sx={{
+                height: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "text.secondary",
+              }}
+            >
+              No purpose trend data available.
+            </Box>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData}>
+                <XAxis dataKey="month" />
+                <YAxis allowDecimals={false} />
+                <Tooltip />
+                <Legend />
 
-              <Line type="monotone" dataKey="worksheet" stroke="#2563EB" strokeWidth={3} />
-              <Line type="monotone" dataKey="exam" stroke="#F59E0B" strokeWidth={3} />
-              <Line type="monotone" dataKey="homework" stroke="#10B981" strokeWidth={3} />
-              <Line type="monotone" dataKey="others" stroke="#8B5CF6" strokeWidth={3} />
-            </LineChart>
-          </ResponsiveContainer>
+                {purposeKeys.map((key) => (
+                  <Line
+                    key={key}
+                    type="monotone"
+                    dataKey={key}
+                    strokeWidth={3}
+                    dot
+                    connectNulls
+                  />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+          )}
         </Box>
       </CardContent>
     </Card>
