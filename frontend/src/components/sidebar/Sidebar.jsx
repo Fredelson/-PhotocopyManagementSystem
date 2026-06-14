@@ -1,8 +1,7 @@
 // ============================================
 // ARAB UNITY SCHOOL
-// Teacher Sidebar
+// Common Role-Based Sidebar
 // Navy + AUS Green Theme
-// Exact active route highlight
 // ============================================
 
 import {
@@ -23,12 +22,17 @@ import {
   History,
   Settings,
   Logout,
+  PendingActions,
+  CheckCircle,
+  KeyboardReturn,
+  Cancel,
+  LocalPrintshop,
+  Inventory,
 } from "@mui/icons-material";
 
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
-// Theme colors
 const NAVY = "#071B4D";
 const NAVY_DARK = "#041338";
 const GREEN = "#2E8B3C";
@@ -38,10 +42,12 @@ const WHITE = "#FFFFFF";
 export default function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { logout } = useAuth();
 
-  // Teacher menu
-  const menuItems = [
+  const { user, logout } = useAuth();
+
+  const role = user?.role || user?.Role;
+
+  const teacherMenuItems = [
     {
       label: "Dashboard",
       icon: <Dashboard />,
@@ -74,12 +80,145 @@ export default function Sidebar() {
     },
   ];
 
-  // Exact active checker
+  const hodMenuItems = [
+    {
+      label: "Dashboard",
+      icon: <Dashboard />,
+      path: "/hod/dashboard",
+    },
+    {
+      label: "My Requests",
+      icon: <Description />,
+      path: "/hod/my-requests",
+    },
+    {
+      label: "Create Request",
+      icon: <AddCircle />,
+      path: "/hod/create-request",
+    },
+    {
+      label: "Pending Approvals",
+      icon: <PendingActions />,
+      path: "/hod/pending-requests",
+    },
+    {
+      label: "Approved Requests",
+      icon: <CheckCircle />,
+      path: "/hod/approved-requests",
+    },
+    {
+      label: "Returned Requests",
+      icon: <KeyboardReturn />,
+      path: "/hod/returned-requests",
+    },
+    {
+      label: "Rejected Requests",
+      icon: <Cancel />,
+      path: "/hod/rejected-requests",
+    },
+    {
+      label: "Reports",
+      icon: <Assessment />,
+      path: "/hod/reports",
+    },
+    {
+      label: "History",
+      icon: <History />,
+      path: "/hod/history",
+    },
+  ];
+
+  const hosMenuItems = [
+    {
+      label: "Dashboard",
+      icon: <Dashboard />,
+      path: "/hos/dashboard",
+    },
+    {
+      label: "Pending Requests",
+      icon: <PendingActions />,
+      path: "/hos/pending-requests",
+    },
+    {
+      label: "Approved Requests",
+      icon: <CheckCircle />,
+      path: "/hos/approved-requests",
+    },
+    {
+      label: "Returned Requests",
+      icon: <KeyboardReturn />,
+      path: "/hos/returned-requests",
+    },
+    {
+      label: "Rejected Requests",
+      icon: <Cancel />,
+      path: "/hos/rejected-requests",
+    },
+    {
+      label: "Reports",
+      icon: <Assessment />,
+      path: "/hos/reports",
+    },
+    {
+      label: "History",
+      icon: <History />,
+      path: "/hos/history",
+    },
+  ];
+
+  const printingMenuItems = [
+    {
+      label: "Dashboard",
+      icon: <Dashboard />,
+      path: "/printing/dashboard",
+    },
+    {
+      label: "Print Queue",
+      icon: <LocalPrintshop />,
+      path: "/printing/queue",
+    },
+    {
+      label: "Completed Jobs",
+      icon: <CheckCircle />,
+      path: "/printing/completed",
+    },
+    {
+      label: "Inventory",
+      icon: <Inventory />,
+      path: "/printing/inventory",
+    },
+    {
+      label: "Reports",
+      icon: <Assessment />,
+      path: "/printing/reports",
+    },
+    {
+      label: "History",
+      icon: <History />,
+      path: "/printing/history",
+    },
+  ];
+
+  const getMenuItems = () => {
+    if (role === "HOD") return hodMenuItems;
+    if (role === "HOS") return hosMenuItems;
+    if (role === "PrintingAdmin") return printingMenuItems;
+    return teacherMenuItems;
+  };
+
+  const menuItems = getMenuItems();
+
   const isActiveRoute = (path) => {
     return location.pathname === path;
   };
 
-  // Logout handler
+  const getSettingsPath = () => {
+    if (role === "HOD") return "/hod/settings";
+    if (role === "HOS") return "/hos/settings";
+    if (role === "PrintingAdmin") return "/printing/settings";
+    return "/teacher/settings";
+  };
+
   const handleLogout = () => {
     logout();
     navigate("/login");
@@ -99,7 +238,6 @@ export default function Sidebar() {
         borderRight: "1px solid rgba(255,255,255,0.08)",
       }}
     >
-      {/* Soft green glow */}
       <Box
         sx={{
           position: "absolute",
@@ -110,7 +248,6 @@ export default function Sidebar() {
         }}
       />
 
-      {/* Main menu */}
       <List
         sx={{
           position: "relative",
@@ -173,10 +310,9 @@ export default function Sidebar() {
 
       <Divider sx={{ mx: 2, borderColor: "rgba(255,255,255,0.16)" }} />
 
-      {/* Bottom actions */}
       <List sx={{ position: "relative", zIndex: 1, px: 1.8, py: 2 }}>
         <ListItemButton
-          onClick={() => navigate("/settings")}
+          onClick={() => navigate(getSettingsPath())}
           sx={{
             borderRadius: 2,
             mb: 1,

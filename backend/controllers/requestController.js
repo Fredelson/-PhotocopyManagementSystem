@@ -11,12 +11,16 @@ const { poolPromise, sql } = require("../config/db");
  * @route   POST /api/requests
  * @access  Private - Teacher / SuperAdmin
  */
+/**
+ * @desc    Create a new photocopy request
+ * @route   POST /api/requests
+ * @access  Private - Teacher / HOD / SuperAdmin
+ */
 const createRequest = async (req, res) => {
   try {
-    // Logged-in teacher ID from JWT middleware
-    const teacherId = req.user.id;
+    const requesterId = req.user.id;
+    const requesterRole = req.user.role || req.user.Role;
 
-    // Request data from frontend
     const {
       departmentId,
       subjectId,
@@ -27,7 +31,6 @@ const createRequest = async (req, res) => {
       priorityLevel,
     } = req.body;
 
-    // Validate required fields
     if (
       !departmentId ||
       !subjectId ||
@@ -41,74 +44,120 @@ const createRequest = async (req, res) => {
       });
     }
 
-    // Connect to MSSQL
     const pool = await poolPromise;
-
-    // Generate unique request number
     const requestNumber = `REQ-${Date.now()}`;
 
-    // ============================================
-    // Get subject name from selected SubjectId
-    // Example: SubjectId 1 => English
-    // ============================================
-    const subjectResult = await pool
-      .request()
-      .input("subjectId", sql.Int, subjectId)
-      .query(`
-        SELECT SubjectName
-        FROM Subjects
-        WHERE SubjectId = @subjectId
-          AND IsActive = 1
-      `);
+    let nextApproverId = null;
+    let approvalRole = null;
+    let status = "Pending";
 
-    const subjectName = subjectResult.recordset[0]?.SubjectName;
+    // ============================================
+    // HOD creates request
+    // <= 500 sheets: direct to Printing Admin
+    // > 500 sheets: send to HOS
+    // ============================================
+    if (requesterRole === "HOD") {
+      if (Number(totalSheets) > 500) {
+        const hosResult = await pool
+          .request()
+          .input("departmentId", sql.Int, departmentId)
+          .query(`
+            SELECT TOP 1 UserId
+            FROM Users
+            WHERE Role = 'HOS'
+              AND DepartmentId = @departmentId
+              AND IsActive = 1
+            ORDER BY UserId ASC
+          `);
 
-    if (!subjectName) {
-      return res.status(400).json({
-        message: "Selected subject was not found or is inactive",
-      });
+        nextApproverId = hosResult.recordset[0]?.UserId;
+
+        if (!nextApproverId) {
+          return res.status(400).json({
+            message: "No active HOS found for the selected department",
+          });
+        }
+
+        approvalRole = "HOS";
+        status = "Pending HOS Approval";
+      } else {
+        const printingAdminResult = await pool.request().query(`
+          SELECT TOP 1 UserId
+          FROM Users
+          WHERE Role = 'PrintingAdmin'
+            AND IsActive = 1
+          ORDER BY UserId ASC
+        `);
+
+        nextApproverId = printingAdminResult.recordset[0]?.UserId;
+
+        if (!nextApproverId) {
+          return res.status(400).json({
+            message: "No active Printing Admin found",
+          });
+        }
+
+        approvalRole = "PrintingAdmin";
+        status = "Forwarded to Printing";
+      }
     }
 
     // ============================================
-    // Find correct HOD using:
-    // DepartmentId + SubjectName
-    //
-    // Example:
-    // Department = Primary
-    // Subject = English
-    // Approver = Primary English HOD
+    // Teacher creates request
+    // Always starts with HOD approval
     // ============================================
-    const hodResult = await pool
-      .request()
-      .input("departmentId", sql.Int, departmentId)
-      .input("subjectName", sql.NVarChar, subjectName)
-      .query(`
-        SELECT TOP 1 UserId
-        FROM Users
-        WHERE Role = 'HOD'
-          AND DepartmentId = @departmentId
-          AND Subject = @subjectName
-          AND IsActive = 1
-        ORDER BY UserId ASC
-      `);
+    else {
+      const subjectResult = await pool
+        .request()
+        .input("subjectId", sql.Int, subjectId)
+        .query(`
+          SELECT SubjectName
+          FROM Subjects
+          WHERE SubjectId = @subjectId
+            AND IsActive = 1
+        `);
 
-    const hodId = hodResult.recordset[0]?.UserId;
+      const subjectName = subjectResult.recordset[0]?.SubjectName;
 
-    // Stop if no matching HOD exists
-    if (!hodId) {
-      return res.status(400).json({
-        message: `No active HOD found for ${subjectName} in the selected department`,
-      });
+      if (!subjectName) {
+        return res.status(400).json({
+          message: "Selected subject was not found or is inactive",
+        });
+      }
+
+      const hodResult = await pool
+        .request()
+        .input("departmentId", sql.Int, departmentId)
+        .input("subjectName", sql.NVarChar, subjectName)
+        .query(`
+          SELECT TOP 1 UserId
+          FROM Users
+          WHERE Role = 'HOD'
+            AND DepartmentId = @departmentId
+            AND Subject = @subjectName
+            AND IsActive = 1
+          ORDER BY UserId ASC
+        `);
+
+      nextApproverId = hodResult.recordset[0]?.UserId;
+
+      if (!nextApproverId) {
+        return res.status(400).json({
+          message: `No active HOD found for ${subjectName} in the selected department`,
+        });
+      }
+
+      approvalRole = "HOD";
+      status = "Pending";
     }
 
     // ============================================
-    // Insert main photocopy request
-    // New requests always start with HOD approval
+    // Insert main request
     // ============================================
     const requestResult = await pool
       .request()
       .input("requestNumber", sql.NVarChar, requestNumber)
-      .input("teacherId", sql.Int, teacherId)
+      .input("teacherId", sql.Int, requesterId)
       .input("departmentId", sql.Int, departmentId)
       .input("subjectId", sql.Int, subjectId)
       .input("purposeId", sql.Int, purposeId)
@@ -116,7 +165,8 @@ const createRequest = async (req, res) => {
       .input("totalPages", sql.Int, totalPages)
       .input("totalSheets", sql.Int, totalSheets)
       .input("priorityLevel", sql.NVarChar, priorityLevel || "Normal")
-      .input("approverId", sql.Int, hodId)
+      .input("status", sql.NVarChar, status)
+      .input("approverId", sql.Int, nextApproverId)
       .query(`
         INSERT INTO PhotocopyRequests
         (
@@ -145,7 +195,7 @@ const createRequest = async (req, res) => {
           @totalPages,
           @totalSheets,
           @priorityLevel,
-          'Pending',
+          @status,
           @approverId,
           GETDATE()
         )
@@ -154,12 +204,13 @@ const createRequest = async (req, res) => {
     const requestId = requestResult.recordset[0].RequestId;
 
     // ============================================
-    // Insert first approval step for HOD
+    // Insert approval / routing history
     // ============================================
     await pool
       .request()
       .input("requestId", sql.Int, requestId)
-      .input("approverId", sql.Int, hodId)
+      .input("approverId", sql.Int, nextApproverId)
+      .input("approvalRole", sql.NVarChar, approvalRole)
       .query(`
         INSERT INTO RequestApprovals
         (
@@ -174,7 +225,7 @@ const createRequest = async (req, res) => {
         (
           @requestId,
           @approverId,
-          'HOD',
+          @approvalRole,
           'Pending',
           NULL,
           GETDATE()
@@ -185,9 +236,9 @@ const createRequest = async (req, res) => {
       message: "Request created successfully",
       requestId,
       requestNumber,
-      approvalRole: "HOD",
-      approverId: hodId,
-      subjectName,
+      approvalRole,
+      approverId: nextApproverId,
+      status,
     });
   } catch (error) {
     console.error("Create Request Error:", error);

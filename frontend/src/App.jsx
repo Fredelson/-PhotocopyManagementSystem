@@ -1,7 +1,7 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // Main App Routes
-// Uses /role/dashboard route structure
+// Role-based protected routes
 // ============================================
 
 import { Routes, Route, Navigate } from "react-router-dom";
@@ -19,21 +19,26 @@ import RequestDetails from "./pages/teacher/RequestDetails";
 // HOD / HOS pages
 import HodDashboard from "./pages/hod/HodDashboard";
 import HosDashboard from "./pages/hos/HosDashboard";
+import HodRequestsPage from "./pages/hod/HodRequestsPage";
 
 // Printing page
 import PrintingDashboard from "./pages/printing/PrintingDashboard";
 
-// Reusable profile page
+// Reusable common page
 import Profile from "./pages/common/Profile";
 
 export default function App() {
   return (
     <Routes>
-      {/* Public login route */}
+      {/* Public route */}
       <Route path="/login" element={<LoginPage />} />
 
-      {/* Teacher routes */}
-      <Route path="/teacher" element={<Navigate to="/teacher/dashboard" replace />} />
+      {/* ================= TEACHER ROUTES ================= */}
+
+      <Route
+        path="/teacher"
+        element={<Navigate to="/teacher/dashboard" replace />}
+      />
 
       <Route
         path="/teacher/dashboard"
@@ -80,8 +85,12 @@ export default function App() {
         }
       />
 
-      {/* HOD routes */}
-      <Route path="/hod" element={<Navigate to="/hod/dashboard" replace />} />
+      {/* ================= HOD ROUTES ================= */}
+
+      <Route
+        path="/hod"
+        element={<Navigate to="/hod/dashboard" replace />}
+      />
 
       <Route
         path="/hod/dashboard"
@@ -101,8 +110,78 @@ export default function App() {
         }
       />
 
-      {/* HOS routes */}
-      <Route path="/hos" element={<Navigate to="/hos/dashboard" replace />} />
+                <Route
+            path="/hod/pending-requests"
+            element={
+              <ProtectedRoute allowedRoles={["HOD", "SuperAdmin"]}>
+                <HodRequestsPage type="pending" />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/hod/approved-requests"
+            element={
+              <ProtectedRoute allowedRoles={["HOD", "SuperAdmin"]}>
+                <HodRequestsPage type="approved" />
+              </ProtectedRoute>
+            }
+          />
+
+        <Route
+          path="/hod/rejected-requests"
+          element={
+            <ProtectedRoute allowedRoles={["HOD", "SuperAdmin"]}>
+              <HodRequestsPage type="rejected" />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/hod/returned-requests"
+          element={
+            <ProtectedRoute allowedRoles={["HOD", "SuperAdmin"]}>
+              <HodRequestsPage type="returned" />
+            </ProtectedRoute>
+          }
+        />
+
+      {/* HOD reuses MyRequests page */}
+      <Route
+        path="/hod/my-requests"
+        element={
+          <ProtectedRoute allowedRoles={["HOD", "SuperAdmin"]}>
+            <MyRequests />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* HOD reuses CreateRequest page */}
+      <Route
+        path="/hod/create-request"
+        element={
+          <ProtectedRoute allowedRoles={["HOD", "SuperAdmin"]}>
+            <CreateRequest />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* HOD reuses RequestDetails page */}
+      <Route
+        path="/hod/request-details/:id"
+        element={
+          <ProtectedRoute allowedRoles={["HOD", "SuperAdmin"]}>
+            <RequestDetails />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* ================= HOS ROUTES ================= */}
+
+      <Route
+        path="/hos"
+        element={<Navigate to="/hos/dashboard" replace />}
+      />
 
       <Route
         path="/hos/dashboard"
@@ -122,8 +201,12 @@ export default function App() {
         }
       />
 
-      {/* Printing routes */}
-      <Route path="/printing" element={<Navigate to="/printing/dashboard" replace />} />
+      {/* ================= PRINTING ADMIN ROUTES ================= */}
+
+      <Route
+        path="/printing"
+        element={<Navigate to="/printing/dashboard" replace />}
+      />
 
       <Route
         path="/printing/dashboard"
@@ -146,7 +229,7 @@ export default function App() {
       {/* Default route */}
       <Route path="/" element={<Navigate to="/login" replace />} />
 
-      {/* Unknown route */}
+      {/* Unknown routes */}
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );

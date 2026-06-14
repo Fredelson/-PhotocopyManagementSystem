@@ -185,15 +185,6 @@ useEffect(() => {
               Revision Material
             </MenuItem>
           </TextField>
-
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => navigate("/teacher/create-request")}
-            sx={{ textTransform: "none" }}
-          >
-            Create Request
-          </Button>
         </Box>
       </DashboardCard>
 

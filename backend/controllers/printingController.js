@@ -2,6 +2,7 @@
 // ARAB UNITY SCHOOL
 // Printing Admin Controller
 // Handles print queue, printing progress, and completion
+// Updated to include HOD-created requests
 // ============================================
 
 const { poolPromise, sql } = require("../config/db");
@@ -24,7 +25,11 @@ const getPrintingDashboard = async (req, res) => {
           COUNT(*) AS TotalAssigned,
 
           SUM(CASE
-            WHEN Status IN ('Approved by HOD', 'Approved by HOS')
+            WHEN Status IN (
+              'Approved by HOD',
+              'Approved by HOS',
+              'Forwarded to Printing'
+            )
              AND CurrentApproverId = @printingAdminId
             THEN 1 ELSE 0
           END) AS PendingPrintQueue,
@@ -120,6 +125,7 @@ const getPrintingRequests = async (req, res) => {
           AND r.Status IN (
             'Approved by HOD',
             'Approved by HOS',
+            'Forwarded to Printing',
             'Printing'
           )
 
@@ -244,7 +250,11 @@ const startPrinting = async (req, res) => {
         FROM PhotocopyRequests
         WHERE RequestId = @requestId
           AND CurrentApproverId = @printingAdminId
-          AND Status IN ('Approved by HOD', 'Approved by HOS')
+          AND Status IN (
+            'Approved by HOD',
+            'Approved by HOS',
+            'Forwarded to Printing'
+          )
       `);
 
     if (requestResult.recordset.length === 0) {

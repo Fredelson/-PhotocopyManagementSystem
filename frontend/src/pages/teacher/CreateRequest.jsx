@@ -1,8 +1,7 @@
 // ============================================
 // ARAB UNITY SCHOOL
-// Teacher - Create Request Page
-// Connected to Backend API
-// Uses live Department, Subject, and Purpose dropdowns
+// Teacher / HOD - Create Request Page
+// Conditional Department + Subject Rules
 // ============================================
 
 import { useEffect, useMemo, useState } from "react";
@@ -38,7 +37,7 @@ import { useAuth } from "../../context/AuthContext";
 const API_URL = "http://localhost:5000/api";
 
 // ============================================
-// Create empty document row
+// Empty document template
 // ============================================
 const createEmptyDocument = () => ({
   id: Date.now(),
@@ -56,21 +55,66 @@ export default function CreateRequest() {
   const { user, token } = useAuth();
 
   // ============================================
-  // Lookup Data State
+  // Logged-in user information
+  // Supports both camelCase and PascalCase
+  // ============================================
+  const userRole = user?.role || user?.Role;
+
+  const userDepartmentId =
+    user?.departmentId || user?.DepartmentId;
+
+  const userDepartmentName =
+    user?.departmentName ||
+    user?.DepartmentName ||
+    "";
+
+  // Some systems may store the HOD title here
+  // Example: "Primary English HOD"
+  const userPosition =
+    user?.position ||
+    user?.Position ||
+    user?.roleName ||
+    user?.RoleName ||
+    "";
+
+  // HOD subject detection
+  // First tries user.Subject
+  // If missing, extracts subject from title like "Primary English HOD"
+  const userSubject =
+    user?.subject ||
+    user?.Subject ||
+    userPosition
+      .replace(userDepartmentName, "")
+      .replace("HOD", "")
+      .trim();
+
+  const isHOD = userRole === "HOD";
+
+  // Only Secondary and Sixth Form teachers can switch department
+  // Primary, FS, Inclusion, and HOD are locked
+  const isSecondaryOrSixth =
+    userDepartmentName === "Secondary" ||
+    userDepartmentName === "Sixth Form";
+
+  const canChooseDepartment =
+    !isHOD && isSecondaryOrSixth;
+
+  // ============================================
+  // Lookup data
   // ============================================
   const [departments, setDepartments] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [purposes, setPurposes] = useState([]);
 
   // ============================================
-  // Selected Lookup Values
+  // Selected values
   // ============================================
   const [departmentId, setDepartmentId] = useState("");
   const [subjectId, setSubjectId] = useState("");
   const [purposeId, setPurposeId] = useState("");
 
   // ============================================
-  // Form State
+  // Form state
   // ============================================
   const [customPurpose, setCustomPurpose] = useState("");
   const [requiredDate, setRequiredDate] = useState("");
@@ -79,13 +123,13 @@ export default function CreateRequest() {
   const [documents, setDocuments] = useState([createEmptyDocument()]);
 
   // ============================================
-  // Page State
+  // Page state
   // ============================================
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
   // ============================================
-  // Load Department, Subject, and Purpose dropdowns
+  // Load departments, subjects, and purposes
   // ============================================
   useEffect(() => {
     const loadLookups = async () => {
@@ -106,17 +150,40 @@ export default function CreateRequest() {
         setSubjects(subjectRes.data);
         setPurposes(purposeRes.data);
 
-        // Default department to teacher department if available
-        if (deptRes.data.length > 0) {
-          setDepartmentId(user?.departmentId || deptRes.data[0].DepartmentId);
+        // ============================================
+        // Set department
+        // Uses logged-in user's assigned department
+        // ============================================
+        if (userDepartmentId) {
+          setDepartmentId(userDepartmentId);
+        } else if (deptRes.data.length > 0) {
+          setDepartmentId(deptRes.data[0].DepartmentId);
         }
 
-        // Default subject to first active subject
-        if (subjectRes.data.length > 0) {
+        // ============================================
+        // Set subject
+        // Teacher: first subject by default
+        // HOD: lock to HOD subject, example English
+        // ============================================
+        if (isHOD) {
+          const hodSubject = subjectRes.data.find((subject) =>
+            userSubject
+              ?.toLowerCase()
+              .includes(subject.SubjectName.toLowerCase())
+          );
+
+          if (hodSubject) {
+            setSubjectId(hodSubject.SubjectId);
+          } else if (subjectRes.data.length > 0) {
+            setSubjectId(subjectRes.data[0].SubjectId);
+          }
+        } else if (subjectRes.data.length > 0) {
           setSubjectId(subjectRes.data[0].SubjectId);
         }
 
-        // Default purpose to first active purpose
+        // ============================================
+        // Set purpose
+        // ============================================
         if (purposeRes.data.length > 0) {
           setPurposeId(purposeRes.data[0].PurposeId);
         }
@@ -127,10 +194,16 @@ export default function CreateRequest() {
     };
 
     loadLookups();
-  }, [token, user]);
+  }, [
+    token,
+    userDepartmentId,
+    userDepartmentName,
+    userSubject,
+    isHOD,
+  ]);
 
   // ============================================
-  // Update one document field
+  // Update document field
   // ============================================
   const updateDocument = (id, field, value) => {
     setDocuments((prev) =>
@@ -141,7 +214,7 @@ export default function CreateRequest() {
   };
 
   // ============================================
-  // Add new document row
+  // Add document row
   // ============================================
   const addDocument = () => {
     setDocuments((prev) => [
@@ -155,18 +228,18 @@ export default function CreateRequest() {
 
   // ============================================
   // Remove document row
-  // Always keep at least one document
+  // Keeps at least one document
   // ============================================
   const removeDocument = (id) => {
     setDocuments((prev) =>
-      prev.length === 1 ? prev : prev.filter((doc) => doc.id !== id)
+      prev.length === 1
+        ? prev
+        : prev.filter((doc) => doc.id !== id)
     );
   };
 
   // ============================================
   // Calculate request summary
-  // totalPages = pages x copies
-  // totalSheets changes based on single/double sided
   // ============================================
   const summary = useMemo(() => {
     return documents.reduce(
@@ -184,8 +257,12 @@ export default function CreateRequest() {
           totalPages: total.totalPages + printedPages,
           totalSheets: total.totalSheets + sheets,
           totalCopies: total.totalCopies + copies,
-          totalA4: total.totalA4 + (doc.paperSize === "A4" ? sheets : 0),
-          totalA3: total.totalA3 + (doc.paperSize === "A3" ? sheets : 0),
+          totalA4:
+            total.totalA4 +
+            (doc.paperSize === "A4" ? sheets : 0),
+          totalA3:
+            total.totalA3 +
+            (doc.paperSize === "A3" ? sheets : 0),
         };
       },
       {
@@ -200,20 +277,18 @@ export default function CreateRequest() {
 
   // ============================================
   // Approval route preview
-  // New correct workflow:
-  // Teacher -> HOD -> Printing Admin
-  // Teacher -> HOD -> HOS -> Printing Admin if > 500 sheets
   // ============================================
   const approvalFlow =
-    summary.totalSheets <= 500
+    userRole === "HOD"
+      ? summary.totalSheets <= 500
+        ? ["HOD", "Printing Admin"]
+        : ["HOD", "HOS", "Printing Admin"]
+      : summary.totalSheets <= 500
       ? ["Teacher", "HOD", "Printing Admin"]
       : ["Teacher", "HOD", "HOS", "Printing Admin"];
 
   // ============================================
-  // Submit Request
-  // Calls backend:
-  // POST /api/requests
-  // Backend routes to matching Department + Subject HOD
+  // Submit request to backend
   // ============================================
   const handleSubmitRequest = async () => {
     try {
@@ -225,12 +300,12 @@ export default function CreateRequest() {
       }
 
       if (!departmentId) {
-        setError("Please select a department.");
+        setError("Department is required.");
         return;
       }
 
       if (!subjectId) {
-        setError("Please select a subject.");
+        setError("Subject is required.");
         return;
       }
 
@@ -248,9 +323,6 @@ export default function CreateRequest() {
 
       const mainDocument = documents[0];
 
-      // ============================================
-      // Request payload sent to backend
-      // ============================================
       const payload = {
         departmentId: Number(departmentId),
         subjectId: Number(subjectId),
@@ -269,7 +341,11 @@ export default function CreateRequest() {
 
       console.log("Request Created:", response.data);
 
-      navigate("/teacher/my-requests");
+      if (userRole === "HOD") {
+        navigate("/hod/my-requests");
+      } else {
+        navigate("/teacher/my-requests");
+      }
     } catch (err) {
       console.error("Create Request Error:", err);
 
@@ -284,34 +360,25 @@ export default function CreateRequest() {
 
   return (
     <DashboardLayout
-      sidebar={<Sidebar role="teacher" />}
+      sidebar={<Sidebar />}
       topbar={
         <Topbar
-          userName={user?.fullName || "Teacher"}
-          role={user?.role || "Teacher"}
+          userName={user?.fullName || user?.FullName || "User"}
+          role={userRole || "User"}
         />
       }
     >
-      {/* ============================================
-          Page Header
-      ============================================ */}
       <PageHeader
         title="Create Photocopy Request"
-        subtitle="Select department, subject, purpose, and documents for approval."
+        subtitle="Complete the request information and submit it for processing."
       />
 
-      {/* ============================================
-          Error Message
-      ============================================ */}
       {error && (
         <Alert severity="error" sx={{ mb: 3 }}>
           {error}
         </Alert>
       )}
 
-      {/* ============================================
-          Main Layout
-      ============================================ */}
       <Box
         sx={{
           display: "grid",
@@ -322,13 +389,8 @@ export default function CreateRequest() {
           gap: 3,
         }}
       >
-        {/* ============================================
-            Left Column
-        ============================================ */}
+        {/* Left column */}
         <Box>
-          {/* ============================================
-              Request Information Card
-          ============================================ */}
           <DashboardCard title="Request Information" sx={{ mb: 3 }}>
             <Box
               sx={{
@@ -340,15 +402,27 @@ export default function CreateRequest() {
                 gap: 3,
               }}
             >
-              {/* Department Dropdown */}
+              {/* Department */}
               <TextField
                 select
                 label="Department"
                 value={departmentId}
                 onChange={(e) => setDepartmentId(e.target.value)}
+                disabled={!canChooseDepartment}
                 fullWidth
               >
-                {departments.map((department) => (
+                {(canChooseDepartment
+                  ? departments.filter(
+                      (department) =>
+                        department.DepartmentName === "Secondary" ||
+                        department.DepartmentName === "Sixth Form"
+                    )
+                  : departments.filter(
+                      (department) =>
+                        Number(department.DepartmentId) ===
+                        Number(departmentId)
+                    )
+                ).map((department) => (
                   <MenuItem
                     key={department.DepartmentId}
                     value={department.DepartmentId}
@@ -358,22 +432,33 @@ export default function CreateRequest() {
                 ))}
               </TextField>
 
-              {/* Subject Dropdown */}
+              {/* Subject */}
               <TextField
                 select
                 label="Subject"
                 value={subjectId}
                 onChange={(e) => setSubjectId(e.target.value)}
+                disabled={isHOD}
                 fullWidth
               >
-                {subjects.map((subject) => (
-                  <MenuItem key={subject.SubjectId} value={subject.SubjectId}>
+                {(isHOD
+                  ? subjects.filter(
+                      (subject) =>
+                        Number(subject.SubjectId) ===
+                        Number(subjectId)
+                    )
+                  : subjects
+                ).map((subject) => (
+                  <MenuItem
+                    key={subject.SubjectId}
+                    value={subject.SubjectId}
+                  >
                     {subject.SubjectName}
                   </MenuItem>
                 ))}
               </TextField>
 
-              {/* Purpose Dropdown */}
+              {/* Purpose */}
               <TextField
                 select
                 label="Purpose"
@@ -382,7 +467,10 @@ export default function CreateRequest() {
                 fullWidth
               >
                 {purposes.map((purpose) => (
-                  <MenuItem key={purpose.PurposeId} value={purpose.PurposeId}>
+                  <MenuItem
+                    key={purpose.PurposeId}
+                    value={purpose.PurposeId}
+                  >
                     {purpose.PurposeName}
                   </MenuItem>
                 ))}
@@ -414,7 +502,7 @@ export default function CreateRequest() {
                 <MenuItem value="Urgent">Urgent</MenuItem>
               </TextField>
 
-              {/* Custom Purpose - optional future use */}
+              {/* Custom purpose, future use */}
               {purposeId === "Other" && (
                 <TextField
                   label="Custom Purpose"
@@ -438,9 +526,7 @@ export default function CreateRequest() {
             </Box>
           </DashboardCard>
 
-          {/* ============================================
-              Documents Card
-          ============================================ */}
+          {/* Documents */}
           <DashboardCard
             title="Documents"
             action={
@@ -456,7 +542,8 @@ export default function CreateRequest() {
           >
             {documents.map((doc, index) => {
               const printedPages =
-                (Number(doc.pages) || 0) * (Number(doc.copies) || 0);
+                (Number(doc.pages) || 0) *
+                (Number(doc.copies) || 0);
 
               const sheets =
                 doc.printType === "Double-Sided"
@@ -474,7 +561,6 @@ export default function CreateRequest() {
                     backgroundColor: "#F8FAFC",
                   }}
                 >
-                  {/* Document Header */}
                   <Box
                     sx={{
                       display: "flex",
@@ -496,7 +582,6 @@ export default function CreateRequest() {
                     </IconButton>
                   </Box>
 
-                  {/* Document Fields */}
                   <Box
                     sx={{
                       display: "grid",
@@ -507,17 +592,19 @@ export default function CreateRequest() {
                       gap: 2,
                     }}
                   >
-                    {/* Document Name */}
                     <TextField
                       label="Document Name"
                       value={doc.documentName}
                       onChange={(e) =>
-                        updateDocument(doc.id, "documentName", e.target.value)
+                        updateDocument(
+                          doc.id,
+                          "documentName",
+                          e.target.value
+                        )
                       }
                       fullWidth
                     />
 
-                    {/* File Upload */}
                     <Button
                       component="label"
                       variant="outlined"
@@ -533,12 +620,15 @@ export default function CreateRequest() {
                         hidden
                         type="file"
                         onChange={(e) =>
-                          updateDocument(doc.id, "file", e.target.files[0])
+                          updateDocument(
+                            doc.id,
+                            "file",
+                            e.target.files[0]
+                          )
                         }
                       />
                     </Button>
 
-                    {/* Pages */}
                     <TextField
                       type="number"
                       label="Pages"
@@ -549,7 +639,6 @@ export default function CreateRequest() {
                       fullWidth
                     />
 
-                    {/* Copies */}
                     <TextField
                       type="number"
                       label="Copies"
@@ -560,13 +649,16 @@ export default function CreateRequest() {
                       fullWidth
                     />
 
-                    {/* Paper Size */}
                     <TextField
                       select
                       label="Paper Size"
                       value={doc.paperSize}
                       onChange={(e) =>
-                        updateDocument(doc.id, "paperSize", e.target.value)
+                        updateDocument(
+                          doc.id,
+                          "paperSize",
+                          e.target.value
+                        )
                       }
                       fullWidth
                     >
@@ -574,35 +666,46 @@ export default function CreateRequest() {
                       <MenuItem value="A3">A3</MenuItem>
                     </TextField>
 
-                    {/* Print Type */}
                     <TextField
                       select
                       label="Print Type"
                       value={doc.printType}
                       onChange={(e) =>
-                        updateDocument(doc.id, "printType", e.target.value)
+                        updateDocument(
+                          doc.id,
+                          "printType",
+                          e.target.value
+                        )
                       }
                       fullWidth
                     >
-                      <MenuItem value="Single-Sided">Single-Sided</MenuItem>
-                      <MenuItem value="Double-Sided">Double-Sided</MenuItem>
+                      <MenuItem value="Single-Sided">
+                        Single-Sided
+                      </MenuItem>
+                      <MenuItem value="Double-Sided">
+                        Double-Sided
+                      </MenuItem>
                     </TextField>
 
-                    {/* Print Color */}
                     <TextField
                       select
                       label="Print Color"
                       value={doc.printColor}
                       onChange={(e) =>
-                        updateDocument(doc.id, "printColor", e.target.value)
+                        updateDocument(
+                          doc.id,
+                          "printColor",
+                          e.target.value
+                        )
                       }
                       fullWidth
                     >
-                      <MenuItem value="Black & White">Black & White</MenuItem>
+                      <MenuItem value="Black & White">
+                        Black & White
+                      </MenuItem>
                       <MenuItem value="Color">Color</MenuItem>
                     </TextField>
 
-                    {/* Document Calculation Summary */}
                     <Box
                       sx={{
                         p: 2,
@@ -615,13 +718,21 @@ export default function CreateRequest() {
                         Printed Pages
                       </Typography>
 
-                      <Typography fontWeight={800}>{printedPages}</Typography>
+                      <Typography fontWeight={800}>
+                        {printedPages}
+                      </Typography>
 
-                      <Typography variant="body2" color="text.secondary" mt={1}>
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        mt={1}
+                      >
                         Sheets
                       </Typography>
 
-                      <Typography fontWeight={800}>{sheets}</Typography>
+                      <Typography fontWeight={800}>
+                        {sheets}
+                      </Typography>
                     </Box>
                   </Box>
                 </Box>
@@ -630,11 +741,8 @@ export default function CreateRequest() {
           </DashboardCard>
         </Box>
 
-        {/* ============================================
-            Right Column
-        ============================================ */}
+        {/* Right column */}
         <Box>
-          {/* Request Summary */}
           <DashboardCard title="Request Summary" sx={{ mb: 3 }}>
             <SummaryRow label="Total Pages" value={summary.totalPages} />
             <SummaryRow label="Total Copies" value={summary.totalCopies} />
@@ -644,18 +752,11 @@ export default function CreateRequest() {
 
             <Divider sx={{ my: 2 }} />
 
-            {/* Approval Route Preview */}
             <Typography variant="body2" color="text.secondary" mb={1}>
               Approval Route
             </Typography>
 
-            <Box
-              sx={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: 1,
-              }}
-            >
+            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
               {approvalFlow.map((step) => (
                 <Chip
                   key={step}
@@ -665,26 +766,25 @@ export default function CreateRequest() {
                       ? "warning"
                       : step === "HOS"
                       ? "primary"
+                      : step === "Printing Admin"
+                      ? "success"
                       : "default"
                   }
                 />
               ))}
             </Box>
 
-            <Typography
-              sx={{
-                mt: 2,
-                fontSize: 13,
-                color: "#64748B",
-              }}
-            >
-              {summary.totalSheets <= 500
-                ? "Request goes to the selected Department + Subject HOD, then to Printing Admin."
-                : "Request goes to the selected Department + Subject HOD, then HOS, then Printing Admin."}
+            <Typography sx={{ mt: 2, fontSize: 13, color: "#64748B" }}>
+              {userRole === "HOD"
+                ? summary.totalSheets <= 500
+                  ? "HOD request goes directly to Printing Admin."
+                  : "HOD request goes to HOS approval, then Printing Admin."
+                : summary.totalSheets <= 500
+                ? "Teacher request goes to HOD approval, then Printing Admin."
+                : "Teacher request goes to HOD, then HOS, then Printing Admin."}
             </Typography>
           </DashboardCard>
 
-          {/* Action Buttons */}
           <DashboardCard title="Actions">
             <Button
               fullWidth
@@ -714,8 +814,7 @@ export default function CreateRequest() {
 }
 
 // ============================================
-// Reusable Summary Row
-// Displays summary label and value
+// Reusable summary row
 // ============================================
 function SummaryRow({ label, value }) {
   return (

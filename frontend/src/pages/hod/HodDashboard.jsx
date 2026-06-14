@@ -2,10 +2,10 @@
 // ARAB UNITY SCHOOL
 // HOD Dashboard Page
 // Connected to Backend Live Data
-// Prevents double approve/reject clicks
+// Compact layout with Top 5 recent sections
 // ============================================
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import DashboardLayout from "../../layouts/DashboardLayout";
 import Sidebar from "../../components/sidebar/Sidebar";
@@ -66,6 +66,9 @@ export default function HodDashboard() {
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // ============================================
+  // Convert backend request data to frontend format
+  // ============================================
   const mapRequest = (item) => ({
     id: item.RequestId,
     requestNumber: item.RequestNumber,
@@ -90,6 +93,9 @@ export default function HodDashboard() {
       : "-",
   });
 
+  // ============================================
+  // Convert backend approval history to frontend format
+  // ============================================
   const mapApprovalHistory = (item) => ({
     approvalId: item.ApprovalId,
     requestId: item.RequestId,
@@ -116,6 +122,9 @@ export default function HodDashboard() {
       : "-",
   });
 
+  // ============================================
+  // Fetch HOD dashboard data
+  // ============================================
   const fetchHodData = async () => {
     try {
       setLoading(true);
@@ -153,6 +162,9 @@ export default function HodDashboard() {
     fetchHodData();
   }, []);
 
+  // ============================================
+  // Dashboard KPI cards
+  // ============================================
   const hodDashboardStats = [
     {
       title: "Total Requests",
@@ -195,6 +207,45 @@ export default function HodDashboard() {
     <TaskAlt />,
   ];
 
+  // ============================================
+  // Dashboard table data
+  // Only show recent/top 5 items on dashboard
+  // Full lists are available on sidebar pages
+  // ============================================
+  const pendingRequests = useMemo(() => {
+    return requests
+      .filter((request) => request.status === "Pending")
+      .slice(0, 5);
+  }, [requests]);
+
+  const recentApprovedRequests = useMemo(() => {
+    return requests
+      .filter(
+        (request) =>
+          request.status === "Approved by HOD" ||
+          request.status === "Forwarded to HOS"
+      )
+      .slice(0, 5);
+  }, [requests]);
+
+  const recentRejectedRequests = useMemo(() => {
+    return requests
+      .filter((request) => request.status === "Rejected by HOD")
+      .slice(0, 5);
+  }, [requests]);
+
+  const recentApprovalHistory = useMemo(() => {
+    return [...approvalHistory]
+      .sort(
+        (a, b) =>
+          new Date(b.rawActionDate || 0) - new Date(a.rawActionDate || 0)
+      )
+      .slice(0, 5);
+  }, [approvalHistory]);
+
+  // ============================================
+  // Dialog handlers
+  // ============================================
   const handleReview = (request) => {
     if (actionLoading) return;
 
@@ -211,6 +262,9 @@ export default function HodDashboard() {
     setComment("");
   };
 
+  // ============================================
+  // Approve request
+  // ============================================
   const handleApprove = async () => {
     if (actionLoading) return;
 
@@ -222,10 +276,7 @@ export default function HodDashboard() {
     setActionLoading(true);
 
     try {
-      await approveHodRequest(
-        selectedRequest.id,
-        comment || "Approved by HOD"
-      );
+      await approveHodRequest(selectedRequest.id, comment || "Approved by HOD");
 
       alert("Request approved successfully.");
 
@@ -243,6 +294,9 @@ export default function HodDashboard() {
     }
   };
 
+  // ============================================
+  // Reject request
+  // ============================================
   const handleReject = async () => {
     if (actionLoading) return;
 
@@ -277,29 +331,35 @@ export default function HodDashboard() {
     }
   };
 
+  // ============================================
+  // Return request
+  // Temporarily disabled until returned workflow is built
+  // ============================================
   const handleReturn = () => {
     if (actionLoading) return;
 
-    alert("Return request API is not created yet.");
+    alert("Return request workflow will be added later.");
   };
 
   return (
     <DashboardLayout
-      sidebar={<Sidebar role="hod" />}
+      sidebar={<Sidebar />}
       topbar={
         <Topbar
-          userName={user?.fullName || "HOD"}
-          role={user?.displayRole || user?.role || "HOD"}
+          userName={user?.fullName || user?.FullName || "HOD"}
+          role={user?.displayRole || user?.role || user?.Role || "HOD"}
         />
       }
     >
       <PageHeader
-        title={`${user?.departmentName || ""} ${
-          user?.subject || ""
+        title={`${user?.departmentName || user?.DepartmentName || ""} ${
+          user?.subject || user?.Subject || ""
         } HOD Dashboard`}
-        subtitle={`Welcome back, ${user?.fullName || "HOD"}. Review ${
-          user?.departmentName || ""
-        } ${user?.subject || ""} photocopy requests.`}
+        subtitle={`Welcome back, ${
+          user?.fullName || user?.FullName || "HOD"
+        }. Review ${
+          user?.departmentName || user?.DepartmentName || ""
+        } ${user?.subject || user?.Subject || ""} photocopy requests.`}
         action={<DateFilter label="May 1 - May 31, 2025" />}
       />
 
@@ -313,8 +373,10 @@ export default function HodDashboard() {
         <Typography>Loading HOD dashboard data...</Typography>
       ) : (
         <>
+          {/* KPI Cards */}
           <KPIGrid stats={hodDashboardStats} icons={icons} />
 
+          {/* Charts Grid */}
           <Box
             sx={{
               mt: 4,
@@ -330,23 +392,33 @@ export default function HodDashboard() {
             <DepartmentDistributionChart requests={requests} />
           </Box>
 
+          {/* Pending Requests - Top 5 */}
           <Box sx={{ mt: 4 }}>
             <HodPendingRequestsTable
-              requests={requests}
+              requests={pendingRequests}
               onReview={handleReview}
             />
           </Box>
 
-          <Box sx={{ mt: 4 }}>
-            <RecentApprovedRequests requests={requests} />
-          </Box>
+          {/* Recent Approved, Rejected, and Approval History - Same Grid */}
+          <Box
+            sx={{
+              mt: 4,
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                lg: "1fr 1fr",
+                xl: "1fr 1fr 1fr",
+              },
+              gap: 3,
+              alignItems: "stretch",
+            }}
+          >
+            <RecentApprovedRequests requests={recentApprovedRequests} />
 
-          <Box sx={{ mt: 4 }}>
-            <RecentRejectedRequests requests={requests} />
-          </Box>
+            <RecentRejectedRequests requests={recentRejectedRequests} />
 
-          <Box sx={{ mt: 4 }}>
-            <ApprovalHistory history={approvalHistory} />
+            <ApprovalHistory history={recentApprovalHistory} />
           </Box>
         </>
       )}

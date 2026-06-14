@@ -19,6 +19,7 @@ const { protect, authorizeRoles } = require("../middleware/authMiddleware");
 /**
  * @desc    Get teacher dashboard stats
  * @route   GET /api/requests/dashboard
+ * @access  Teacher / SuperAdmin
  */
 router.get(
   "/dashboard",
@@ -28,30 +29,33 @@ router.get(
 );
 
 /**
- * @desc    Create new request
+ * @desc    Create new photocopy request
  * @route   POST /api/requests
+ * @access  Teacher / HOD / SuperAdmin
  */
 router.post(
   "/",
   protect,
-  authorizeRoles("Teacher", "SuperAdmin"),
+  authorizeRoles("Teacher", "HOD", "SuperAdmin"),
   createRequest
 );
 
 /**
- * @desc    Get logged-in teacher's own requests
+ * @desc    Get logged-in user's own requests
  * @route   GET /api/requests/my-requests
+ * @access  Teacher / HOD / SuperAdmin
  */
 router.get(
   "/my-requests",
   protect,
-  authorizeRoles("Teacher", "SuperAdmin"),
+  authorizeRoles("Teacher", "HOD", "SuperAdmin"),
   getMyRequests
 );
 
 /**
  * @desc    Get request details by ID
  * @route   GET /api/requests/:id
+ * @access  Private
  */
 router.get(
   "/:id",
