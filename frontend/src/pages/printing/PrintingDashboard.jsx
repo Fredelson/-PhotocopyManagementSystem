@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 
 // Layout components
 import DashboardLayout from "../../layouts/DashboardLayout";
-import Sidebar from "../../components/common/Sidebar";
+import Sidebar from "../../components/sidebar/Sidebar";
 import Topbar from "../../components/common/Topbar";
 import PageHeader from "../../components/common/PageHeader";
 import DateFilter from "../../components/common/DateFilter";

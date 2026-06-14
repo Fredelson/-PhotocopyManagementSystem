@@ -1,12 +1,57 @@
-import { Box } from "@mui/material";
+// ============================================
+// ARAB UNITY SCHOOL
+// Reusable Dashboard Layout
+// Supports desktop sidebar
+// Supports mobile drawer sidebar
+// Works with Topbar hamburger button
+// ============================================
 
-const TOPBAR_HEIGHT = 70;
+import { useState } from "react";
+
+import {
+  Box,
+  Drawer,
+  useMediaQuery,
+} from "@mui/material";
+
+import { useTheme } from "@mui/material/styles";
+
+// ============================================
+// Layout Sizes
+// ============================================
+
+const TOPBAR_HEIGHT = 86;
 const SIDEBAR_WIDTH = 240;
 
 export default function DashboardLayout({ sidebar, topbar, children }) {
+  const theme = useTheme();
+
+  // Detect small screens
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
+  // Mobile drawer state
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Open mobile sidebar
+  const handleMenuClick = () => {
+    setMobileOpen(true);
+  };
+
+  // Close mobile sidebar
+  const handleDrawerClose = () => {
+    setMobileOpen(false);
+  };
+
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "#f5f7fb" }}>
-      {/* Topbar */}
+    <Box
+      sx={{
+        minHeight: "100vh",
+        bgcolor: "#f5f7fb",
+      }}
+    >
+      {/* ===================================== */}
+      {/* TOPBAR */}
+      {/* ===================================== */}
       <Box
         sx={{
           height: TOPBAR_HEIGHT,
@@ -14,37 +59,79 @@ export default function DashboardLayout({ sidebar, topbar, children }) {
           top: 0,
           left: 0,
           right: 0,
-          zIndex: 1200,
-          bgcolor: "#fff",
+          zIndex: 2000,
         }}
       >
-        {topbar}
+        {typeof topbar === "function"
+          ? topbar(handleMenuClick)
+          : topbar}
       </Box>
 
-      {/* Sidebar */}
-      <Box
+      {/* ===================================== */}
+      {/* DESKTOP SIDEBAR */}
+      {/* ===================================== */}
+      {!isMobile && (
+        <Box
+          sx={{
+            width: SIDEBAR_WIDTH,
+            position: "fixed",
+            top: `${TOPBAR_HEIGHT}px`,
+            left: 0,
+            bottom: 0,
+            zIndex: 1200,
+          }}
+        >
+          {sidebar}
+        </Box>
+      )}
+
+      {/* ===================================== */}
+      {/* MOBILE SIDEBAR DRAWER */}
+      {/* ===================================== */}
+      <Drawer
+        open={mobileOpen}
+        onClose={handleDrawerClose}
+        ModalProps={{
+          keepMounted: true,
+        }}
         sx={{
-          width: SIDEBAR_WIDTH,
-          position: "fixed",
-          top: TOPBAR_HEIGHT,
-          left: 0,
-          bottom: 0,
-          zIndex: 1100,
+          display: {
+            xs: "block",
+            md: "none",
+          },
+          "& .MuiDrawer-paper": {
+            width: SIDEBAR_WIDTH,
+            boxSizing: "border-box",
+          },
         }}
       >
         {sidebar}
-      </Box>
+      </Drawer>
 
-      {/* Main Content */}
+      {/* ===================================== */}
+      {/* MAIN CONTENT */}
+      {/* ===================================== */}
       <Box
         component="main"
         sx={{
-          ml: `${SIDEBAR_WIDTH}px`,
+          ml: {
+            xs: 0,
+            md: `${SIDEBAR_WIDTH}px`,
+          },
           pt: `${TOPBAR_HEIGHT}px`,
           minHeight: "100vh",
         }}
       >
-        <Box sx={{ p: 3 }}>{children}</Box>
+        <Box
+          sx={{
+            p: {
+              xs: 2,
+              md: 3,
+            },
+          }}
+        >
+          {children}
+        </Box>
       </Box>
     </Box>
   );

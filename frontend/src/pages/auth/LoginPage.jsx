@@ -29,21 +29,26 @@ export default function LoginPage() {
   const redirectByRole = (role) => {
     switch (role) {
       case "Teacher":
-        navigate("/teacher");
+        navigate("/teacher/dashboard");
         break;
+
       case "HOD":
-        navigate("/hod");
+        navigate("/hod/dashboard");
         break;
+
       case "HOS":
-        navigate("/hos");
+        navigate("/hos/dashboard");
         break;
+
       case "Admin":
       case "PrintingAdmin":
-      navigate("/printing");
-      break;
-      case "SuperAdmin":
-        navigate("/superadmin");
+        navigate("/printing/dashboard");
         break;
+
+      case "SuperAdmin":
+        navigate("/teacher/dashboard");
+        break;
+
       default:
         navigate("/login");
     }

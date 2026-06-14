@@ -1,11 +1,11 @@
 // ============================================
 // ARAB UNITY SCHOOL
-// Photocopy Management System
-// Teacher Sidebar Navigation
+// Teacher Sidebar
+// Navy + AUS Green Theme
+// Exact active route highlight
 // ============================================
 
 import {
-  Drawer,
   Box,
   List,
   ListItemButton,
@@ -22,131 +22,136 @@ import {
   Assessment,
   History,
   Settings,
+  Logout,
 } from "@mui/icons-material";
 
-import {
-  useNavigate,
-  useLocation,
-} from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
-// ============================================
-// Sidebar Width
-// ============================================
-
-const drawerWidth = 240;
-
-// ============================================
-// Sidebar Menu Items
-// ============================================
-
-const menuItems = [
-  {
-    label: "Dashboard",
-    icon: <Dashboard />,
-    path: "/teacher/dashboard",
-  },
-
-  {
-    label: "My Requests",
-    icon: <Description />,
-    path: "/teacher/my-requests",
-  },
-
-  {
-    label: "Create Request",
-    icon: <AddCircle />,
-    path: "/teacher/create-request",
-  },
-
-  {
-    label: "Attachments",
-    icon: <AttachFile />,
-    path: "/teacher/attachments",
-  },
-
-  {
-    label: "Reports",
-    icon: <Assessment />,
-    path: "/teacher/reports",
-  },
-
-  {
-    label: "History",
-    icon: <History />,
-    path: "/teacher/history",
-  },
-];
-
-// ============================================
-// Sidebar Component
-// ============================================
+// Theme colors
+const NAVY = "#071B4D";
+const NAVY_DARK = "#041338";
+const GREEN = "#2E8B3C";
+const GREEN_LIGHT = "#4CAF50";
+const WHITE = "#FFFFFF";
 
 export default function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { logout } = useAuth();
+
+  // Teacher menu
+  const menuItems = [
+    {
+      label: "Dashboard",
+      icon: <Dashboard />,
+      path: "/teacher/dashboard",
+    },
+    {
+      label: "My Requests",
+      icon: <Description />,
+      path: "/teacher/my-requests",
+    },
+    {
+      label: "Create Request",
+      icon: <AddCircle />,
+      path: "/teacher/create-request",
+    },
+    {
+      label: "Attachments",
+      icon: <AttachFile />,
+      path: "/teacher/attachments",
+    },
+    {
+      label: "Reports",
+      icon: <Assessment />,
+      path: "/teacher/reports",
+    },
+    {
+      label: "History",
+      icon: <History />,
+      path: "/teacher/history",
+    },
+  ];
+
+  // Exact active checker
+  const isActiveRoute = (path) => {
+    return location.pathname === path;
+  };
+
+  // Logout handler
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
 
   return (
-    <Drawer
-      variant="permanent"
+    <Box
       sx={{
-        width: drawerWidth,
-        flexShrink: 0,
-
-        "& .MuiDrawer-paper": {
-          width: drawerWidth,
-          boxSizing: "border-box",
-
-          backgroundColor: "#0F172A",
-          color: "#fff",
-
-          borderRight: "none",
-
-          position: "fixed",
-
-          top: "72px",
-
-          left: 0,
-
-          height: "calc(100vh - 72px)",
-        },
+        width: 240,
+        height: "100%",
+        color: WHITE,
+        display: "flex",
+        flexDirection: "column",
+        position: "relative",
+        overflow: "hidden",
+        background: `linear-gradient(180deg, ${NAVY} 0%, ${NAVY_DARK} 100%)`,
+        borderRight: "1px solid rgba(255,255,255,0.08)",
       }}
     >
-      {/* Navigation Menu */}
+      {/* Soft green glow */}
+      <Box
+        sx={{
+          position: "absolute",
+          inset: 0,
+          background:
+            "radial-gradient(circle at 20% 20%, rgba(76,175,80,0.14), transparent 35%)",
+          pointerEvents: "none",
+        }}
+      />
+
+      {/* Main menu */}
       <List
         sx={{
-          px: 2,
-          pt: 3,
+          position: "relative",
+          zIndex: 1,
+          px: 1.8,
+          pt: 4,
         }}
       >
         {menuItems.map((item) => {
-          const active =
-            location.pathname === item.path;
+          const active = isActiveRoute(item.path);
 
           return (
             <ListItemButton
               key={item.label}
-              onClick={() =>
-                navigate(item.path)
-              }
+              onClick={() => navigate(item.path)}
               sx={{
-                borderRadius: 3,
-                mb: 1,
-
-                backgroundColor: active
-                  ? "#2563EB"
+                borderRadius: 2,
+                mb: 1.1,
+                minHeight: 50,
+                px: 1.8,
+                color: active ? WHITE : "rgba(255,255,255,0.9)",
+                background: active
+                  ? `linear-gradient(135deg, ${GREEN}, ${GREEN_LIGHT})`
                   : "transparent",
+                boxShadow: active
+                  ? "0 8px 18px rgba(46,139,60,0.35)"
+                  : "none",
+                transition: "all 0.2s ease",
 
                 "&:hover": {
-                  backgroundColor: active
-                    ? "#2563EB"
-                    : "#1E293B",
+                  background: active
+                    ? `linear-gradient(135deg, ${GREEN}, ${GREEN_LIGHT})`
+                    : "rgba(76,175,80,0.14)",
+                  transform: "translateX(4px)",
                 },
               }}
             >
               <ListItemIcon
                 sx={{
-                  color: "#fff",
-                  minWidth: 40,
+                  minWidth: 38,
+                  color: active ? WHITE : "rgba(255,255,255,0.9)",
                 }}
               >
                 {item.icon}
@@ -156,9 +161,7 @@ export default function Sidebar() {
                 primary={item.label}
                 primaryTypographyProps={{
                   fontSize: 14,
-                  fontWeight: active
-                    ? 700
-                    : 500,
+                  fontWeight: active ? 900 : 700,
                 }}
               />
             </ListItemButton>
@@ -166,38 +169,28 @@ export default function Sidebar() {
         })}
       </List>
 
-      {/* Push Settings To Bottom */}
       <Box sx={{ flexGrow: 1 }} />
 
-      <Divider
-        sx={{
-          borderColor:
-            "rgba(255,255,255,0.08)",
-        }}
-      />
+      <Divider sx={{ mx: 2, borderColor: "rgba(255,255,255,0.16)" }} />
 
-      {/* Settings */}
-      <List
-        sx={{
-          px: 2,
-          py: 2,
-        }}
-      >
+      {/* Bottom actions */}
+      <List sx={{ position: "relative", zIndex: 1, px: 1.8, py: 2 }}>
         <ListItemButton
+          onClick={() => navigate("/settings")}
           sx={{
-            borderRadius: 3,
+            borderRadius: 2,
+            mb: 1,
+            minHeight: 50,
+            color: WHITE,
+            transition: "all 0.2s ease",
 
             "&:hover": {
-              backgroundColor: "#1E293B",
+              background: "rgba(76,175,80,0.14)",
+              transform: "translateX(4px)",
             },
           }}
         >
-          <ListItemIcon
-            sx={{
-              color: "#fff",
-              minWidth: 40,
-            }}
-          >
+          <ListItemIcon sx={{ minWidth: 38, color: WHITE }}>
             <Settings />
           </ListItemIcon>
 
@@ -205,11 +198,40 @@ export default function Sidebar() {
             primary="Settings"
             primaryTypographyProps={{
               fontSize: 14,
-              fontWeight: 500,
+              fontWeight: 700,
+            }}
+          />
+        </ListItemButton>
+
+        <ListItemButton
+          onClick={handleLogout}
+          sx={{
+            borderRadius: 2,
+            minHeight: 50,
+            color: WHITE,
+            transition: "all 0.2s ease",
+
+            "&:hover": {
+              background: "rgba(239,68,68,0.16)",
+              transform: "translateX(4px)",
+            },
+          }}
+        >
+          <ListItemIcon sx={{ minWidth: 38, color: WHITE }}>
+            <Logout />
+          </ListItemIcon>
+
+          <ListItemText
+            primary="Logout"
+            primaryTypographyProps={{
+              fontSize: 14,
+              fontWeight: 700,
             }}
           />
         </ListItemButton>
       </List>
-    </Drawer>
+
+      <Box sx={{ height: 4, width: "100%", bgcolor: GREEN_LIGHT }} />
+    </Box>
   );
 }

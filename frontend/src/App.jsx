@@ -1,18 +1,30 @@
+// ============================================
+// ARAB UNITY SCHOOL
+// Main App Routes
+// Uses /role/dashboard route structure
+// ============================================
+
 import { Routes, Route, Navigate } from "react-router-dom";
 
+// Auth
+import LoginPage from "./pages/auth/LoginPage";
+import ProtectedRoute from "./routes/ProtectedRoute";
+
+// Teacher pages
 import TeacherDashboard from "./pages/teacher/TeacherDashboard";
 import MyRequests from "./pages/teacher/MyRequests";
 import CreateRequest from "./pages/teacher/CreateRequest";
 import RequestDetails from "./pages/teacher/RequestDetails";
 
+// HOD / HOS pages
 import HodDashboard from "./pages/hod/HodDashboard";
 import HosDashboard from "./pages/hos/HosDashboard";
 
-import LoginPage from "./pages/auth/LoginPage";
-
-import ProtectedRoute from "./routes/ProtectedRoute";
-
+// Printing page
 import PrintingDashboard from "./pages/printing/PrintingDashboard";
+
+// Reusable profile page
+import Profile from "./pages/common/Profile";
 
 export default function App() {
   return (
@@ -20,9 +32,11 @@ export default function App() {
       {/* Public login route */}
       <Route path="/login" element={<LoginPage />} />
 
-      {/* Teacher dashboard */}
+      {/* Teacher routes */}
+      <Route path="/teacher" element={<Navigate to="/teacher/dashboard" replace />} />
+
       <Route
-        path="/teacher"
+        path="/teacher/dashboard"
         element={
           <ProtectedRoute allowedRoles={["Teacher", "SuperAdmin"]}>
             <TeacherDashboard />
@@ -30,7 +44,15 @@ export default function App() {
         }
       />
 
-      {/* Teacher request list */}
+      <Route
+        path="/teacher/profile"
+        element={
+          <ProtectedRoute allowedRoles={["Teacher", "SuperAdmin"]}>
+            <Profile />
+          </ProtectedRoute>
+        }
+      />
+
       <Route
         path="/teacher/my-requests"
         element={
@@ -40,7 +62,6 @@ export default function App() {
         }
       />
 
-      {/* Create request */}
       <Route
         path="/teacher/create-request"
         element={
@@ -50,7 +71,6 @@ export default function App() {
         }
       />
 
-      {/* Teacher request details */}
       <Route
         path="/teacher/request-details/:id"
         element={
@@ -60,9 +80,11 @@ export default function App() {
         }
       />
 
-      {/* HOD dashboard */}
+      {/* HOD routes */}
+      <Route path="/hod" element={<Navigate to="/hod/dashboard" replace />} />
+
       <Route
-        path="/hod"
+        path="/hod/dashboard"
         element={
           <ProtectedRoute allowedRoles={["HOD", "SuperAdmin"]}>
             <HodDashboard />
@@ -70,9 +92,20 @@ export default function App() {
         }
       />
 
-      {/* HOS dashboard */}
       <Route
-        path="/hos"
+        path="/hod/profile"
+        element={
+          <ProtectedRoute allowedRoles={["HOD", "SuperAdmin"]}>
+            <Profile />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* HOS routes */}
+      <Route path="/hos" element={<Navigate to="/hos/dashboard" replace />} />
+
+      <Route
+        path="/hos/dashboard"
         element={
           <ProtectedRoute allowedRoles={["HOS", "SuperAdmin"]}>
             <HosDashboard />
@@ -81,10 +114,31 @@ export default function App() {
       />
 
       <Route
-        path="/printing"
+        path="/hos/profile"
+        element={
+          <ProtectedRoute allowedRoles={["HOS", "SuperAdmin"]}>
+            <Profile />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Printing routes */}
+      <Route path="/printing" element={<Navigate to="/printing/dashboard" replace />} />
+
+      <Route
+        path="/printing/dashboard"
         element={
           <ProtectedRoute allowedRoles={["PrintingAdmin", "SuperAdmin"]}>
             <PrintingDashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/printing/profile"
+        element={
+          <ProtectedRoute allowedRoles={["PrintingAdmin", "SuperAdmin"]}>
+            <Profile />
           </ProtectedRoute>
         }
       />

@@ -12,7 +12,20 @@ export default function ProtectedRoute({ children, allowedRoles }) {
     return <Navigate to="/login" replace />;
   }
 
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
+  const userRole = (
+    user?.role ||
+    user?.Role ||
+    user?.displayRole ||
+    user?.user?.role ||
+    user?.user?.Role ||
+    ""
+  ).toLowerCase();
+
+  const allowed = allowedRoles?.map((role) => role.toLowerCase()) || [];
+
+  if (allowedRoles && !allowed.includes(userRole)) {
+    console.log("BLOCKED ROLE:", userRole);
+    console.log("USER:", user);
     return <Navigate to="/login" replace />;
   }
 

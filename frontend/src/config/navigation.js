@@ -13,7 +13,7 @@ import SettingsIcon from "@mui/icons-material/Settings";
 
 export const navigationConfig = {
   teacher: [
-    { label: "Dashboard", path: "/teacher/dashboard", icon: DashboardIcon },
+    { label: "Dashboard", path: "/teacher", icon: DashboardIcon },
     { label: "My Requests", path: "/teacher/my-requests", icon: DescriptionIcon },
     { label: "Create Request", path: "/teacher/create-request", icon: AddCircleIcon },
     { label: "Attachments", path: "/teacher/attachments", icon: AttachFileIcon },

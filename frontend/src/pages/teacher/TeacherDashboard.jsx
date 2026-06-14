@@ -2,13 +2,14 @@
 // ARAB UNITY SCHOOL
 // Teacher Dashboard Page
 // Connected to Backend KPI API
+// Uses responsive DashboardLayout
 // ============================================
 
 import { useEffect, useState } from "react";
 
 import DashboardLayout from "../../layouts/DashboardLayout";
 
-import Sidebar from "../../components/common/Sidebar";
+import Sidebar from "../../components/sidebar/Sidebar";
 import Topbar from "../../components/common/Topbar";
 import PageHeader from "../../components/common/PageHeader";
 import DateFilter from "../../components/common/DateFilter";
@@ -39,8 +40,10 @@ import QuickActions from "../../components/dashboard/QuickActions";
 import PurposeUsageTrend from "../../components/dashboard/PurposeUsageTrend";
 
 export default function TeacherDashboard() {
+  // Logged-in user
   const { user } = useAuth();
 
+  // KPI state from backend
   const [kpis, setKpis] = useState({
     totalRequests: 0,
     totalSheets: 0,
@@ -50,6 +53,7 @@ export default function TeacherDashboard() {
     rejectedRequests: 0,
   });
 
+  // Load teacher dashboard KPI data
   useEffect(() => {
     const loadKpis = async () => {
       try {
@@ -63,6 +67,7 @@ export default function TeacherDashboard() {
     loadKpis();
   }, []);
 
+  // KPI card data
   const dashboardStats = [
     {
       title: "Total Requests",
@@ -102,6 +107,7 @@ export default function TeacherDashboard() {
     },
   ];
 
+  // KPI icons
   const icons = [
     <Assignment />,
     <Print />,
@@ -114,13 +120,15 @@ export default function TeacherDashboard() {
   return (
     <DashboardLayout
       sidebar={<Sidebar role="teacher" />}
-      topbar={
-        <Topbar
-          userName={user?.fullName || "Teacher"}
-          role={user?.displayRole || user?.role || "Teacher"}
-        />
-      }
+
+      // IMPORTANT:
+      // DashboardLayout now sends handleMenuClick into Topbar
+      // This makes the hamburger menu work only on small screens
+      topbar={(handleMenuClick) => (
+        <Topbar onMenuClick={handleMenuClick} />
+      )}
     >
+      {/* Page Header */}
       <PageHeader
         title={`Welcome Back, ${user?.fullName || "Teacher"}! 👋`}
         subtitle="Here's your request summary and activity overview."
@@ -130,6 +138,7 @@ export default function TeacherDashboard() {
       {/* Live KPI Cards */}
       <KPIGrid stats={dashboardStats} icons={icons} />
 
+      {/* First Analytics Row */}
       <Box
         sx={{
           mt: 4,
@@ -146,6 +155,7 @@ export default function TeacherDashboard() {
         <StatusOverview />
       </Box>
 
+      {/* Second Analytics Row */}
       <Box
         sx={{
           mt: 4,
@@ -162,6 +172,7 @@ export default function TeacherDashboard() {
         <AttachmentSummary />
       </Box>
 
+      {/* Bottom Analytics Row */}
       <Box
         sx={{
           mt: 4,

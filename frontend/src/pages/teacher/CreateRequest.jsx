@@ -28,7 +28,7 @@ import SaveIcon from "@mui/icons-material/Save";
 import SendIcon from "@mui/icons-material/Send";
 
 import DashboardLayout from "../../layouts/DashboardLayout";
-import Sidebar from "../../components/common/Sidebar";
+import Sidebar from "../../components/sidebar/Sidebar";
 import Topbar from "../../components/common/Topbar";
 import PageHeader from "../../components/common/PageHeader";
 import DashboardCard from "../../components/common/DashboardCard";

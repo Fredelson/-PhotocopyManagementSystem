@@ -31,7 +31,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 import DashboardLayout from "../../layouts/DashboardLayout";
-import Sidebar from "../../components/common/Sidebar";
+import Sidebar from "../../components/sidebar/Sidebar";
 import Topbar from "../../components/common/Topbar";
 import PageHeader from "../../components/common/PageHeader";
 import DashboardCard from "../../components/common/DashboardCard";
