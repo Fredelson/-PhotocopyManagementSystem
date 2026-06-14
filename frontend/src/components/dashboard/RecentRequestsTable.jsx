@@ -1,7 +1,7 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // Teacher Dashboard
-// Recent Requests Table Component
+// Modern Recent Requests Component
 // Connected to live backend dashboard data
 // ============================================
 
@@ -11,17 +11,15 @@ import {
   Typography,
   Box,
   Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
+  Chip,
+  IconButton,
 } from "@mui/material";
 
 import VisibilityIcon from "@mui/icons-material/Visibility";
-import DownloadIcon from "@mui/icons-material/Download";
+import DescriptionIcon from "@mui/icons-material/Description";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 
+import { useNavigate } from "react-router-dom";
 import StatusChip from "../common/StatusChip";
 
 // ============================================
@@ -39,125 +37,175 @@ const formatDate = (dateValue) => {
 };
 
 // ============================================
-// Recent Requests Table Component
+// Recent Requests Component
 // ============================================
 
 export default function RecentRequestsTable({ requests = [] }) {
+  const navigate = useNavigate();
+
   return (
     <Card
       sx={{
-        borderRadius: 4,
-        boxShadow: "0 8px 25px rgba(0,0,0,0.08)",
+        borderRadius: 5,
+        border: "1px solid #E2E8F0",
+        boxShadow: "0 10px 30px rgba(15,23,42,0.06)",
+        background: "linear-gradient(135deg,#ffffff 0%,#f8fafc 100%)",
         height: "100%",
-        minWidth: 0,
       }}
     >
-      <CardContent>
+      <CardContent sx={{ p: 3 }}>
         {/* Header */}
         <Box
           sx={{
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            mb: 2,
+            mb: 3,
+            gap: 2,
           }}
         >
-          <Typography variant="h6" fontWeight={700}>
-            My Recent Requests
-          </Typography>
+          <Box>
+            <Typography variant="h6" fontWeight={900}>
+              My Recent Requests
+            </Typography>
+
+            <Typography color="text.secondary" fontSize={14}>
+              Latest 5 photocopy requests submitted.
+            </Typography>
+          </Box>
 
           <Button
             size="small"
             variant="outlined"
-            sx={{ textTransform: "none" }}
+            endIcon={<ArrowForwardIcon />}
+            onClick={() => navigate("/teacher/my-requests")}
+            sx={{
+              borderRadius: 3,
+              textTransform: "none",
+              fontWeight: 800,
+              borderColor: "#A7F3D0",
+              color: "#0B8F4D",
+            }}
           >
             View All
           </Button>
         </Box>
 
-        {/* Responsive Table Wrapper */}
-        <TableContainer
-          sx={{
-            width: "100%",
-            overflowX: "auto",
-          }}
-        >
-          <Table size="small" sx={{ minWidth: 760 }}>
-            <TableHead>
-              <TableRow>
-                <TableCell>Request ID</TableCell>
-                <TableCell>Purpose</TableCell>
-                <TableCell>Sheets</TableCell>
-                <TableCell>Pages</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Submitted On</TableCell>
-                <TableCell align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
+        {/* Empty State */}
+        {requests.length === 0 ? (
+          <Box
+            sx={{
+              py: 5,
+              textAlign: "center",
+              borderRadius: 4,
+              bgcolor: "#F8FAFC",
+              border: "1px dashed #CBD5E1",
+            }}
+          >
+            <DescriptionIcon sx={{ fontSize: 42, color: "#94A3B8", mb: 1 }} />
 
-            <TableBody>
-              {requests.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} align="center">
-                    No recent requests found.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                requests.map((request) => (
-                  <TableRow key={request.RequestId} hover>
-                    <TableCell sx={{ fontWeight: 700 }}>
-                      {request.RequestNumber || "-"}
-                    </TableCell>
+            <Typography fontWeight={800}>
+              No recent requests found.
+            </Typography>
 
-                    <TableCell>
-                      {request.PurposeName || "-"}
-                    </TableCell>
+            <Typography color="text.secondary" fontSize={14}>
+              New requests will appear here after submission.
+            </Typography>
+          </Box>
+        ) : (
+          <Box sx={{ display: "grid", gap: 1.5 }}>
+            {requests.map((request) => (
+              <Box
+                key={request.RequestId}
+                sx={{
+                  p: 2,
+                  borderRadius: 4,
+                  bgcolor: "#FFFFFF",
+                  border: "1px solid #E2E8F0",
+                  display: "grid",
+                  gridTemplateColumns: {
+                    xs: "1fr",
+                    md: "1.4fr 1fr 0.8fr 0.8fr auto",
+                  },
+                  gap: 2,
+                  alignItems: "center",
+                  transition: "all 0.2s ease",
+                  "&:hover": {
+                    transform: "translateY(-2px)",
+                    boxShadow: "0 10px 25px rgba(15,23,42,0.08)",
+                  },
+                }}
+              >
+                {/* Request Info */}
+                <Box>
+                  <Typography fontWeight={900}>
+                    {request.RequestNumber || "-"}
+                  </Typography>
 
-                    <TableCell>
-                      {request.TotalSheets || 0}
-                    </TableCell>
+                  <Typography color="text.secondary" fontSize={13}>
+                    Submitted {formatDate(request.SubmittedAt)}
+                  </Typography>
+                </Box>
 
-                    <TableCell>
-                      {request.TotalPages || 0}
-                    </TableCell>
+                {/* Purpose */}
+                <Box>
+                  <Typography color="text.secondary" fontSize={12}>
+                    Purpose
+                  </Typography>
 
-                    <TableCell>
-                      <StatusChip status={request.Status} />
-                    </TableCell>
+                  <Typography fontWeight={800}>
+                    {request.PurposeName || "-"}
+                  </Typography>
+                </Box>
 
-                    <TableCell>
-                      {formatDate(request.SubmittedAt)}
-                    </TableCell>
+                {/* Sheets */}
+                <Box>
+                  <Typography color="text.secondary" fontSize={12}>
+                    Sheets
+                  </Typography>
 
-                    <TableCell align="right">
-                      <VisibilityIcon
-                        sx={{
-                          fontSize: 18,
-                          mr: 1,
-                          color: "#1E3A8A",
-                          cursor: "pointer",
-                        }}
-                      />
+                  <Chip
+                    label={request.TotalSheets || 0}
+                    size="small"
+                    sx={{
+                      fontWeight: 900,
+                      bgcolor: "#EAF7EE",
+                      color: "#0B8F4D",
+                    }}
+                  />
+                </Box>
 
-                      <DownloadIcon
-                        sx={{
-                          fontSize: 18,
-                          color: "#1E3A8A",
-                          cursor: "pointer",
-                        }}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                {/* Status */}
+                <Box>
+                  <Typography color="text.secondary" fontSize={12}>
+                    Status
+                  </Typography>
+
+                  <StatusChip status={request.Status} />
+                </Box>
+
+                {/* View Action */}
+                <IconButton
+                  onClick={() =>
+                    navigate(`/teacher/request-details/${request.RequestId}`)
+                  }
+                  sx={{
+                    border: "1px solid #E2E8F0",
+                    borderRadius: 3,
+                    color: "#2563EB",
+                  }}
+                >
+                  <VisibilityIcon />
+                </IconButton>
+              </Box>
+            ))}
+          </Box>
+        )}
 
         {/* Footer */}
         <Typography
-          variant="body2"
           color="text.secondary"
+          fontSize={13}
           sx={{ mt: 2 }}
         >
           Showing {requests.length} recent requests

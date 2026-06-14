@@ -15,6 +15,7 @@ import TeacherDashboard from "./pages/teacher/TeacherDashboard";
 import MyRequests from "./pages/teacher/MyRequests";
 import CreateRequest from "./pages/teacher/CreateRequest";
 import RequestDetails from "./pages/teacher/RequestDetails";
+import TeacherReports from "./pages/teacher/TeacherReports";
 
 // HOD / HOS pages
 import HodDashboard from "./pages/hod/HodDashboard";
@@ -72,6 +73,15 @@ export default function App() {
         element={
           <ProtectedRoute allowedRoles={["Teacher", "SuperAdmin"]}>
             <CreateRequest />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/teacher/reports"
+        element={
+          <ProtectedRoute allowedRoles={["Teacher", "SuperAdmin"]}>
+            <TeacherReports />
           </ProtectedRoute>
         }
       />

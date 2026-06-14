@@ -1,60 +1,87 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // Teacher Dashboard Page
-// Connected to Backend Dashboard API
-// Includes Completed KPI
-// Uses reusable KPIGrid component
+// Modern Simplified Dashboard
+//
+// Includes:
+// - KPI cards
+// - Monthly usage chart
+// - Request status overview
+// - Attachment storage summary
+// - Recent requests
+//
+// Removed:
+// - Quick Actions because actions already exist in sidebar
+// - Extra unnecessary dashboard widgets
+//
+// Future:
+// - Department / subject remaining balance will be added later
+// - Balance will NOT be shown to teachers yet
 // ============================================
 
 import { useEffect, useState } from "react";
 
-// Layout components
+// ============================================
+// Layout Components
+// ============================================
 import DashboardLayout from "../../layouts/DashboardLayout";
 import Sidebar from "../../components/sidebar/Sidebar";
 import Topbar from "../../components/common/Topbar";
 import PageHeader from "../../components/common/PageHeader";
 import DateFilter from "../../components/common/DateFilter";
 
-// MUI components
-import { Box } from "@mui/material";
+// ============================================
+// MUI Components
+// ============================================
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  LinearProgress,
+} from "@mui/material";
 
-// MUI icons
+// ============================================
+// MUI Icons
+// ============================================
 import {
   Assignment,
   Print,
   Description,
   Pending,
   CheckCircle,
+  Cancel,
   TaskAlt,
+  AttachFile,
 } from "@mui/icons-material";
 
-// Auth context
+// ============================================
+// Auth Context
+// ============================================
 import { useAuth } from "../../context/AuthContext";
 
-// Teacher dashboard API service
+// ============================================
+// API Service
+// ============================================
 import { getTeacherDashboardData } from "../../services/teacherDashboardService";
 
-// Dashboard components
+// ============================================
+// Dashboard Components
+// ============================================
 import KPIGrid from "../../components/dashboard/KPIGrid";
 import MonthlyUsageChart from "../../components/dashboard/MonthlyUsageChart";
-import PurposeBreakdownChart from "../../components/dashboard/PurposeBreakdownChart";
 import StatusOverview from "../../components/dashboard/StatusOverview";
 import RecentRequestsTable from "../../components/dashboard/RecentRequestsTable";
-import RequestProgressTracker from "../../components/dashboard/RequestProgressTracker";
-import AttachmentSummary from "../../components/dashboard/AttachmentSummary";
-import RecentAttachments from "../../components/dashboard/RecentAttachments";
-import QuickActions from "../../components/dashboard/QuickActions";
-import PurposeUsageTrend from "../../components/dashboard/PurposeUsageTrend";
 
 export default function TeacherDashboard() {
   // ============================================
-  // Get logged-in teacher from AuthContext
+  // Logged-in Teacher
   // ============================================
   const { user } = useAuth();
 
   // ============================================
-  // Teacher KPI state
-  // These values come from backend API
+  // KPI State
+  // Balance fields will be added later but hidden
   // ============================================
   const [kpis, setKpis] = useState({
     totalRequests: 0,
@@ -67,48 +94,50 @@ export default function TeacherDashboard() {
   });
 
   // ============================================
-  // Dashboard analytics/table state
-  // Attachments remain static for now
+  // Dashboard Data State
   // ============================================
   const [recentRequests, setRecentRequests] = useState([]);
-  const [purposeBreakdown, setPurposeBreakdown] = useState([]);
   const [monthlyUsage, setMonthlyUsage] = useState([]);
-  const [purposeTrend, setPurposeTrend] = useState([]);
+
+  // ============================================
+  // Temporary Attachment Storage State
+  // Later this will come from backend
+  // ============================================
+  const attachmentStorage = {
+    usedMB: 420,
+    totalMB: 1024,
+    totalAttachments: 156,
+    largestFileMB: 20.4,
+  };
 
   // ============================================
   // Load Teacher Dashboard Data
-  // Runs once when dashboard opens
   // ============================================
   useEffect(() => {
     const loadDashboardData = async () => {
       try {
-        // Call backend dashboard service
         const data = await getTeacherDashboardData();
 
-        // Backend returns KPI values inside data.data
-        const stats = data.data || {};
+        // Supports both backend formats:
+        // data.stats = current backend
+        // data.data = older service format
+        const stats = data.stats || data.data || {};
 
-        // Save KPI values from backend
         setKpis({
-          totalRequests: stats.totalRequests || 0,
-          totalSheets: stats.totalSheets || 0,
-          totalPages: stats.totalPages || 0,
-          pendingRequests: stats.pendingRequests || 0,
-          approvedRequests: stats.approvedRequests || 0,
-          rejectedRequests: stats.rejectedRequests || 0,
-          completedRequests: stats.completedRequests || 0,
+          totalRequests: stats.TotalRequests || stats.totalRequests || 0,
+          totalSheets: stats.TotalSheets || stats.totalSheets || 0,
+          totalPages: stats.TotalPages || stats.totalPages || 0,
+          pendingRequests: stats.PendingRequests || stats.pendingRequests || 0,
+          approvedRequests: stats.ApprovedRequests || stats.approvedRequests || 0,
+          rejectedRequests: stats.RejectedRequests || stats.rejectedRequests || 0,
+          completedRequests:
+            stats.CompletedRequests || stats.completedRequests || 0,
         });
 
-        // Save chart/table data if backend returns them
         setRecentRequests(data.recentRequests || []);
-        setPurposeBreakdown(data.purposeBreakdown || []);
         setMonthlyUsage(data.monthlyUsage || []);
-        setPurposeTrend(data.purposeTrend || []);
       } catch (error) {
-        console.error(
-          "Failed to load teacher dashboard data:",
-          error
-        );
+        console.error("Failed to load teacher dashboard data:", error);
       }
     };
 
@@ -116,39 +145,39 @@ export default function TeacherDashboard() {
   }, []);
 
   // ============================================
-  // KPI cards data
-  // Completed confirms workflow reached Printing completion
+  // Teacher KPI Cards
+  // Do not include department/subject balance yet
   // ============================================
   const dashboardStats = [
     {
       title: "Total Requests",
       value: kpis.totalRequests,
-      color: "#4f46e5",
+      color: "#4F46E5",
     },
     {
       title: "Total Sheets",
       value: kpis.totalSheets,
-      color: "#0ea5e9",
+      color: "#0EA5E9",
     },
     {
       title: "Total Pages",
       value: kpis.totalPages,
-      color: "#8b5cf6",
+      color: "#8B5CF6",
     },
     {
       title: "Pending",
       value: kpis.pendingRequests,
-      color: "#f59e0b",
+      color: "#F59E0B",
     },
     {
       title: "Approved",
       value: kpis.approvedRequests,
-      color: "#22c55e",
+      color: "#22C55E",
     },
     {
       title: "Rejected",
       value: kpis.rejectedRequests,
-      color: "#ef4444",
+      color: "#EF4444",
     },
     {
       title: "Completed",
@@ -158,7 +187,7 @@ export default function TeacherDashboard() {
   ];
 
   // ============================================
-  // KPI icons
+  // KPI Icons
   // Must match dashboardStats order
   // ============================================
   const icons = [
@@ -167,15 +196,13 @@ export default function TeacherDashboard() {
     <Description />,
     <Pending />,
     <CheckCircle />,
+    <Cancel />,
     <TaskAlt />,
-    <CheckCircle />,
   ];
 
   return (
     <DashboardLayout
       sidebar={<Sidebar role="teacher" />}
-
-      // Mobile hamburger support
       topbar={(handleMenuClick) => (
         <Topbar onMenuClick={handleMenuClick} />
       )}
@@ -183,63 +210,181 @@ export default function TeacherDashboard() {
       {/* Page Header */}
       <PageHeader
         title={`Welcome Back, ${user?.fullName || "Teacher"}! 👋`}
-        subtitle="Here's your request summary and activity overview."
-        action={<DateFilter label="Live Dashboard" />}
+        subtitle="Here is your request summary and photocopy activity."
+        action={<DateFilter label="This Month" />}
       />
 
       {/* KPI Cards */}
       <KPIGrid stats={dashboardStats} icons={icons} />
 
-      {/* First Analytics Row */}
+      {/* Main Analytics Row */}
       <Box
         sx={{
           mt: 4,
           display: "grid",
           gridTemplateColumns: {
             xs: "1fr",
-            lg: "2fr 1fr 1fr",
+            xl: "2fr 1fr 1fr",
           },
           gap: 3,
         }}
       >
+        {/* Monthly Usage */}
         <MonthlyUsageChart data={monthlyUsage} />
-        <PurposeBreakdownChart data={purposeBreakdown} />
+
+        {/* Request Status */}
         <StatusOverview kpis={kpis} />
+
+        {/* Attachment Storage Summary */}
+        <TeacherAttachmentSummary storage={attachmentStorage} />
       </Box>
 
-      {/* Second Analytics Row */}
-      <Box
-        sx={{
-          mt: 4,
-          display: "grid",
-          gridTemplateColumns: {
-            xs: "1fr",
-            lg: "2fr 1fr 1fr",
-          },
-          gap: 3,
-        }}
-      >
+      {/* Recent Requests */}
+      <Box sx={{ mt: 4 }}>
         <RecentRequestsTable requests={recentRequests} />
-        <RequestProgressTracker request={recentRequests[0]} />
-        <AttachmentSummary />
-      </Box>
-
-      {/* Bottom Analytics Row */}
-      <Box
-        sx={{
-          mt: 4,
-          display: "grid",
-          gridTemplateColumns: {
-            xs: "1fr",
-            lg: "1fr 1fr 1fr",
-          },
-          gap: 3,
-        }}
-      >
-        <RecentAttachments />
-        <PurposeUsageTrend data={purposeTrend} />
-        <QuickActions />
       </Box>
     </DashboardLayout>
+  );
+}
+
+// ============================================
+// Teacher Attachment Summary
+// Temporary frontend component
+// Later it should connect to backend storage usage
+// ============================================
+
+function TeacherAttachmentSummary({ storage }) {
+  const usedPercent = Math.round(
+    (storage.usedMB / storage.totalMB) * 100
+  );
+
+  const remainingMB = storage.totalMB - storage.usedMB;
+
+  return (
+    <Card
+      sx={{
+        borderRadius: 4,
+        boxShadow: "0 8px 25px rgba(0,0,0,0.06)",
+        height: "100%",
+      }}
+    >
+      <CardContent>
+        {/* Card Header */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3 }}>
+          <Box
+            sx={{
+              width: 48,
+              height: 48,
+              borderRadius: 3,
+              bgcolor: "#EAF1FF",
+              color: "#2563EB",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <AttachFile />
+          </Box>
+
+          <Box>
+            <Typography variant="h6" fontWeight={800}>
+              Attachment Summary
+            </Typography>
+            <Typography color="text.secondary" fontSize={14}>
+              Your attachment storage overview.
+            </Typography>
+          </Box>
+        </Box>
+
+        {/* Usage Percentage */}
+        <Box sx={{ textAlign: "center", mb: 3 }}>
+          <Typography variant="h3" fontWeight={900}>
+            {usedPercent}%
+          </Typography>
+          <Typography color="text.secondary">Used</Typography>
+        </Box>
+
+        {/* Progress Bar */}
+        <LinearProgress
+          variant="determinate"
+          value={usedPercent}
+          sx={{
+            height: 10,
+            borderRadius: 10,
+            mb: 2,
+            bgcolor: "#E5E7EB",
+            "& .MuiLinearProgress-bar": {
+              borderRadius: 10,
+              bgcolor: "#2563EB",
+            },
+          }}
+        />
+
+        <Typography
+          textAlign="center"
+          color="text.secondary"
+          fontSize={13}
+          mb={3}
+        >
+          {storage.usedMB} MB / {storage.totalMB / 1024} GB used
+        </Typography>
+
+        {/* Storage Details */}
+        <Box sx={{ display: "grid", gap: 1.5 }}>
+          <StorageRow label="Used Space" value={`${storage.usedMB} MB`} />
+          <StorageRow label="Total Space" value="1 GB" />
+          <StorageRow label="Remaining" value={`${remainingMB} MB`} />
+        </Box>
+
+        {/* Attachment Stats */}
+        <Box
+          sx={{
+            mt: 3,
+            pt: 2,
+            borderTop: "1px solid #E5E7EB",
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: 2,
+          }}
+        >
+          <Box>
+            <Typography color="text.secondary" fontSize={13}>
+              Total Attachments
+            </Typography>
+            <Typography fontWeight={900}>
+              {storage.totalAttachments}
+            </Typography>
+          </Box>
+
+          <Box>
+            <Typography color="text.secondary" fontSize={13}>
+              Largest File
+            </Typography>
+            <Typography fontWeight={900}>
+              {storage.largestFileMB} MB
+            </Typography>
+          </Box>
+        </Box>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ============================================
+// Reusable Storage Row
+// ============================================
+
+function StorageRow({ label, value }) {
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        justifyContent: "space-between",
+        gap: 2,
+      }}
+    >
+      <Typography color="text.secondary">{label}</Typography>
+      <Typography fontWeight={800}>{value}</Typography>
+    </Box>
   );
 }
