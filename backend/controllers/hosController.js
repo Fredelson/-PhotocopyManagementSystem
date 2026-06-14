@@ -1,10 +1,20 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // HOS Controller
-// Handles HOS dashboard, request review, approve, reject
+// Handles HOS dashboard, request review,
+// approval history, approve, and reject
 // ============================================
 
 const { poolPromise, sql } = require("../config/db");
+
+// ============================================
+// Shared HOS pending statuses
+// Supports old and new status names
+// ============================================
+const HOS_PENDING_STATUSES = `
+  'Forwarded to HOS',
+  'Pending HOS Approval'
+`;
 
 /**
  * @desc    HOS Dashboard Statistics
@@ -13,13 +23,13 @@ const { poolPromise, sql } = require("../config/db");
  */
 const getHosDashboard = async (req, res) => {
   try {
-    // Logged-in HOS ID from JWT
+    // Logged-in HOS ID from JWT token
     const hosId = req.user.id;
 
-    // Connect to MSSQL
+    // Connect to MSSQL database
     const pool = await poolPromise;
 
-    // Count HOS assigned and acted requests
+    // Count requests assigned to this HOS or already acted by this HOS
     const result = await pool
       .request()
       .input("hosId", sql.Int, hosId)
@@ -28,7 +38,7 @@ const getHosDashboard = async (req, res) => {
           COUNT(DISTINCT r.RequestId) AS TotalRequests,
 
           SUM(CASE
-            WHEN r.Status = 'Forwarded to HOS'
+            WHEN r.Status IN (${HOS_PENDING_STATUSES})
              AND r.CurrentApproverId = @hosId
             THEN 1 ELSE 0
           END) AS PendingReview,
@@ -77,12 +87,13 @@ const getHosDashboard = async (req, res) => {
  */
 const getHosRequests = async (req, res) => {
   try {
-    // Logged-in HOS ID from JWT
+    // Logged-in HOS ID from JWT token
     const hosId = req.user.id;
 
-    // Connect to MSSQL
+    // Connect to MSSQL database
     const pool = await poolPromise;
 
+    // Get all requests assigned to this HOS or previously acted by this HOS
     const result = await pool
       .request()
       .input("hosId", sql.Int, hosId)
@@ -158,15 +169,16 @@ const getHosRequests = async (req, res) => {
  */
 const getHosRequestById = async (req, res) => {
   try {
-    // Logged-in HOS ID
+    // Logged-in HOS ID from JWT token
     const hosId = req.user.id;
 
-    // Request ID from URL
+    // Request ID from URL parameter
     const requestId = req.params.id;
 
-    // Connect to MSSQL
+    // Connect to MSSQL database
     const pool = await poolPromise;
 
+    // Get single request if assigned to this HOS or already acted by this HOS
     const result = await pool
       .request()
       .input("requestId", sql.Int, requestId)
@@ -244,18 +256,19 @@ const getHosRequestById = async (req, res) => {
 };
 
 /**
- * @desc    Get HOS approval history from RequestApprovals table
+ * @desc    Get HOS approval history
  * @route   GET /api/hos/approval-history
  * @access  Private - HOS / SuperAdmin
  */
 const getHosApprovalHistory = async (req, res) => {
   try {
-    // Logged-in HOS ID
+    // Logged-in HOS ID from JWT token
     const hosId = req.user.id;
 
-    // Connect to MSSQL
+    // Connect to MSSQL database
     const pool = await poolPromise;
 
+    // Get HOS approval/rejection history from RequestApprovals table
     const result = await pool
       .request()
       .input("hosId", sql.Int, hosId)
@@ -336,19 +349,22 @@ const getHosApprovalHistory = async (req, res) => {
  */
 const approveHosRequest = async (req, res) => {
   try {
-    // Logged-in HOS ID
+    // Logged-in HOS ID from JWT token
     const hosId = req.user.id;
 
-    // Request ID from URL
+    // Request ID from URL parameter
     const requestId = req.params.id;
 
-    // Remarks from frontend
+    // Optional remarks from frontend
     const { remarks } = req.body || {};
 
-    // Connect to MSSQL
+    // Connect to MSSQL database
     const pool = await poolPromise;
 
-    // Check if request is forwarded to this HOS
+    // Check if request is really assigned to this HOS
+    // Supports both status names:
+    // - Forwarded to HOS
+    // - Pending HOS Approval
     const requestResult = await pool
       .request()
       .input("requestId", sql.Int, requestId)
@@ -358,7 +374,7 @@ const approveHosRequest = async (req, res) => {
         FROM PhotocopyRequests
         WHERE RequestId = @requestId
           AND CurrentApproverId = @hosId
-          AND Status = 'Forwarded to HOS'
+          AND Status IN (${HOS_PENDING_STATUSES})
       `);
 
     if (requestResult.recordset.length === 0) {
@@ -369,6 +385,7 @@ const approveHosRequest = async (req, res) => {
     }
 
     // Find active Printing Admin
+    // After HOS approves, request goes to Printing Admin queue
     const printingAdminResult = await pool
       .request()
       .query(`
@@ -384,10 +401,10 @@ const approveHosRequest = async (req, res) => {
       });
     }
 
-    const printingAdminId =
-      printingAdminResult.recordset[0].UserId;
+    const printingAdminId = printingAdminResult.recordset[0].UserId;
 
-    // Update request and send it to Printing Admin
+    // Update request:
+    // HOS approval complete, next approver is Printing Admin
     await pool
       .request()
       .input("requestId", sql.Int, requestId)
@@ -449,25 +466,29 @@ const approveHosRequest = async (req, res) => {
  */
 const rejectHosRequest = async (req, res) => {
   try {
-    // Logged-in HOS ID
+    // Logged-in HOS ID from JWT token
     const hosId = req.user.id;
 
-    // Request ID from URL
+    // Request ID from URL parameter
     const requestId = req.params.id;
 
-    // Remarks from frontend
+    // Reject remarks from frontend
     const { remarks } = req.body || {};
 
+    // Reject action must always include remarks
     if (!remarks || !remarks.trim()) {
       return res.status(400).json({
         message: "Remarks are required when rejecting a request.",
       });
     }
 
-    // Connect to MSSQL
+    // Connect to MSSQL database
     const pool = await poolPromise;
 
-    // Check if request is forwarded to this HOS
+    // Check if request is really assigned to this HOS
+    // Supports both status names:
+    // - Forwarded to HOS
+    // - Pending HOS Approval
     const requestResult = await pool
       .request()
       .input("requestId", sql.Int, requestId)
@@ -477,7 +498,7 @@ const rejectHosRequest = async (req, res) => {
         FROM PhotocopyRequests
         WHERE RequestId = @requestId
           AND CurrentApproverId = @hosId
-          AND Status = 'Forwarded to HOS'
+          AND Status IN (${HOS_PENDING_STATUSES})
       `);
 
     if (requestResult.recordset.length === 0) {
@@ -488,6 +509,7 @@ const rejectHosRequest = async (req, res) => {
     }
 
     // Update request as rejected by HOS
+    // CurrentApproverId becomes NULL because workflow stops here
     await pool
       .request()
       .input("requestId", sql.Int, requestId)
@@ -540,6 +562,9 @@ const rejectHosRequest = async (req, res) => {
   }
 };
 
+// ============================================
+// Export Controller Functions
+// ============================================
 module.exports = {
   getHosDashboard,
   getHosRequests,

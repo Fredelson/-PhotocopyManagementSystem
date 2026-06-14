@@ -21,7 +21,6 @@ const {
 
 const router = express.Router();
 
-// HOS dashboard KPI statistics
 router.get(
   "/dashboard",
   protect,
@@ -29,8 +28,6 @@ router.get(
   getHosDashboard
 );
 
-// HOS approval history
-// IMPORTANT: keep this before /requests/:id
 router.get(
   "/approval-history",
   protect,
@@ -38,7 +35,6 @@ router.get(
   getHosApprovalHistory
 );
 
-// Get all HOS requests
 router.get(
   "/requests",
   protect,
@@ -46,7 +42,6 @@ router.get(
   getHosRequests
 );
 
-// Get single HOS request details
 router.get(
   "/requests/:id",
   protect,
@@ -54,7 +49,6 @@ router.get(
   getHosRequestById
 );
 
-// Approve request
 router.put(
   "/requests/:id/approve",
   protect,
@@ -62,7 +56,6 @@ router.put(
   approveHosRequest
 );
 
-// Reject request
 router.put(
   "/requests/:id/reject",
   protect,

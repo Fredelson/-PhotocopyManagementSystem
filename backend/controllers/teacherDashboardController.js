@@ -2,6 +2,7 @@
 // ARAB UNITY SCHOOL
 // Teacher Dashboard Controller
 // Handles Teacher Dashboard KPI Data
+// Includes Completed KPI
 // ============================================
 
 const { poolPromise, sql } = require("../config/db");
@@ -14,15 +15,20 @@ const { poolPromise, sql } = require("../config/db");
 
 const getTeacherDashboardKpis = async (req, res) => {
   try {
-    // Logged-in teacher ID from JWT
+    // ============================================
+    // Logged-in teacher ID from JWT token
+    // ============================================
     const teacherId = req.user.id;
 
+    // ============================================
+    // Connect to MSSQL database
+    // ============================================
     const pool = await poolPromise;
 
     // ============================================
     // Teacher KPI Query
+    // Counts only requests created by logged-in teacher
     // ============================================
-
     const result = await pool
       .request()
       .input("teacherId", sql.Int, teacherId)
@@ -36,7 +42,14 @@ const getTeacherDashboardKpis = async (req, res) => {
 
           SUM(
             CASE
-              WHEN Status LIKE '%Pending%'
+              WHEN Status IN (
+                'Submitted',
+                'Pending HOD Approval',
+                'Pending HOS Approval',
+                'Forwarded to HOD',
+                'Forwarded to HOS',
+                'Printing'
+              )
               THEN 1
               ELSE 0
             END
@@ -44,7 +57,10 @@ const getTeacherDashboardKpis = async (req, res) => {
 
           SUM(
             CASE
-              WHEN Status LIKE '%Approved%'
+              WHEN Status IN (
+                'Approved by HOD',
+                'Approved by HOS'
+              )
               THEN 1
               ELSE 0
             END
@@ -52,22 +68,36 @@ const getTeacherDashboardKpis = async (req, res) => {
 
           SUM(
             CASE
-              WHEN Status LIKE '%Rejected%'
+              WHEN Status IN (
+                'Rejected by HOD',
+                'Rejected by HOS'
+              )
               THEN 1
               ELSE 0
             END
-          ) AS rejectedRequests
+          ) AS rejectedRequests,
+
+          SUM(
+            CASE
+              WHEN Status = 'Completed'
+              THEN 1
+              ELSE 0
+            END
+          ) AS completedRequests
 
         FROM PhotocopyRequests
         WHERE TeacherId = @teacherId
       `);
 
-    const stats = result.recordset[0];
+    // ============================================
+    // Extract stats safely from result
+    // ============================================
+    const stats = result.recordset[0] || {};
 
     // ============================================
     // Success Response
+    // Frontend will consume these camelCase fields
     // ============================================
-
     res.status(200).json({
       success: true,
       data: {
@@ -77,9 +107,13 @@ const getTeacherDashboardKpis = async (req, res) => {
         pendingRequests: stats.pendingRequests || 0,
         approvedRequests: stats.approvedRequests || 0,
         rejectedRequests: stats.rejectedRequests || 0,
+        completedRequests: stats.completedRequests || 0,
       },
     });
   } catch (error) {
+    // ============================================
+    // Server error response
+    // ============================================
     console.error(
       "Teacher Dashboard KPI Error:",
       error
@@ -88,6 +122,7 @@ const getTeacherDashboardKpis = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to load teacher dashboard KPIs",
+      error: error.message,
     });
   }
 };
