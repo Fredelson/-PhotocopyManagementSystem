@@ -21,6 +21,8 @@ import TeacherReports from "./pages/teacher/TeacherReports";
 import HodDashboard from "./pages/hod/HodDashboard";
 import HosDashboard from "./pages/hos/HosDashboard";
 import HodRequestsPage from "./pages/hod/HodRequestsPage";
+import DepartmentLimitsPage from "./pages/printing/DepartmentLimitsPage";
+import SubjectAllocationPage from "./pages/hos/SubjectAllocationPage";
 
 // Printing page
 import PrintingDashboard from "./pages/printing/PrintingDashboard";
@@ -78,6 +80,15 @@ export default function App() {
       />
 
       <Route
+        path="/printing/department-limits"
+        element={
+          <ProtectedRoute allowedRoles={["PrintingAdmin", "SuperAdmin"]}>
+            <DepartmentLimitsPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
         path="/teacher/reports"
         element={
           <ProtectedRoute allowedRoles={["Teacher", "SuperAdmin"]}>
@@ -107,6 +118,14 @@ export default function App() {
         element={
           <ProtectedRoute allowedRoles={["HOD", "SuperAdmin"]}>
             <HodDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/hos/subject-allocation"
+        element={
+          <ProtectedRoute allowedRoles={["HOS", "SuperAdmin"]}>
+            <SubjectAllocationPage />
           </ProtectedRoute>
         }
       />

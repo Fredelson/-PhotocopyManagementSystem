@@ -3,6 +3,7 @@
 // HOS Controller
 // Handles HOS dashboard, request review,
 // approval history, approve, and reject
+// Fixed duplicate approval rows issue
 // ============================================
 
 const { poolPromise, sql } = require("../config/db");
@@ -30,6 +31,7 @@ const getHosDashboard = async (req, res) => {
     const pool = await poolPromise;
 
     // Count requests assigned to this HOS or already acted by this HOS
+    // COUNT DISTINCT prevents KPI duplication if old duplicate history exists
     const result = await pool
       .request()
       .input("hosId", sql.Int, hosId)
@@ -37,25 +39,25 @@ const getHosDashboard = async (req, res) => {
         SELECT
           COUNT(DISTINCT r.RequestId) AS TotalRequests,
 
-          SUM(CASE
+          COUNT(DISTINCT CASE
             WHEN r.Status IN (${HOS_PENDING_STATUSES})
              AND r.CurrentApproverId = @hosId
-            THEN 1 ELSE 0
+            THEN r.RequestId
           END) AS PendingReview,
 
-          SUM(CASE
+          COUNT(DISTINCT CASE
             WHEN r.Status = 'Approved by HOS'
-            THEN 1 ELSE 0
+            THEN r.RequestId
           END) AS Approved,
 
-          SUM(CASE
+          COUNT(DISTINCT CASE
             WHEN r.Status = 'Rejected by HOS'
-            THEN 1 ELSE 0
+            THEN r.RequestId
           END) AS Rejected,
 
-          SUM(CASE
+          COUNT(DISTINCT CASE
             WHEN r.Status = 'Completed'
-            THEN 1 ELSE 0
+            THEN r.RequestId
           END) AS Completed
 
         FROM PhotocopyRequests r
@@ -93,12 +95,13 @@ const getHosRequests = async (req, res) => {
     // Connect to MSSQL database
     const pool = await poolPromise;
 
-    // Get all requests assigned to this HOS or previously acted by this HOS
+    // OUTER APPLY gets only the latest HOS approval row
+    // This prevents duplicate request rows in the frontend table
     const result = await pool
       .request()
       .input("hosId", sql.Int, hosId)
       .query(`
-        SELECT DISTINCT
+        SELECT
           r.RequestId,
           r.RequestNumber,
           r.Copies,
@@ -140,13 +143,26 @@ const getHosRequests = async (req, res) => {
         LEFT JOIN Purposes p
           ON r.PurposeId = p.PurposeId
 
-        LEFT JOIN RequestApprovals ra
-          ON r.RequestId = ra.RequestId
-         AND ra.ApproverId = @hosId
-         AND ra.ApprovalRole = 'HOS'
+        OUTER APPLY (
+          SELECT TOP 1
+            ra2.Remarks,
+            ra2.ApprovalStatus,
+            ra2.ActionDate
+          FROM RequestApprovals ra2
+          WHERE ra2.RequestId = r.RequestId
+            AND ra2.ApproverId = @hosId
+            AND ra2.ApprovalRole = 'HOS'
+          ORDER BY ra2.ActionDate DESC, ra2.ApprovalId DESC
+        ) ra
 
         WHERE r.CurrentApproverId = @hosId
-           OR ra.ApproverId = @hosId
+           OR EXISTS (
+              SELECT 1
+              FROM RequestApprovals x
+              WHERE x.RequestId = r.RequestId
+                AND x.ApproverId = @hosId
+                AND x.ApprovalRole = 'HOS'
+           )
 
         ORDER BY r.SubmittedAt DESC
       `);
@@ -178,7 +194,7 @@ const getHosRequestById = async (req, res) => {
     // Connect to MSSQL database
     const pool = await poolPromise;
 
-    // Get single request if assigned to this HOS or already acted by this HOS
+    // OUTER APPLY gets only the latest HOS approval row
     const result = await pool
       .request()
       .input("requestId", sql.Int, requestId)
@@ -226,15 +242,28 @@ const getHosRequestById = async (req, res) => {
         LEFT JOIN Purposes p
           ON r.PurposeId = p.PurposeId
 
-        LEFT JOIN RequestApprovals ra
-          ON r.RequestId = ra.RequestId
-         AND ra.ApproverId = @hosId
-         AND ra.ApprovalRole = 'HOS'
+        OUTER APPLY (
+          SELECT TOP 1
+            ra2.Remarks,
+            ra2.ApprovalStatus,
+            ra2.ActionDate
+          FROM RequestApprovals ra2
+          WHERE ra2.RequestId = r.RequestId
+            AND ra2.ApproverId = @hosId
+            AND ra2.ApprovalRole = 'HOS'
+          ORDER BY ra2.ActionDate DESC, ra2.ApprovalId DESC
+        ) ra
 
         WHERE r.RequestId = @requestId
           AND (
             r.CurrentApproverId = @hosId
-            OR ra.ApproverId = @hosId
+            OR EXISTS (
+              SELECT 1
+              FROM RequestApprovals x
+              WHERE x.RequestId = r.RequestId
+                AND x.ApproverId = @hosId
+                AND x.ApprovalRole = 'HOS'
+            )
           )
       `);
 
@@ -268,7 +297,8 @@ const getHosApprovalHistory = async (req, res) => {
     // Connect to MSSQL database
     const pool = await poolPromise;
 
-    // Get HOS approval/rejection history from RequestApprovals table
+    // Only show completed actions in history
+    // Pending rows are internal workflow records
     const result = await pool
       .request()
       .input("hosId", sql.Int, hosId)
@@ -327,6 +357,7 @@ const getHosApprovalHistory = async (req, res) => {
 
         WHERE ra.ApproverId = @hosId
           AND ra.ApprovalRole = 'HOS'
+          AND ra.ApprovalStatus <> 'Pending'
 
         ORDER BY ra.ActionDate DESC
       `);
@@ -362,9 +393,6 @@ const approveHosRequest = async (req, res) => {
     const pool = await poolPromise;
 
     // Check if request is really assigned to this HOS
-    // Supports both status names:
-    // - Forwarded to HOS
-    // - Pending HOS Approval
     const requestResult = await pool
       .request()
       .input("requestId", sql.Int, requestId)
@@ -418,32 +446,54 @@ const approveHosRequest = async (req, res) => {
         WHERE RequestId = @requestId
       `);
 
-    // Save HOS approval history
-    await pool
+    // Update existing HOS pending approval row
+    // This prevents duplicate HOS Pending + HOS Approved rows
+    const updateHosApproval = await pool
       .request()
       .input("requestId", sql.Int, requestId)
       .input("approverId", sql.Int, hosId)
       .input("remarks", sql.NVarChar, remarks || "Approved by HOS")
       .query(`
-        INSERT INTO RequestApprovals
-        (
-          RequestId,
-          ApproverId,
-          ApprovalRole,
-          ApprovalStatus,
-          Remarks,
-          ActionDate
-        )
-        VALUES
-        (
-          @requestId,
-          @approverId,
-          'HOS',
-          'Approved',
-          @remarks,
-          GETDATE()
-        )
+        UPDATE RequestApprovals
+        SET
+          ApprovalStatus = 'Approved',
+          Remarks = @remarks,
+          ActionDate = GETDATE()
+        WHERE RequestId = @requestId
+          AND ApproverId = @approverId
+          AND ApprovalRole = 'HOS'
+          AND ApprovalStatus = 'Pending'
       `);
+
+    // Safety fallback:
+    // If there was no HOS pending row, insert one approved row
+    if (updateHosApproval.rowsAffected[0] === 0) {
+      await pool
+        .request()
+        .input("requestId", sql.Int, requestId)
+        .input("approverId", sql.Int, hosId)
+        .input("remarks", sql.NVarChar, remarks || "Approved by HOS")
+        .query(`
+          INSERT INTO RequestApprovals
+          (
+            RequestId,
+            ApproverId,
+            ApprovalRole,
+            ApprovalStatus,
+            Remarks,
+            ActionDate
+          )
+          VALUES
+          (
+            @requestId,
+            @approverId,
+            'HOS',
+            'Approved',
+            @remarks,
+            GETDATE()
+          )
+        `);
+    }
 
     return res.status(200).json({
       success: true,
@@ -486,9 +536,6 @@ const rejectHosRequest = async (req, res) => {
     const pool = await poolPromise;
 
     // Check if request is really assigned to this HOS
-    // Supports both status names:
-    // - Forwarded to HOS
-    // - Pending HOS Approval
     const requestResult = await pool
       .request()
       .input("requestId", sql.Int, requestId)
@@ -521,32 +568,54 @@ const rejectHosRequest = async (req, res) => {
         WHERE RequestId = @requestId
       `);
 
-    // Save HOS rejection history
-    await pool
+    // Update existing HOS pending approval row
+    // This prevents duplicate HOS Pending + HOS Rejected rows
+    const updateHosApproval = await pool
       .request()
       .input("requestId", sql.Int, requestId)
       .input("approverId", sql.Int, hosId)
       .input("remarks", sql.NVarChar, remarks)
       .query(`
-        INSERT INTO RequestApprovals
-        (
-          RequestId,
-          ApproverId,
-          ApprovalRole,
-          ApprovalStatus,
-          Remarks,
-          ActionDate
-        )
-        VALUES
-        (
-          @requestId,
-          @approverId,
-          'HOS',
-          'Rejected',
-          @remarks,
-          GETDATE()
-        )
+        UPDATE RequestApprovals
+        SET
+          ApprovalStatus = 'Rejected',
+          Remarks = @remarks,
+          ActionDate = GETDATE()
+        WHERE RequestId = @requestId
+          AND ApproverId = @approverId
+          AND ApprovalRole = 'HOS'
+          AND ApprovalStatus = 'Pending'
       `);
+
+    // Safety fallback:
+    // If there was no HOS pending row, insert one rejected row
+    if (updateHosApproval.rowsAffected[0] === 0) {
+      await pool
+        .request()
+        .input("requestId", sql.Int, requestId)
+        .input("approverId", sql.Int, hosId)
+        .input("remarks", sql.NVarChar, remarks)
+        .query(`
+          INSERT INTO RequestApprovals
+          (
+            RequestId,
+            ApproverId,
+            ApprovalRole,
+            ApprovalStatus,
+            Remarks,
+            ActionDate
+          )
+          VALUES
+          (
+            @requestId,
+            @approverId,
+            'HOS',
+            'Rejected',
+            @remarks,
+            GETDATE()
+          )
+        `);
+    }
 
     return res.status(200).json({
       success: true,

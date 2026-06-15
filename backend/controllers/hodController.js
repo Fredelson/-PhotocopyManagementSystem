@@ -2,6 +2,7 @@
 // ARAB UNITY SCHOOL
 // HOD Controller
 // Handles HOD dashboard, request review, approve, reject
+// Fixed duplicate approval rows issue
 // ============================================
 
 const { poolPromise, sql } = require("../config/db");
@@ -13,13 +14,9 @@ const { poolPromise, sql } = require("../config/db");
  */
 const getHodDashboard = async (req, res) => {
   try {
-    // Logged-in HOD ID from JWT
     const hodId = req.user.id;
-
-    // Connect to MSSQL
     const pool = await poolPromise;
 
-    // Count all requests assigned to this HOD or already acted by this HOD
     const result = await pool
       .request()
       .input("hodId", sql.Int, hodId)
@@ -27,34 +24,35 @@ const getHodDashboard = async (req, res) => {
         SELECT
           COUNT(DISTINCT r.RequestId) AS TotalRequests,
 
-          SUM(CASE 
+          COUNT(DISTINCT CASE
             WHEN r.Status = 'Pending'
              AND r.CurrentApproverId = @hodId
-            THEN 1 ELSE 0 
+            THEN r.RequestId
           END) AS PendingReview,
 
-          SUM(CASE 
+          COUNT(DISTINCT CASE
             WHEN r.Status = 'Approved by HOD'
-            THEN 1 ELSE 0 
+            THEN r.RequestId
           END) AS Approved,
 
-          SUM(CASE 
+          COUNT(DISTINCT CASE
             WHEN r.Status = 'Rejected by HOD'
-            THEN 1 ELSE 0 
+            THEN r.RequestId
           END) AS Rejected,
 
-          SUM(CASE 
+          COUNT(DISTINCT CASE
             WHEN r.Status = 'Forwarded to HOS'
-            THEN 1 ELSE 0 
+            THEN r.RequestId
           END) AS Forwarded,
 
-          SUM(CASE 
+          COUNT(DISTINCT CASE
             WHEN r.Status = 'Completed'
-            THEN 1 ELSE 0 
+            THEN r.RequestId
           END) AS Completed
 
         FROM PhotocopyRequests r
-        LEFT JOIN RequestApprovals ra 
+
+        LEFT JOIN RequestApprovals ra
           ON r.RequestId = ra.RequestId
          AND ra.ApproverId = @hodId
          AND ra.ApprovalRole = 'HOD'
@@ -75,23 +73,20 @@ const getHodDashboard = async (req, res) => {
 };
 
 /**
- * @desc    Get requests assigned to logged-in HOD + requests already approved/rejected by HOD
+ * @desc    Get requests assigned to logged-in HOD + already acted requests
  * @route   GET /api/hod/requests
  * @access  Private - HOD / SuperAdmin
  */
 const getHodRequests = async (req, res) => {
   try {
-    // Logged-in HOD ID from JWT
     const hodId = req.user.id;
-
-    // Connect to MSSQL
     const pool = await poolPromise;
 
     const result = await pool
       .request()
       .input("hodId", sql.Int, hodId)
       .query(`
-        SELECT DISTINCT
+        SELECT
           r.RequestId,
           r.RequestNumber,
           r.Copies,
@@ -114,25 +109,38 @@ const getHodRequests = async (req, res) => {
 
         FROM PhotocopyRequests r
 
-        LEFT JOIN Users u 
+        LEFT JOIN Users u
           ON r.TeacherId = u.UserId
 
-        LEFT JOIN Departments d 
+        LEFT JOIN Departments d
           ON r.DepartmentId = d.DepartmentId
 
-        LEFT JOIN Subjects s 
+        LEFT JOIN Subjects s
           ON r.SubjectId = s.SubjectId
 
-        LEFT JOIN Purposes p 
+        LEFT JOIN Purposes p
           ON r.PurposeId = p.PurposeId
 
-        LEFT JOIN RequestApprovals ra
-          ON r.RequestId = ra.RequestId
-         AND ra.ApproverId = @hodId
-         AND ra.ApprovalRole = 'HOD'
+        OUTER APPLY (
+          SELECT TOP 1
+            ra2.Remarks,
+            ra2.ApprovalStatus,
+            ra2.ActionDate
+          FROM RequestApprovals ra2
+          WHERE ra2.RequestId = r.RequestId
+            AND ra2.ApproverId = @hodId
+            AND ra2.ApprovalRole = 'HOD'
+          ORDER BY ra2.ActionDate DESC, ra2.ApprovalId DESC
+        ) ra
 
         WHERE r.CurrentApproverId = @hodId
-           OR ra.ApproverId = @hodId
+           OR EXISTS (
+              SELECT 1
+              FROM RequestApprovals x
+              WHERE x.RequestId = r.RequestId
+                AND x.ApproverId = @hodId
+                AND x.ApprovalRole = 'HOD'
+           )
 
         ORDER BY r.SubmittedAt DESC
       `);
@@ -155,13 +163,8 @@ const getHodRequests = async (req, res) => {
  */
 const getHodRequestById = async (req, res) => {
   try {
-    // Logged-in HOD ID
     const hodId = req.user.id;
-
-    // Request ID from URL
     const requestId = req.params.id;
-
-    // Connect to MSSQL
     const pool = await poolPromise;
 
     const result = await pool
@@ -192,27 +195,40 @@ const getHodRequestById = async (req, res) => {
 
         FROM PhotocopyRequests r
 
-        LEFT JOIN Users u 
+        LEFT JOIN Users u
           ON r.TeacherId = u.UserId
 
-        LEFT JOIN Departments d 
+        LEFT JOIN Departments d
           ON r.DepartmentId = d.DepartmentId
 
-        LEFT JOIN Subjects s 
+        LEFT JOIN Subjects s
           ON r.SubjectId = s.SubjectId
 
-        LEFT JOIN Purposes p 
+        LEFT JOIN Purposes p
           ON r.PurposeId = p.PurposeId
 
-        LEFT JOIN RequestApprovals ra
-          ON r.RequestId = ra.RequestId
-         AND ra.ApproverId = @hodId
-         AND ra.ApprovalRole = 'HOD'
+        OUTER APPLY (
+          SELECT TOP 1
+            ra2.Remarks,
+            ra2.ApprovalStatus,
+            ra2.ActionDate
+          FROM RequestApprovals ra2
+          WHERE ra2.RequestId = r.RequestId
+            AND ra2.ApproverId = @hodId
+            AND ra2.ApprovalRole = 'HOD'
+          ORDER BY ra2.ActionDate DESC, ra2.ApprovalId DESC
+        ) ra
 
         WHERE r.RequestId = @requestId
           AND (
             r.CurrentApproverId = @hodId
-            OR ra.ApproverId = @hodId
+            OR EXISTS (
+              SELECT 1
+              FROM RequestApprovals x
+              WHERE x.RequestId = r.RequestId
+                AND x.ApproverId = @hodId
+                AND x.ApprovalRole = 'HOD'
+            )
           )
       `);
 
@@ -234,19 +250,15 @@ const getHodRequestById = async (req, res) => {
 };
 
 /**
- * @desc    Get HOD approval history from RequestApprovals table
+ * @desc    Get HOD approval history
  * @route   GET /api/hod/approval-history
  * @access  Private - HOD / SuperAdmin
  */
 const getHodApprovalHistory = async (req, res) => {
   try {
-    // Logged-in HOD ID
     const hodId = req.user.id;
-
-    // Connect to MSSQL
     const pool = await poolPromise;
 
-    // Get all approval actions made by this HOD
     const result = await pool
       .request()
       .input("hodId", sql.Int, hodId)
@@ -279,36 +291,37 @@ const getHodApprovalHistory = async (req, res) => {
           approver.EmployeeId AS ApproverEmployeeId,
 
           CONCAT(
-              s.SubjectName,
-              ' ',
-              d.DepartmentName,
-              ' HOD'
+            s.SubjectName,
+            ' ',
+            d.DepartmentName,
+            ' HOD'
           ) AS DisplayApproverRole
 
-      FROM RequestApprovals ra
+        FROM RequestApprovals ra
 
-      INNER JOIN PhotocopyRequests r
+        INNER JOIN PhotocopyRequests r
           ON ra.RequestId = r.RequestId
 
-      LEFT JOIN Users u
+        LEFT JOIN Users u
           ON r.TeacherId = u.UserId
 
-      LEFT JOIN Departments d
+        LEFT JOIN Departments d
           ON r.DepartmentId = d.DepartmentId
 
-      LEFT JOIN Subjects s
+        LEFT JOIN Subjects s
           ON r.SubjectId = s.SubjectId
 
-      LEFT JOIN Purposes p
+        LEFT JOIN Purposes p
           ON r.PurposeId = p.PurposeId
 
-      LEFT JOIN Users approver
+        LEFT JOIN Users approver
           ON ra.ApproverId = approver.UserId
 
-      WHERE ra.ApproverId = @hodId
-        AND ra.ApprovalRole = 'HOD'
+        WHERE ra.ApproverId = @hodId
+          AND ra.ApprovalRole = 'HOD'
+          AND ra.ApprovalStatus <> 'Pending'
 
-      ORDER BY ra.ActionDate DESC
+        ORDER BY ra.ActionDate DESC
       `);
 
     return res.status(200).json(result.recordset);
@@ -329,22 +342,12 @@ const getHodApprovalHistory = async (req, res) => {
  */
 const approveHodRequest = async (req, res) => {
   try {
-    // Logged-in HOD ID
     const hodId = req.user.id;
-
-    // Request ID from URL
     const requestId = req.params.id;
-
-    // Remarks from frontend
     const { remarks } = req.body || {};
-
-    // Connect to MSSQL
     const pool = await poolPromise;
 
-    // ============================================
-    // Check if request is still pending
-    // and assigned to this HOD
-    // ============================================
+    // Check request is still pending and assigned to this HOD
     const requestResult = await pool
       .request()
       .input("requestId", sql.Int, requestId)
@@ -360,7 +363,6 @@ const approveHodRequest = async (req, res) => {
           AND Status = 'Pending'
       `);
 
-    // If no request found, stop the process
     if (requestResult.recordset.length === 0) {
       return res.status(404).json({
         message:
@@ -368,27 +370,17 @@ const approveHodRequest = async (req, res) => {
       });
     }
 
-    // Get request details
     const request = requestResult.recordset[0];
-
-    // Get total sheets from request
     const totalSheets = request.TotalSheets;
-
-    // Get department from request
     const departmentId = request.DepartmentId;
 
-    // ============================================
-    // Find Printing Admin
-    // Small requests go directly to Printing Admin
-    // ============================================
-    const printingAdminResult = await pool
-      .request()
-      .query(`
-        SELECT TOP 1 UserId
-        FROM Users
-        WHERE Role = 'PrintingAdmin'
-          AND IsActive = 1
-      `);
+    // Find active Printing Admin
+    const printingAdminResult = await pool.request().query(`
+      SELECT TOP 1 UserId
+      FROM Users
+      WHERE Role = 'PrintingAdmin'
+        AND IsActive = 1
+    `);
 
     if (printingAdminResult.recordset.length === 0) {
       return res.status(404).json({
@@ -396,21 +388,14 @@ const approveHodRequest = async (req, res) => {
       });
     }
 
-    const printingAdminId =
-      printingAdminResult.recordset[0].UserId;
+    const printingAdminId = printingAdminResult.recordset[0].UserId;
 
-    // ============================================
-    // Default next step:
-    // Approved by HOD → Printing Admin
-    // ============================================
+    // Default route: HOD approved → Printing Admin
     let nextStatus = "Approved by HOD";
     let nextApproverId = printingAdminId;
     let approvalRemarks = remarks || "Approved by HOD";
 
-    // ============================================
-    // If request is more than 500 sheets,
-    // forward it to the HOS of the same department
-    // ============================================
+    // Large request route: HOD approved → HOS
     if (totalSheets > 500) {
       const hosResult = await pool
         .request()
@@ -425,20 +410,16 @@ const approveHodRequest = async (req, res) => {
 
       if (hosResult.recordset.length === 0) {
         return res.status(404).json({
-          message:
-            "No active HOS found for this request department.",
+          message: "No active HOS found for this request department.",
         });
       }
 
       nextStatus = "Forwarded to HOS";
       nextApproverId = hosResult.recordset[0].UserId;
-      approvalRemarks =
-        remarks || "Approved by HOD and forwarded to HOS";
+      approvalRemarks = remarks || "Approved by HOD and forwarded to HOS";
     }
 
-    // ============================================
-    // Update request status and next approver
-    // ============================================
+    // Update main request
     await pool
       .request()
       .input("requestId", sql.Int, requestId)
@@ -453,38 +434,57 @@ const approveHodRequest = async (req, res) => {
         WHERE RequestId = @requestId
       `);
 
-    // ============================================
-    // Save HOD approval history
-    // ============================================
-    await pool
+    // Update existing HOD pending approval row
+    // This prevents duplicate HOD Pending + HOD Approved rows
+    const updateHodApproval = await pool
       .request()
       .input("requestId", sql.Int, requestId)
       .input("approverId", sql.Int, hodId)
       .input("remarks", sql.NVarChar, approvalRemarks)
       .query(`
-        INSERT INTO RequestApprovals
-        (
-          RequestId,
-          ApproverId,
-          ApprovalRole,
-          ApprovalStatus,
-          Remarks,
-          ActionDate
-        )
-        VALUES
-        (
-          @requestId,
-          @approverId,
-          'HOD',
-          'Approved',
-          @remarks,
-          GETDATE()
-        )
+        UPDATE RequestApprovals
+        SET
+          ApprovalStatus = 'Approved',
+          Remarks = @remarks,
+          ActionDate = GETDATE()
+        WHERE RequestId = @requestId
+          AND ApproverId = @approverId
+          AND ApprovalRole = 'HOD'
+          AND ApprovalStatus = 'Pending'
       `);
 
-    // ============================================
-    // If forwarded to HOS, create pending HOS approval
-    // ============================================
+    // Safety fallback:
+    // If there was no HOD pending row, insert one approved row
+    if (updateHodApproval.rowsAffected[0] === 0) {
+      await pool
+        .request()
+        .input("requestId", sql.Int, requestId)
+        .input("approverId", sql.Int, hodId)
+        .input("remarks", sql.NVarChar, approvalRemarks)
+        .query(`
+          INSERT INTO RequestApprovals
+          (
+            RequestId,
+            ApproverId,
+            ApprovalRole,
+            ApprovalStatus,
+            Remarks,
+            ActionDate
+          )
+          VALUES
+          (
+            @requestId,
+            @approverId,
+            'HOD',
+            'Approved',
+            @remarks,
+            GETDATE()
+          )
+        `);
+    }
+
+    // If large request, create HOS pending approval row
+    // This is correct because HOS has not acted yet
     if (nextStatus === "Forwarded to HOS") {
       await pool
         .request()
@@ -537,19 +537,12 @@ const approveHodRequest = async (req, res) => {
  */
 const rejectHodRequest = async (req, res) => {
   try {
-    // Logged-in HOD ID
     const hodId = req.user.id;
-
-    // Request ID from URL
     const requestId = req.params.id;
-
-    // Remarks from frontend
     const { remarks } = req.body || {};
-
-    // Connect to MSSQL
     const pool = await poolPromise;
 
-    // Check if request is still pending and assigned to this HOD
+    // Check request is still pending and assigned to HOD
     const requestResult = await pool
       .request()
       .input("requestId", sql.Int, requestId)
@@ -569,7 +562,9 @@ const rejectHodRequest = async (req, res) => {
       });
     }
 
-    // Update request status
+    const rejectionRemarks = remarks || "Rejected by HOD";
+
+    // Update main request
     await pool
       .request()
       .input("requestId", sql.Int, requestId)
@@ -581,32 +576,54 @@ const rejectHodRequest = async (req, res) => {
         WHERE RequestId = @requestId
       `);
 
-    // Save rejection history
-    await pool
+    // Update existing HOD pending approval row
+    // This prevents duplicate HOD Pending + HOD Rejected rows
+    const updateHodApproval = await pool
       .request()
       .input("requestId", sql.Int, requestId)
       .input("approverId", sql.Int, hodId)
-      .input("remarks", sql.NVarChar, remarks || "Rejected by HOD")
+      .input("remarks", sql.NVarChar, rejectionRemarks)
       .query(`
-        INSERT INTO RequestApprovals
-        (
-          RequestId,
-          ApproverId,
-          ApprovalRole,
-          ApprovalStatus,
-          Remarks,
-          ActionDate
-        )
-        VALUES
-        (
-          @requestId,
-          @approverId,
-          'HOD',
-          'Rejected',
-          @remarks,
-          GETDATE()
-        )
+        UPDATE RequestApprovals
+        SET
+          ApprovalStatus = 'Rejected',
+          Remarks = @remarks,
+          ActionDate = GETDATE()
+        WHERE RequestId = @requestId
+          AND ApproverId = @approverId
+          AND ApprovalRole = 'HOD'
+          AND ApprovalStatus = 'Pending'
       `);
+
+    // Safety fallback:
+    // If there was no HOD pending row, insert one rejected row
+    if (updateHodApproval.rowsAffected[0] === 0) {
+      await pool
+        .request()
+        .input("requestId", sql.Int, requestId)
+        .input("approverId", sql.Int, hodId)
+        .input("remarks", sql.NVarChar, rejectionRemarks)
+        .query(`
+          INSERT INTO RequestApprovals
+          (
+            RequestId,
+            ApproverId,
+            ApprovalRole,
+            ApprovalStatus,
+            Remarks,
+            ActionDate
+          )
+          VALUES
+          (
+            @requestId,
+            @approverId,
+            'HOD',
+            'Rejected',
+            @remarks,
+            GETDATE()
+          )
+        `);
+    }
 
     return res.status(200).json({
       success: true,

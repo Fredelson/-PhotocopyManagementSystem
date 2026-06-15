@@ -28,6 +28,7 @@ import {
   Cancel,
   LocalPrintshop,
   Inventory,
+  AccountBalance,
 } from "@mui/icons-material";
 
 import { useNavigate, useLocation } from "react-router-dom";
@@ -135,6 +136,11 @@ export default function Sidebar() {
       path: "/hos/dashboard",
     },
     {
+      label: "Subject Allocation",
+      icon: <AccountBalance />,
+      path: "/hos/subject-allocation",
+    },
+    {
       label: "Pending Requests",
       icon: <PendingActions />,
       path: "/hos/pending-requests",
@@ -171,6 +177,11 @@ export default function Sidebar() {
       label: "Dashboard",
       icon: <Dashboard />,
       path: "/printing/dashboard",
+    },
+    {
+      label: "Department Limits",
+      icon: <AccountBalance />,
+      path: "/printing/department-limits",
     },
     {
       label: "Print Queue",
