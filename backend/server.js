@@ -22,11 +22,14 @@ const hosRoutes = require("./routes/hosRoutes");
 const lookupRoutes = require("./routes/lookupRoutes");
 const userRoutes = require("./routes/userRoutes");
 
+
 // Teacher Dashboard routes
 const teacherDashboardRoutes = require("./routes/teacherDashboardRoutes");
 
 // Printing Admin routes
 const printingRoutes = require("./routes/printingRoutes");
+const paperStockRoutes = require("./routes/paperStockRoutes");
+
 
 // Print Limit routes
 const limitRoutes = require("./routes/limitRoutes");
@@ -88,6 +91,7 @@ app.use("/api/printing", printingRoutes);
 // Print Limit API route
 app.use("/api/limits", limitRoutes);
 
+app.use("/api/paper-stock", paperStockRoutes);
 // ============================================
 // Start Server
 // ============================================

@@ -205,6 +205,11 @@ export default function Sidebar() {
       path: "/printing/inventory",
     },
     {
+      label: "Paper Stock",
+      icon: <Inventory />,
+      path: "/printing/paper-stock",
+    },
+    {
       label: "Reports",
       icon: <Assessment />,
       path: "/printing/reports",
