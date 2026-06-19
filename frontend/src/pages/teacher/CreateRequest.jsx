@@ -2,7 +2,7 @@
 // ARAB UNITY SCHOOL
 // Teacher / HOD - Create Request Page
 // Modern UI Version
-// Keeps existing backend logic and rules
+// Supports attachment upload and safe auto page counting
 // ============================================
 
 import { useEffect, useMemo, useState } from "react";
@@ -17,7 +17,6 @@ import {
   CardContent,
   Chip,
   Divider,
-  IconButton,
   MenuItem,
   TextField,
   Typography,
@@ -31,8 +30,6 @@ import SendIcon from "@mui/icons-material/Send";
 import DescriptionIcon from "@mui/icons-material/Description";
 import RouteIcon from "@mui/icons-material/Route";
 import SummarizeIcon from "@mui/icons-material/Summarize";
-import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
-import FlagIcon from "@mui/icons-material/Flag";
 import FolderIcon from "@mui/icons-material/Folder";
 import ImageIcon from "@mui/icons-material/Image";
 
@@ -47,7 +44,7 @@ const API_URL = "http://localhost:5000/api";
 
 // ============================================
 // Empty document template
-// Includes future-ready uploadType
+// Used when the page loads and when adding files
 // ============================================
 
 const createEmptyDocument = () => ({
@@ -72,15 +69,12 @@ export default function CreateRequest() {
 
   // ============================================
   // Logged-in user information
-  // Supports camelCase and PascalCase
+  // Supports camelCase and PascalCase values
   // ============================================
 
   const userRole = user?.role || user?.Role;
-
   const userDepartmentId = user?.departmentId || user?.DepartmentId;
-
-  const userDepartmentName =
-    user?.departmentName || user?.DepartmentName || "";
+  const userDepartmentName = user?.departmentName || user?.DepartmentName || "";
 
   const userPosition =
     user?.position || user?.Position || user?.roleName || user?.RoleName || "";
@@ -153,11 +147,20 @@ export default function CreateRequest() {
         setSubjects(subjectRes.data);
         setPurposes(purposeRes.data);
 
+        // ============================================
+        // Default department
+        // ============================================
+
         if (userDepartmentId) {
           setDepartmentId(userDepartmentId);
         } else if (deptRes.data.length > 0) {
           setDepartmentId(deptRes.data[0].DepartmentId);
         }
+
+        // ============================================
+        // Default subject
+        // HOD subject is locked to their assigned subject
+        // ============================================
 
         if (isHOD) {
           const hodSubject = subjectRes.data.find((subject) =>
@@ -172,6 +175,10 @@ export default function CreateRequest() {
         } else if (subjectRes.data.length > 0) {
           setSubjectId(subjectRes.data[0].SubjectId);
         }
+
+        // ============================================
+        // Default purpose
+        // ============================================
 
         if (purposeRes.data.length > 0) {
           setPurposeId(purposeRes.data[0].PurposeId);
@@ -212,6 +219,74 @@ export default function CreateRequest() {
     setDocuments((prev) =>
       prev.length === 1 ? prev : prev.filter((doc) => doc.id !== id)
     );
+  };
+
+  // ============================================
+  // Handle File Selection
+  // 1. Attach selected file to UI immediately
+  // 2. Send temporary file to backend for page counting
+  // 3. Update Pages textbox automatically
+  // ============================================
+
+  const handleFileSelect = async (documentId, file) => {
+    if (!file) return;
+
+    // ============================================
+    // Attach file immediately so user can see filename
+    // ============================================
+
+    updateDocument(documentId, "file", file);
+
+    // ============================================
+    // Safe fallback while counting
+    // ============================================
+
+    updateDocument(documentId, "pages", 1);
+
+    try {
+      if (!token) {
+        setError("You are not logged in.");
+        return;
+      }
+
+      // ============================================
+      // Prepare temporary upload for page counter endpoint
+      // ============================================
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      // ============================================
+      // Count pages before submitting the request
+      // POST /api/uploads/count-pages
+      // ============================================
+
+      const response = await axios.post(`${API_URL}/uploads/count-pages`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      // ============================================
+      // Update Pages textbox using backend result
+      // ============================================
+
+      const detectedPages = Number(response.data?.pageCount) || 1;
+
+      console.log("Detected Page Count:", detectedPages);
+
+      updateDocument(documentId, "pages", detectedPages);
+    } catch (err) {
+      // ============================================
+      // Do not remove the file if counting fails
+      // Keep upload stable and allow manual page entry
+      // ============================================
+
+      console.error("Page Count Error:", err);
+      console.log("PAGE COUNT BACKEND ERROR:", err.response?.data);
+
+      updateDocument(documentId, "pages", 1);
+    }
   };
 
   // ============================================
@@ -257,12 +332,12 @@ export default function CreateRequest() {
       ?.DepartmentName || "Not selected";
 
   const selectedSubjectName =
-    subjects.find((s) => Number(s.SubjectId) === Number(subjectId))
-      ?.SubjectName || "Not selected";
+    subjects.find((s) => Number(s.SubjectId) === Number(subjectId))?.SubjectName ||
+    "Not selected";
 
   const selectedPurposeName =
-    purposes.find((p) => Number(p.PurposeId) === Number(purposeId))
-      ?.PurposeName || "Not selected";
+    purposes.find((p) => Number(p.PurposeId) === Number(purposeId))?.PurposeName ||
+    "Not selected";
 
   // ============================================
   // Approval Route Preview
@@ -278,151 +353,152 @@ export default function CreateRequest() {
       : ["Teacher", "HOD", "HOS", "Printing Admin"];
 
   // ============================================
+  // Submit Request to Backend
+  // Creates request first, then uploads attachments
   // ============================================
-// Submit Request to Backend
-// Creates request first, then uploads attachments
-// ============================================
 
-const handleSubmitRequest = async () => {
-  try {
-    // ============================================
-    // Clear previous errors
-    // ============================================
+  const handleSubmitRequest = async () => {
+    try {
+      // ============================================
+      // Clear previous errors
+      // ============================================
 
-    setError("");
+      setError("");
 
-    // ============================================
-    // Basic validation
-    // ============================================
+      // ============================================
+      // Basic validation
+      // ============================================
 
-    if (!token) return setError("You are not logged in.");
-    if (!departmentId) return setError("Department is required.");
-    if (!subjectId) return setError("Subject is required.");
-    if (!purposeId) return setError("Please select a purpose.");
+      if (!token) return setError("You are not logged in.");
+      if (!departmentId) return setError("Department is required.");
+      if (!subjectId) return setError("Subject is required.");
+      if (!purposeId) return setError("Please select a purpose.");
 
-    if (summary.totalPages <= 0 || summary.totalSheets <= 0) {
-      return setError("Total pages and sheets must be greater than zero.");
-    }
-
-    setSubmitting(true);
-
-    // ============================================
-    // Main document is used for request-level copies
-    // ============================================
-
-    const mainDocument = documents[0];
-
-    // ============================================
-    // Main request payload
-    // This saves into PhotocopyRequests
-    // ============================================
-
-    const payload = {
-      departmentId: Number(departmentId),
-      subjectId: Number(subjectId),
-      purposeId: Number(purposeId),
-      copies: Number(mainDocument.copies) || 1,
-      totalPages: summary.totalPages,
-      totalSheets: summary.totalSheets,
-      priorityLevel: priority,
-    };
-
-    console.log("REQUEST PAYLOAD:", payload);
-
-    // ============================================
-    // Step 1: Create photocopy request
-    // ============================================
-
-    const response = await axios.post(`${API_URL}/requests`, payload, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    console.log("Request Created:", response.data);
-
-    // ============================================
-    // Get created RequestId from backend response
-    // ============================================
-
-    const createdRequestId = response.data.requestId;
-
-    if (!createdRequestId) {
-      throw new Error("Request was created but no requestId was returned.");
-    }
-
-    // ============================================
-    // Step 2: Upload each selected attachment
-    // Saves into RequestAttachments
-    // ============================================
-
-    for (const doc of documents) {
-      if (doc.file) {
-        // Calculate attachment-level pages and sheets
-        const pages = Number(doc.pages) || 0;
-        const copies = Number(doc.copies) || 1;
-        const printedPages = pages * copies;
-
-        const documentSheets =
-          doc.printType === "Double-Sided"
-            ? Math.ceil(printedPages / 2)
-            : printedPages;
-
-        // Prepare multipart/form-data
-        const formData = new FormData();
-
-        formData.append("requestId", createdRequestId);
-        formData.append("pageCount", pages);
-        formData.append("copies", copies);
-        formData.append("totalSheets", documentSheets);
-        formData.append("file", doc.file);
-
-        console.log("Uploading attachment:", {
-          requestId: createdRequestId,
-          fileName: doc.file.name,
-          pageCount: pages,
-          copies,
-          totalSheets: documentSheets,
-        });
-
-        await axios.post(`${API_URL}/uploads/request-attachment`, formData, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+      if (summary.totalPages <= 0 || summary.totalSheets <= 0) {
+        return setError("Total pages and sheets must be greater than zero.");
       }
+
+      setSubmitting(true);
+
+      // ============================================
+      // Main document is used for request-level copies
+      // ============================================
+
+      const mainDocument = documents[0];
+
+      // ============================================
+      // Main request payload
+      // Saves into PhotocopyRequests
+      // ============================================
+
+      const payload = {
+        departmentId: Number(departmentId),
+        subjectId: Number(subjectId),
+        purposeId: Number(purposeId),
+        copies: Number(mainDocument.copies) || 1,
+        totalPages: summary.totalPages,
+        totalSheets: summary.totalSheets,
+        priorityLevel: priority,
+      };
+
+      console.log("REQUEST PAYLOAD:", payload);
+
+      // ============================================
+      // Step 1: Create photocopy request
+      // POST /api/requests
+      // ============================================
+
+      const response = await axios.post(`${API_URL}/requests`, payload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      console.log("Request Created:", response.data);
+
+      // ============================================
+      // Get created RequestId from backend response
+      // ============================================
+
+      const createdRequestId = response.data.requestId;
+
+      if (!createdRequestId) {
+        throw new Error("Request was created but no requestId was returned.");
+      }
+
+      // ============================================
+      // Step 2: Upload each selected attachment
+      // Saves into RequestAttachments
+      // Backend counts pages again before saving
+      // ============================================
+
+      for (const doc of documents) {
+        if (doc.file) {
+          // ============================================
+          // Prepare multipart/form-data
+          // ============================================
+
+          const formData = new FormData();
+
+          formData.append("requestId", createdRequestId);
+          formData.append("copies", Number(doc.copies) || 1);
+          formData.append("file", doc.file);
+
+          console.log("Uploading attachment:", {
+            requestId: createdRequestId,
+            fileName: doc.file.name,
+            copies: Number(doc.copies) || 1,
+          });
+
+          // ============================================
+          // Upload final attachment
+          // POST /api/uploads/request-attachment
+          // ============================================
+
+          const uploadResponse = await axios.post(
+            `${API_URL}/uploads/request-attachment`,
+            formData,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+
+          console.log("UPLOAD RESPONSE:", uploadResponse.data);
+        }
+      }
+
+      // ============================================
+      // Navigate after successful request + upload
+      // ============================================
+
+      if (userRole === "HOD") {
+        navigate("/hod/my-requests");
+      } else {
+        navigate("/teacher/my-requests");
+      }
+    } catch (err) {
+      // ============================================
+      // Show backend error clearly
+      // ============================================
+
+      console.error("Create Request Error:", err);
+      console.log("BACKEND ERROR:", err.response?.data);
+
+      setError(
+        err.response?.data?.message ||
+          err.message ||
+          "Unable to submit request. Please try again."
+      );
+    } finally {
+      // ============================================
+      // Stop loading state
+      // ============================================
+
+      setSubmitting(false);
     }
-
-    // ============================================
-    // Navigate after successful request + upload
-    // ============================================
-
-    if (userRole === "HOD") {
-      navigate("/hod/my-requests");
-    } else {
-      navigate("/teacher/my-requests");
-    }
-  } catch (err) {
-    // ============================================
-    // Show backend error clearly
-    // ============================================
-
-    console.error("Create Request Error:", err);
-    console.log("BACKEND ERROR:", err.response?.data);
-
-    setError(
-      err.response?.data?.message ||
-        err.message ||
-        "Unable to submit request. Please try again."
-    );
-  } finally {
-    // ============================================
-    // Stop loading state
-    // ============================================
-
-    setSubmitting(false);
-  }
-};
+  };
 
   // ============================================
   // Page UI
@@ -491,6 +567,7 @@ const handleSubmitRequest = async () => {
             addDocument={addDocument}
             removeDocument={removeDocument}
             updateDocument={updateDocument}
+            handleFileSelect={handleFileSelect}
           />
 
           <Box
@@ -798,9 +875,16 @@ function RequestInfoCard({
 // ============================================
 // Documents Card
 // Multiple documents can be added here
+// Uses parent handleFileSelect for safe auto count
 // ============================================
 
-function DocumentsCard({ documents, addDocument, removeDocument, updateDocument }) {
+function DocumentsCard({
+  documents,
+  addDocument,
+  removeDocument,
+  updateDocument,
+  handleFileSelect,
+}) {
   return (
     <ModernCard
       icon={<DescriptionIcon />}
@@ -824,7 +908,12 @@ function DocumentsCard({ documents, addDocument, removeDocument, updateDocument 
       }
     >
       {documents.map((doc, index) => {
-        const printedPages = (Number(doc.pages) || 0) * (Number(doc.copies) || 0);
+        // ============================================
+        // Calculate document printed pages and sheets
+        // ============================================
+
+        const printedPages =
+          (Number(doc.pages) || 0) * (Number(doc.copies) || 0);
 
         const sheets =
           doc.printType === "Double-Sided"
@@ -842,6 +931,7 @@ function DocumentsCard({ documents, addDocument, removeDocument, updateDocument 
               bgcolor: "#F8FAFC",
             }}
           >
+            {/* Document Header */}
             <Box
               sx={{
                 display: "flex",
@@ -870,6 +960,7 @@ function DocumentsCard({ documents, addDocument, removeDocument, updateDocument 
               </Button>
             </Box>
 
+            {/* Upload Area */}
             <Box
               sx={{
                 display: "grid",
@@ -920,9 +1011,11 @@ function DocumentsCard({ documents, addDocument, removeDocument, updateDocument 
                 <Typography fontWeight={800}>
                   {doc.file ? doc.file.name : "Drag & drop file here"}
                 </Typography>
+
                 <Typography fontSize={13} color="text.secondary">
                   or click to browse
                 </Typography>
+
                 <Typography fontSize={12} color="text.secondary">
                   Maximum file size: 20MB
                 </Typography>
@@ -935,13 +1028,15 @@ function DocumentsCard({ documents, addDocument, removeDocument, updateDocument 
                       ? ".jpg,.jpeg,.png"
                       : ".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
                   }
-                  onChange={(e) =>
-                    updateDocument(doc.id, "file", e.target.files[0])
-                  }
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    handleFileSelect(doc.id, file);
+                  }}
                 />
               </Button>
             </Box>
 
+            {/* Document Details */}
             <Box
               sx={{
                 display: "grid",
@@ -965,8 +1060,19 @@ function DocumentsCard({ documents, addDocument, removeDocument, updateDocument 
                 type="number"
                 label="Pages"
                 value={doc.pages}
-                onChange={(e) => updateDocument(doc.id, "pages", e.target.value)}
+                onChange={(e) =>
+                  updateDocument(doc.id, "pages", e.target.value)
+                }
                 fullWidth
+                disabled={
+                  doc.file?.name?.toLowerCase().endsWith(".pdf") ||
+                  doc.file?.name?.toLowerCase().endsWith(".pptx")
+                }
+                helperText={
+                  doc.file?.name?.toLowerCase().endsWith(".docx")
+                    ? "Estimated from DOCX. Please verify."
+                    : "Automatically detected from uploaded file."
+                }
               />
 
               <TextField
@@ -1017,6 +1123,7 @@ function DocumentsCard({ documents, addDocument, removeDocument, updateDocument 
               </TextField>
             </Box>
 
+            {/* Sheet Calculation Preview */}
             <Box
               sx={{
                 mt: 2,
@@ -1029,6 +1136,7 @@ function DocumentsCard({ documents, addDocument, removeDocument, updateDocument 
               }}
             >
               <Typography color="text.secondary">Printed Pages</Typography>
+
               <Typography fontWeight={900}>
                 {printedPages} pages • {sheets} sheets
               </Typography>
@@ -1037,6 +1145,7 @@ function DocumentsCard({ documents, addDocument, removeDocument, updateDocument 
         );
       })}
 
+      {/* Add Another Document Button */}
       <Button
         fullWidth
         variant="outlined"

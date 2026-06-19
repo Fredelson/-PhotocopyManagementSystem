@@ -1,14 +1,114 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // Upload Controller
-// Saves uploaded file info into RequestAttachments
+// Handles file page counting and final attachment saving
 // ============================================
+
+const fs = require("fs");
 
 const { poolPromise, sql } = require("../config/db");
 
 // ============================================
+// Import page counter utility
+// PDF  = exact page count
+// DOCX = estimated page count
+// PPTX = slide count
+// ============================================
+
+const { countPages } = require("../utils/pageCounter");
+
+// ============================================
+// Count Uploaded File Pages
+// POST /api/uploads/count-pages
+// Used immediately after user selects a file
+// This updates the Pages textbox before submission
+// ============================================
+
+exports.countUploadedPages = async (req, res) => {
+  try {
+    // ============================================
+    // Validate uploaded file
+    // ============================================
+
+    if (!req.file) {
+      return res.status(400).json({
+        message: "No file uploaded",
+      });
+    }
+
+    // ============================================
+    // Get uploaded file information from multer
+    // ============================================
+
+    const originalFileName = req.file.originalname;
+    const storedFileName = req.file.filename;
+    const filePath = req.file.path;
+    const fileType = req.file.mimetype;
+
+    // ============================================
+    // Debug uploaded file before counting
+    // ============================================
+
+    console.log("Counting File Path:", filePath);
+    console.log("Counting Original Name:", originalFileName);
+    console.log("Counting Stored Name:", storedFileName);
+    console.log("Counting File Type:", fileType);
+
+    // ============================================
+    // Count pages/slides using helper
+    // PDF  = exact page count
+    // DOCX = estimated page count
+    // PPTX = slide count
+    // ============================================
+
+    const pageCount = await countPages(filePath, originalFileName);
+
+    // ============================================
+    // Debug page count result
+    // ============================================
+
+    console.log("Detected Page Count:", pageCount);
+
+    // ============================================
+    // Optional cleanup
+    // This route is only for counting before final submit
+    // Final upload happens later in /request-attachment
+    // ============================================
+
+    fs.unlink(filePath, (error) => {
+      if (error) {
+        console.error("Temporary file cleanup error:", error.message);
+      }
+    });
+
+    // ============================================
+    // Return page count to frontend
+    // ============================================
+
+    return res.status(200).json({
+      message: "Page count completed",
+      fileName: originalFileName,
+      pageCount: Number(pageCount) || 1,
+    });
+  } catch (error) {
+    // ============================================
+    // Handle page count error
+    // ============================================
+
+    console.error("Count Pages Error:", error);
+
+    return res.status(500).json({
+      message: "Failed to count pages",
+      error: error.message,
+    });
+  }
+};
+
+// ============================================
 // Upload Request Attachment
 // POST /api/uploads/request-attachment
+// Saves uploaded file info into RequestAttachments
+// Also counts pages again before saving
 // ============================================
 
 exports.uploadRequestAttachment = async (req, res) => {
@@ -17,7 +117,7 @@ exports.uploadRequestAttachment = async (req, res) => {
     // Get form data from frontend
     // ============================================
 
-    const { requestId, pageCount, copies, totalSheets } = req.body;
+    const { requestId, copies } = req.body;
 
     // ============================================
     // Validate request ID
@@ -40,21 +140,55 @@ exports.uploadRequestAttachment = async (req, res) => {
     }
 
     // ============================================
-    // Prepare attachment values
+    // Prepare file information from multer
     // ============================================
-
-    const finalPageCount = Number(pageCount) || 0;
-    const finalCopies = Number(copies) || 1;
-    const finalTotalSheets = Number(totalSheets) || 0;
 
     const originalFileName = req.file.originalname;
     const storedFileName = req.file.filename;
     const filePath = `/uploads/${storedFileName}`;
+    const physicalFilePath = req.file.path;
     const fileType = req.file.mimetype;
     const fileSizeKB = req.file.size / 1024;
 
     // ============================================
-    // Save attachment info to MSSQL
+    // Debug uploaded file information
+    // ============================================
+
+    console.log("Uploaded File Path:", physicalFilePath);
+    console.log("Original File Name:", originalFileName);
+    console.log("Stored File Name:", storedFileName);
+    console.log("File Type:", fileType);
+
+    // ============================================
+    // Automatically count pages/slides again
+    // This ensures the saved DB value is correct
+    // ============================================
+
+    const autoPageCount = await countPages(
+      physicalFilePath,
+      originalFileName
+    );
+
+    // ============================================
+    // Calculate copies and total sheets
+    // Current formula:
+    // Total Sheets = Page Count x Copies
+    // ============================================
+
+    const finalPageCount = Number(autoPageCount) || 1;
+    const finalCopies = Number(copies) || 1;
+    const finalTotalSheets = finalPageCount * finalCopies;
+
+    // ============================================
+    // Debug automatic page count result
+    // ============================================
+
+    console.log("Final Page Count:", finalPageCount);
+    console.log("Final Copies:", finalCopies);
+    console.log("Final Total Sheets:", finalTotalSheets);
+
+    // ============================================
+    // Save attachment information to MSSQL
     // ============================================
 
     const pool = await poolPromise;
@@ -98,7 +232,7 @@ exports.uploadRequestAttachment = async (req, res) => {
       `);
 
     // ============================================
-    // Return success response
+    // Return success response to frontend
     // ============================================
 
     return res.status(201).json({
