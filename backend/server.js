@@ -21,7 +21,8 @@ const hodRoutes = require("./routes/hodRoutes");
 const hosRoutes = require("./routes/hosRoutes");
 const lookupRoutes = require("./routes/lookupRoutes");
 const userRoutes = require("./routes/userRoutes");
-
+const uploadRoutes = require("./routes/uploadRoutes");
+const path = require("path");
 
 // Teacher Dashboard routes
 const teacherDashboardRoutes = require("./routes/teacherDashboardRoutes");
@@ -92,6 +93,10 @@ app.use("/api/printing", printingRoutes);
 app.use("/api/limits", limitRoutes);
 
 app.use("/api/paper-stock", paperStockRoutes);
+
+app.use("/api/uploads", uploadRoutes);
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
 // ============================================
 // Start Server
 // ============================================

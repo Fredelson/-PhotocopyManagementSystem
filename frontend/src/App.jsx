@@ -16,6 +16,7 @@ import MyRequests from "./pages/teacher/MyRequests";
 import CreateRequest from "./pages/teacher/CreateRequest";
 import RequestDetails from "./pages/teacher/RequestDetails";
 import TeacherReports from "./pages/teacher/TeacherReports";
+import Attachments from "./pages/teacher/Attachments";
 
 // HOD / HOS pages
 import HodDashboard from "./pages/hod/HodDashboard";
@@ -77,6 +78,15 @@ export default function App() {
         element={
           <ProtectedRoute allowedRoles={["Teacher", "SuperAdmin"]}>
             <CreateRequest />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/teacher/attachments"
+        element={
+          <ProtectedRoute allowedRoles={["Teacher", "SuperAdmin"]}>
+            <Attachments />
           </ProtectedRoute>
         }
       />
@@ -193,6 +203,15 @@ export default function App() {
         element={
           <ProtectedRoute allowedRoles={["HOD", "SuperAdmin"]}>
             <CreateRequest />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/hod/attachments"
+        element={
+          <ProtectedRoute allowedRoles={["HOD", "SuperAdmin"]}>
+            <Attachments />
           </ProtectedRoute>
         }
       />

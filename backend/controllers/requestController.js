@@ -581,9 +581,57 @@ const getTeacherDashboard = async (req, res) => {
   }
 };
 
+// ============================================
+// Get logged-in teacher's uploaded attachments
+// GET /api/requests/attachments
+// ============================================
+
+const getMyAttachments = async (req, res) => {
+  try {
+    const teacherId = req.user.id;
+
+    const pool = await poolPromise;
+
+    const result = await pool
+      .request()
+      .input("teacherId", sql.Int, teacherId)
+      .query(`
+        SELECT
+          a.AttachmentId,
+          a.RequestId,
+          a.OriginalFileName,
+          a.FilePath,
+          a.FileType,
+          a.FileSizeKB,
+          a.PageCount,
+          a.UploadedAt,
+          r.RequestNumber,
+          r.Status,
+          p.PurposeName
+        FROM RequestAttachments a
+        INNER JOIN PhotocopyRequests r
+          ON a.RequestId = r.RequestId
+        LEFT JOIN Purposes p
+          ON r.PurposeId = p.PurposeId
+        WHERE r.TeacherId = @teacherId
+        ORDER BY a.UploadedAt DESC
+      `);
+
+    return res.status(200).json(result.recordset);
+  } catch (error) {
+    console.error("Get My Attachments Error:", error);
+
+    return res.status(500).json({
+      message: "Server error while fetching attachments",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   createRequest,
   getTeacherDashboard,
   getMyRequests,
   getRequestById,
+  getMyAttachments,
 };

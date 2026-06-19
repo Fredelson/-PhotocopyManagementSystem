@@ -190,11 +190,18 @@ export default function RequestDetails() {
 
                     <Button
                       size="small"
+                      variant="outlined"
                       startIcon={<DownloadIcon />}
                       sx={{ mt: 1, textTransform: "none" }}
-                      disabled
+                      component="a"
+                      href={`http://localhost:5000${file.FilePath}`}
+                      target="_blank"
+                      rel="noreferrer"
                     >
-                      Download
+                      Open / Download
+                      <Typography color="text.secondary" fontSize={14}>
+                        {file.FileType || "File"} • {file.PageCount || 0} page(s)
+                      </Typography>
                     </Button>
                   </Box>
                 ))

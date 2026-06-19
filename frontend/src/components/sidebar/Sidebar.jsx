@@ -98,6 +98,11 @@ export default function Sidebar() {
       icon: <AddCircle />,
       path: "/hod/create-request",
     },
+        {
+      label: "Attachments",
+      icon: <AttachFile />,
+      path: "/hod/attachments",
+    },
     {
       label: "Pending Approvals",
       icon: <PendingActions />,

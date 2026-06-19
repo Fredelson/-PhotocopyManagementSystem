@@ -12,6 +12,7 @@ const {
   getTeacherDashboard,
   getMyRequests,
   getRequestById,
+  getMyAttachments,
 } = require("../controllers/requestController");
 
 const { protect, authorizeRoles } = require("../middleware/authMiddleware");
@@ -57,6 +58,18 @@ router.get(
  * @route   GET /api/requests/:id
  * @access  Private
  */
+/**
+ * @desc    Get logged-in teacher attachments
+ * @route   GET /api/requests/attachments
+ * @access  Teacher / HOD / SuperAdmin
+ */
+router.get(
+  "/attachments",
+  protect,
+  authorizeRoles("Teacher", "HOD", "SuperAdmin"),
+  getMyAttachments
+);
+
 router.get(
   "/:id",
   protect,

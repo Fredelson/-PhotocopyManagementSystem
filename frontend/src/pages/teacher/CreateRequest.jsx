@@ -278,59 +278,151 @@ export default function CreateRequest() {
       : ["Teacher", "HOD", "HOS", "Printing Admin"];
 
   // ============================================
-  // Submit Request to Backend
   // ============================================
+// Submit Request to Backend
+// Creates request first, then uploads attachments
+// ============================================
 
-  const handleSubmitRequest = async () => {
-    try {
-      setError("");
+const handleSubmitRequest = async () => {
+  try {
+    // ============================================
+    // Clear previous errors
+    // ============================================
 
-      if (!token) return setError("You are not logged in.");
-      if (!departmentId) return setError("Department is required.");
-      if (!subjectId) return setError("Subject is required.");
-      if (!purposeId) return setError("Please select a purpose.");
-      if (summary.totalPages <= 0 || summary.totalSheets <= 0) {
-        return setError("Total pages and sheets must be greater than zero.");
-      }
+    setError("");
 
-      setSubmitting(true);
+    // ============================================
+    // Basic validation
+    // ============================================
 
-      const mainDocument = documents[0];
+    if (!token) return setError("You are not logged in.");
+    if (!departmentId) return setError("Department is required.");
+    if (!subjectId) return setError("Subject is required.");
+    if (!purposeId) return setError("Please select a purpose.");
 
-      const payload = {
-        departmentId: Number(departmentId),
-        subjectId: Number(subjectId),
-        purposeId: Number(purposeId),
-        copies: Number(mainDocument.copies),
-        totalPages: summary.totalPages,
-        totalSheets: summary.totalSheets,
-        priorityLevel: priority,
-      };
-
-      const response = await axios.post(`${API_URL}/requests`, payload, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      console.log("Request Created:", response.data);
-
-      if (userRole === "HOD") {
-        navigate("/hod/my-requests");
-      } else {
-        navigate("/teacher/my-requests");
-      }
-    } catch (err) {
-      console.error("Create Request Error:", err);
-
-      setError(
-        err.response?.data?.message ||
-          "Unable to submit request. Please try again."
-      );
-    } finally {
-      setSubmitting(false);
+    if (summary.totalPages <= 0 || summary.totalSheets <= 0) {
+      return setError("Total pages and sheets must be greater than zero.");
     }
-  };
+
+    setSubmitting(true);
+
+    // ============================================
+    // Main document is used for request-level copies
+    // ============================================
+
+    const mainDocument = documents[0];
+
+    // ============================================
+    // Main request payload
+    // This saves into PhotocopyRequests
+    // ============================================
+
+    const payload = {
+      departmentId: Number(departmentId),
+      subjectId: Number(subjectId),
+      purposeId: Number(purposeId),
+      copies: Number(mainDocument.copies) || 1,
+      totalPages: summary.totalPages,
+      totalSheets: summary.totalSheets,
+      priorityLevel: priority,
+    };
+
+    console.log("REQUEST PAYLOAD:", payload);
+
+    // ============================================
+    // Step 1: Create photocopy request
+    // ============================================
+
+    const response = await axios.post(`${API_URL}/requests`, payload, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    console.log("Request Created:", response.data);
+
+    // ============================================
+    // Get created RequestId from backend response
+    // ============================================
+
+    const createdRequestId = response.data.requestId;
+
+    if (!createdRequestId) {
+      throw new Error("Request was created but no requestId was returned.");
+    }
+
+    // ============================================
+    // Step 2: Upload each selected attachment
+    // Saves into RequestAttachments
+    // ============================================
+
+    for (const doc of documents) {
+      if (doc.file) {
+        // Calculate attachment-level pages and sheets
+        const pages = Number(doc.pages) || 0;
+        const copies = Number(doc.copies) || 1;
+        const printedPages = pages * copies;
+
+        const documentSheets =
+          doc.printType === "Double-Sided"
+            ? Math.ceil(printedPages / 2)
+            : printedPages;
+
+        // Prepare multipart/form-data
+        const formData = new FormData();
+
+        formData.append("requestId", createdRequestId);
+        formData.append("pageCount", pages);
+        formData.append("copies", copies);
+        formData.append("totalSheets", documentSheets);
+        formData.append("file", doc.file);
+
+        console.log("Uploading attachment:", {
+          requestId: createdRequestId,
+          fileName: doc.file.name,
+          pageCount: pages,
+          copies,
+          totalSheets: documentSheets,
+        });
+
+        await axios.post(`${API_URL}/uploads/request-attachment`, formData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+      }
+    }
+
+    // ============================================
+    // Navigate after successful request + upload
+    // ============================================
+
+    if (userRole === "HOD") {
+      navigate("/hod/my-requests");
+    } else {
+      navigate("/teacher/my-requests");
+    }
+  } catch (err) {
+    // ============================================
+    // Show backend error clearly
+    // ============================================
+
+    console.error("Create Request Error:", err);
+    console.log("BACKEND ERROR:", err.response?.data);
+
+    setError(
+      err.response?.data?.message ||
+        err.message ||
+        "Unable to submit request. Please try again."
+    );
+  } finally {
+    // ============================================
+    // Stop loading state
+    // ============================================
+
+    setSubmitting(false);
+  }
+};
 
   // ============================================
   // Page UI
