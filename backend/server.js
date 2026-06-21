@@ -31,6 +31,7 @@ const teacherDashboardRoutes = require("./routes/teacherDashboardRoutes");
 const printingRoutes = require("./routes/printingRoutes");
 const paperStockRoutes = require("./routes/paperStockRoutes");
 const purchaseRoutes = require("./routes/purchaseRoutes");
+const masterRoutes = require("./routes/masterRoutes");
 
 
 // Print Limit routes
@@ -111,6 +112,8 @@ app.use("/api/purchases", purchaseRoutes);
 
 app.use("/api/uploads", uploadRoutes);
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+app.use("/api/master", masterRoutes);
 
 // ============================================
 // Start Server

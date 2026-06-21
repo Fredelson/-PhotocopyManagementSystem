@@ -32,6 +32,7 @@ import PaperStockPage from "./pages/printing/PaperStockPage";
 import PaperPurchases from "./pages/printing/PaperPurchases";
 import PaperDistributions from "./pages/printing/PaperDistributions";
 import InventoryTransactions from "./pages/printing/InventoryTransactions";
+import MasterData from "./pages/printing/MasterData";
 
 // Reusable common page
 import Profile from "./pages/common/Profile";
@@ -325,6 +326,15 @@ export default function App() {
         element={
           <ProtectedRoute allowedRoles={["PrintingAdmin", "Admin", "SuperAdmin"]}>
             <UserManagement />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/printing/master-data"
+        element={
+          <ProtectedRoute allowedRoles={["PrintingAdmin", "SuperAdmin"]}>
+            <MasterData />
           </ProtectedRoute>
         }
       />

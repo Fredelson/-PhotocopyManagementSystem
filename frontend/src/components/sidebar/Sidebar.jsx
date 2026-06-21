@@ -36,6 +36,7 @@ import LocalShipping from "@mui/icons-material/LocalShipping";
 import Inventory2Icon from "@mui/icons-material/Inventory2";
 import HistoryIcon from "@mui/icons-material/History";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
+import SettingsIcon from "@mui/icons-material/Settings";
 
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -193,6 +194,11 @@ export default function Sidebar() {
       label: "Department Limits",
       icon: <AccountBalance />,
       path: "/printing/department-limits",
+    },
+    {
+      label: "Master Data",
+      path: "/printing/master-data",
+      icon: <SettingsIcon />,
     },
     {
       label: "User Management",
