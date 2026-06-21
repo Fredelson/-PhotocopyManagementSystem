@@ -34,3 +34,20 @@ CREATE TABLE PaperDistributions (
     IssuedDate DATE NOT NULL,
     CreatedAt DATETIME DEFAULT GETDATE()
 );
+
+
+CREATE TABLE InventoryTransactions (
+    TransactionId INT IDENTITY(1,1) PRIMARY KEY,
+    PaperType VARCHAR(10) NOT NULL, -- A4 / A3
+    TransactionType VARCHAR(50) NOT NULL, -- PURCHASE / DEDUCTION / ADJUSTMENT
+    Quantity INT NOT NULL,
+    PreviousStock INT NOT NULL,
+    NewStock INT NOT NULL,
+    ReferenceId INT NULL, -- RequestId or PurchaseId
+    Remarks VARCHAR(255) NULL,
+    CreatedBy INT NULL,
+    CreatedAt DATETIME DEFAULT GETDATE(),
+
+    CONSTRAINT FK_InventoryTransactions_CreatedBy
+        FOREIGN KEY (CreatedBy) REFERENCES Users(UserId)
+);

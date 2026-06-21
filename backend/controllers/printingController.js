@@ -315,7 +315,9 @@ const completePrinting = async (req, res) => {
   try {
     await transaction.begin();
 
-    // Get request details
+    // ============================================
+    // 1. Get request details
+    // ============================================
     const requestResult = await new sql.Request(transaction)
       .input("requestId", sql.Int, requestId)
       .input("printingAdminId", sql.Int, printingAdminId)
@@ -344,7 +346,9 @@ const completePrinting = async (req, res) => {
     const totalSheets = request.TotalSheets || 0;
     const paperSize = request.PaperSize || "A4";
 
-    // Find inventory item by paper type: A4 / A3
+    // ============================================
+    // 2. Get inventory record
+    // ============================================
     const inventoryResult = await new sql.Request(transaction)
       .input("paperType", sql.VarChar, paperSize)
       .query(`
@@ -365,17 +369,23 @@ const completePrinting = async (req, res) => {
     }
 
     const inventory = inventoryResult.recordset[0];
+    const previousStock = inventory.CurrentStock;
+    const newStock = previousStock - totalSheets;
 
-    // Prevent negative stock
-    if (inventory.CurrentStock < totalSheets) {
+    // ============================================
+    // 3. Prevent negative stock
+    // ============================================
+    if (previousStock < totalSheets) {
       await transaction.rollback();
 
       return res.status(400).json({
-        message: `Not enough ${paperSize} stock. Available: ${inventory.CurrentStock}, Required: ${totalSheets}.`,
+        message: `Not enough ${paperSize} stock. Available: ${previousStock}, Required: ${totalSheets}.`,
       });
     }
 
-    // Deduct paper stock
+    // ============================================
+    // 4. Deduct paper stock
+    // ============================================
     await new sql.Request(transaction)
       .input("inventoryId", sql.Int, inventory.InventoryId)
       .input("quantity", sql.Int, totalSheets)
@@ -387,42 +397,50 @@ const completePrinting = async (req, res) => {
         WHERE InventoryId = @inventoryId
       `);
 
-    // Save inventory transaction log
+    // ============================================
+    // 5. Save inventory transaction log
+    // ============================================
     await new sql.Request(transaction)
-      .input("itemId", sql.Int, inventory.InventoryId)
-      .input("requestId", sql.Int, requestId)
-      .input("transactionType", sql.NVarChar, "PRINT_DEDUCTION")
+      .input("paperType", sql.VarChar, paperSize)
+      .input("transactionType", sql.VarChar, "DEDUCTION")
       .input("quantity", sql.Int, totalSheets)
+      .input("previousStock", sql.Int, previousStock)
+      .input("newStock", sql.Int, newStock)
+      .input("referenceId", sql.Int, requestId)
       .input(
         "remarks",
-        sql.NVarChar,
+        sql.VarChar,
         `Deducted ${totalSheets} sheets of ${paperSize} for completed print request`
       )
       .input("createdBy", sql.Int, printingAdminId)
       .query(`
         INSERT INTO InventoryTransactions
         (
-          ItemId,
-          RequestId,
+          PaperType,
           TransactionType,
           Quantity,
+          PreviousStock,
+          NewStock,
+          ReferenceId,
           Remarks,
-          CreatedBy,
-          CreatedAt
+          CreatedBy
         )
         VALUES
         (
-          @itemId,
-          @requestId,
+          @paperType,
           @transactionType,
           @quantity,
+          @previousStock,
+          @newStock,
+          @referenceId,
           @remarks,
-          @createdBy,
-          GETDATE()
+          @createdBy
         )
       `);
 
-    // Mark request as completed
+    // ============================================
+    // 6. Mark request as completed
+    // ============================================
     await new sql.Request(transaction)
       .input("requestId", sql.Int, requestId)
       .query(`
@@ -434,7 +452,9 @@ const completePrinting = async (req, res) => {
         WHERE RequestId = @requestId
       `);
 
-    // Insert printing completion log
+    // ============================================
+    // 7. Insert printing completion log
+    // ============================================
     await new sql.Request(transaction)
       .input("requestId", sql.Int, requestId)
       .input("printedBy", sql.Int, printingAdminId)
@@ -466,10 +486,15 @@ const completePrinting = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "Printing completed successfully and inventory deducted.",
+      message:
+        "Printing completed successfully, inventory deducted, and transaction logged.",
     });
   } catch (error) {
-    await transaction.rollback();
+    try {
+      await transaction.rollback();
+    } catch (rollbackError) {
+      console.error("Rollback Error:", rollbackError);
+    }
 
     console.error("Complete Printing Error:", error);
 
@@ -552,6 +577,53 @@ const getPrintingHistory = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Get inventory transaction logs
+ * @route   GET /api/printing/inventory-transactions
+ * @access  Private - PrintingAdmin / SuperAdmin
+ */
+const getInventoryTransactions = async (req, res) => {
+  try {
+    const pool = await poolPromise;
+
+    const result = await pool.request().query(`
+      SELECT
+        it.TransactionId,
+        it.PaperType,
+        it.TransactionType,
+        it.Quantity,
+        it.PreviousStock,
+        it.NewStock,
+        it.ReferenceId,
+        it.Remarks,
+        it.CreatedAt,
+
+        u.FullName AS CreatedByName,
+
+        r.RequestNumber
+
+      FROM InventoryTransactions it
+
+      LEFT JOIN Users u
+        ON it.CreatedBy = u.UserId
+
+      LEFT JOIN PhotocopyRequests r
+        ON it.ReferenceId = r.RequestId
+
+      ORDER BY it.CreatedAt DESC
+    `);
+
+    return res.status(200).json(result.recordset);
+  } catch (error) {
+    console.error("Get Inventory Transactions Error:", error);
+
+    return res.status(500).json({
+      message: "Server error while fetching inventory transactions",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   getPrintingDashboard,
   getPrintingRequests,
@@ -559,4 +631,5 @@ module.exports = {
   startPrinting,
   completePrinting,
   getPrintingHistory,
+  getInventoryTransactions,
 };

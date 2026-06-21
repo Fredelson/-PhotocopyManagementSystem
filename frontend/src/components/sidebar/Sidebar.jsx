@@ -33,6 +33,9 @@ import {
 import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import LocalShipping from "@mui/icons-material/LocalShipping";
+import Inventory2Icon from "@mui/icons-material/Inventory2";
+import HistoryIcon from "@mui/icons-material/History";
+import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -205,6 +208,11 @@ export default function Sidebar() {
       label: "Completed Jobs",
       icon: <CheckCircle />,
       path: "/printing/completed",
+    },
+    {
+      label: "Inventory Logs",
+      path: "/printing/inventory-transactions",
+      icon: <Inventory2Icon />,
     },
     {
       label: "Inventory",

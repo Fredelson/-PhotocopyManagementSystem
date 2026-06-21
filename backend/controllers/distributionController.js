@@ -251,58 +251,52 @@ const addDistribution = async (req, res) => {
         WHERE PaperType = @PaperType
       `);
 
-    // ============================================
+      // ============================================
     // Step 4: Log inventory transaction
-    // Uses your existing InventoryTransactions table:
-    // ItemId = PaperInventory.InventoryId
-    // RequestId = PaperDistributions.DistributionId
-    // Quantity = negative sheets deducted
+    // This records paper distribution in InventoryTransactions
     // ============================================
-    // ============================================
-// Step 4: Log inventory transaction
-// Uses your existing InventoryTransactions table:
-// ItemId = PaperInventory.InventoryId
-// RequestId = PaperDistributions.DistributionId
-// Quantity = negative sheets deducted
-// CreatedBy = logged-in user id, fallback to 1
-// ============================================
-/*
-await new sql.Request(transaction)
-  .input("ItemId", sql.Int, inventoryId)
-  .input("RequestId", sql.Int, distribution.DistributionId)
-  .input("Quantity", sql.Int, -totalSheets)
-  .input(
-    "Remarks",
-    sql.VarChar(255),
-    `Paper distribution to ${issuedTo}${
-      receivedByName ? ` - Issued to ${receivedByName}` : ""
-    }`
-  )
-  .input(
-    "CreatedBy",
-    sql.Int,
-    req.user?.id || req.user?.UserId || 1
-  )
-  .query(`
-    INSERT INTO InventoryTransactions (
-      ItemId,
-      RequestId,
-      TransactionType,
-      Quantity,
-      Remarks,
-      CreatedBy
-    )
-    VALUES (
-      @ItemId,
-      @RequestId,
-      'DISTRIBUTION',
-      @Quantity,
-      @Remarks,
-      @CreatedBy
-    )
-  `);
+    const previousStock = currentStock;
+    const newStock = currentStock - totalSheets;
 
-  */
+    await new sql.Request(transaction)
+      .input("paperType", sql.VarChar(10), paperType)
+      .input("transactionType", sql.VarChar(50), "DISTRIBUTION")
+      .input("quantity", sql.Int, totalSheets)
+      .input("previousStock", sql.Int, previousStock)
+      .input("newStock", sql.Int, newStock)
+      .input("referenceId", sql.Int, distribution.DistributionId)
+      .input(
+        "remarks",
+        sql.VarChar(255),
+        `Distributed ${totalSheets} sheets of ${paperType} to ${issuedTo}${
+          receivedByName ? ` - Received by ${receivedByName}` : ""
+        }`
+      )
+      .input("createdBy", sql.Int, req.user?.id || req.user?.UserId || 1)
+      .query(`
+        INSERT INTO InventoryTransactions
+        (
+          PaperType,
+          TransactionType,
+          Quantity,
+          PreviousStock,
+          NewStock,
+          ReferenceId,
+          Remarks,
+          CreatedBy
+        )
+        VALUES
+        (
+          @paperType,
+          @transactionType,
+          @quantity,
+          @previousStock,
+          @newStock,
+          @referenceId,
+          @remarks,
+          @createdBy
+        )
+      `);
 
     await transaction.commit();
 

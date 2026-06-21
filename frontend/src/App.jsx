@@ -31,6 +31,7 @@ import UserManagement from "./pages/admin/UserManagement";
 import PaperStockPage from "./pages/printing/PaperStockPage";
 import PaperPurchases from "./pages/printing/PaperPurchases";
 import PaperDistributions from "./pages/printing/PaperDistributions";
+import InventoryTransactions from "./pages/printing/InventoryTransactions";
 
 // Reusable common page
 import Profile from "./pages/common/Profile";
@@ -288,6 +289,15 @@ export default function App() {
             ]}
           >
             <PaperStockPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/printing/inventory-transactions"
+        element={
+          <ProtectedRoute allowedRoles={["PrintingAdmin", "SuperAdmin"]}>
+            <InventoryTransactions />
           </ProtectedRoute>
         }
       />

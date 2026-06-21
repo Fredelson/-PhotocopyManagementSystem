@@ -12,6 +12,7 @@ const {
   startPrinting,
   completePrinting,
   getPrintingHistory,
+  getInventoryTransactions,
 } = require("../controllers/printingController");
 
 const {
@@ -69,5 +70,8 @@ router.put(
   authorizeRoles("PrintingAdmin", "SuperAdmin"),
   completePrinting
 );
+
+// Inventory Transaction
+router.get("/inventory-transactions", getInventoryTransactions);
 
 module.exports = router;
