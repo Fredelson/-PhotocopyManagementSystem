@@ -29,6 +29,8 @@ import SubjectAllocationPage from "./pages/hos/SubjectAllocationPage";
 import PrintingDashboard from "./pages/printing/PrintingDashboard";
 import UserManagement from "./pages/admin/UserManagement";
 import PaperStockPage from "./pages/printing/PaperStockPage";
+import PaperPurchases from "./pages/printing/PaperPurchases";
+import PaperDistributions from "./pages/printing/PaperDistributions";
 
 // Reusable common page
 import Profile from "./pages/common/Profile";
@@ -286,6 +288,24 @@ export default function App() {
             ]}
           >
             <PaperStockPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/printing/distributions"
+        element={
+          <ProtectedRoute allowedRoles={["PrintingAdmin", "SuperAdmin"]}>
+            <PaperDistributions />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/printing/purchases"
+        element={
+          <ProtectedRoute allowedRoles={["PrintingAdmin", "SuperAdmin"]}>
+            <PaperPurchases />
           </ProtectedRoute>
         }
       />

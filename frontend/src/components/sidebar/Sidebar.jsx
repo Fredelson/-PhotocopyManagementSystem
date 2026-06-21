@@ -31,6 +31,8 @@ import {
   AccountBalance,
 } from "@mui/icons-material";
 import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
+import LocalShippingIcon from "@mui/icons-material/LocalShipping";
+import LocalShipping from "@mui/icons-material/LocalShipping";
 
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -210,9 +212,19 @@ export default function Sidebar() {
       path: "/printing/inventory",
     },
     {
+      label: "Paper Distribution",
+      path: "/printing/distributions",
+      icon: <LocalShipping />,
+    },
+    {
       label: "Paper Stock",
       icon: <Inventory />,
       path: "/printing/paper-stock",
+    },
+    {
+      label: "Paper Purchases",
+      icon: <Inventory />,
+      path: "/printing/purchases",
     },
     {
       label: "Reports",

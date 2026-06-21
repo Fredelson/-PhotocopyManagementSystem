@@ -30,10 +30,12 @@ const teacherDashboardRoutes = require("./routes/teacherDashboardRoutes");
 // Printing Admin routes
 const printingRoutes = require("./routes/printingRoutes");
 const paperStockRoutes = require("./routes/paperStockRoutes");
+const purchaseRoutes = require("./routes/purchaseRoutes");
 
 
 // Print Limit routes
 const limitRoutes = require("./routes/limitRoutes");
+const distributionRoutes = require("./routes/distributionRoutes");
 
 // ============================================
 // Initialize Express App
@@ -99,11 +101,13 @@ app.use("/api/teacher/dashboard", teacherDashboardRoutes);
 
 // Printing Admin API route
 app.use("/api/printing", printingRoutes);
+app.use("/api/distributions", distributionRoutes);
 
 // Print Limit API route
 app.use("/api/limits", limitRoutes);
 
 app.use("/api/paper-stock", paperStockRoutes);
+app.use("/api/purchases", purchaseRoutes);
 
 app.use("/api/uploads", uploadRoutes);
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
