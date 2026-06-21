@@ -1,16 +1,12 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // Photocopy Request Controller
-// Handles creating and reading photocopy requests
+// Handles creating, reading, dashboard,
+// attachments, and teacher cancellation
 // ============================================
 
 const { poolPromise, sql } = require("../config/db");
 
-/**
- * @desc    Create a new photocopy request
- * @route   POST /api/requests
- * @access  Private - Teacher / SuperAdmin
- */
 /**
  * @desc    Create a new photocopy request
  * @route   POST /api/requests
@@ -257,13 +253,9 @@ const createRequest = async (req, res) => {
  */
 const getMyRequests = async (req, res) => {
   try {
-    // Logged-in teacher ID
     const teacherId = req.user.id;
-
-    // Connect to MSSQL
     const pool = await poolPromise;
 
-    // Get teacher requests
     const result = await pool
       .request()
       .input("teacherId", sql.Int, teacherId)
@@ -309,13 +301,9 @@ const getMyRequests = async (req, res) => {
  */
 const getRequestById = async (req, res) => {
   try {
-    // Request ID from URL
     const requestId = req.params.id;
-
-    // Connect to MSSQL
     const pool = await poolPromise;
 
-    // Get main request details
     const requestResult = await pool
       .request()
       .input("requestId", sql.Int, requestId)
@@ -347,7 +335,6 @@ const getRequestById = async (req, res) => {
       });
     }
 
-    // Get approval history
     const approvalResult = await pool
       .request()
       .input("requestId", sql.Int, requestId)
@@ -368,7 +355,6 @@ const getRequestById = async (req, res) => {
         ORDER BY a.ActionDate ASC
       `);
 
-    // Get attachments
     const attachmentResult = await pool
       .request()
       .input("requestId", sql.Int, requestId)
@@ -393,6 +379,7 @@ const getRequestById = async (req, res) => {
     });
   }
 };
+
 /**
  * @desc    Get logged-in teacher dashboard stats
  * @route   GET /api/requests/dashboard
@@ -400,70 +387,25 @@ const getRequestById = async (req, res) => {
  */
 const getTeacherDashboard = async (req, res) => {
   try {
-    // ============================================
-    // Logged-in teacher ID from JWT
-    // ============================================
     const teacherId = req.user.id;
-
-    // ============================================
-    // Connect to MSSQL
-    // ============================================
     const pool = await poolPromise;
 
-    // ============================================
-    // Get Teacher KPI Statistics
-    // ============================================
     const statsResult = await pool
       .request()
       .input("teacherId", sql.Int, teacherId)
       .query(`
         SELECT
           COUNT(*) AS TotalRequests,
-
           ISNULL(SUM(TotalSheets), 0) AS TotalSheets,
-
           ISNULL(SUM(TotalPages), 0) AS TotalPages,
-
-          SUM(
-            CASE
-              WHEN Status = 'Pending'
-              THEN 1
-              ELSE 0
-            END
-          ) AS PendingRequests,
-
-          SUM(
-            CASE
-              WHEN Status LIKE 'Approved%'
-              THEN 1
-              ELSE 0
-            END
-          ) AS ApprovedRequests,
-
-          SUM(
-            CASE
-              WHEN Status LIKE 'Rejected%'
-              THEN 1
-              ELSE 0
-            END
-          ) AS RejectedRequests,
-
-          SUM(
-            CASE
-              WHEN Status = 'Completed'
-              THEN 1
-              ELSE 0
-            END
-          ) AS CompletedRequests
-
+          SUM(CASE WHEN Status = 'Pending' THEN 1 ELSE 0 END) AS PendingRequests,
+          SUM(CASE WHEN Status LIKE 'Approved%' THEN 1 ELSE 0 END) AS ApprovedRequests,
+          SUM(CASE WHEN Status LIKE 'Rejected%' THEN 1 ELSE 0 END) AS RejectedRequests,
+          SUM(CASE WHEN Status = 'Completed' THEN 1 ELSE 0 END) AS CompletedRequests
         FROM PhotocopyRequests
         WHERE TeacherId = @teacherId
       `);
 
-    // ============================================
-    // Get Recent Requests
-    // Latest 5 requests only
-    // ============================================
     const recentResult = await pool
       .request()
       .input("teacherId", sql.Int, teacherId)
@@ -481,86 +423,61 @@ const getTeacherDashboard = async (req, res) => {
           s.SubjectName,
           p.PurposeName
         FROM PhotocopyRequests r
-        LEFT JOIN Departments d
-          ON r.DepartmentId = d.DepartmentId
-        LEFT JOIN Subjects s
-          ON r.SubjectId = s.SubjectId
-        LEFT JOIN Purposes p
-          ON r.PurposeId = p.PurposeId
+        LEFT JOIN Departments d ON r.DepartmentId = d.DepartmentId
+        LEFT JOIN Subjects s ON r.SubjectId = s.SubjectId
+        LEFT JOIN Purposes p ON r.PurposeId = p.PurposeId
         WHERE r.TeacherId = @teacherId
         ORDER BY r.SubmittedAt DESC
       `);
 
-      // ============================================
-      // Get Purpose Breakdown
-      // Counts requests grouped by purpose
-      // ============================================
+    const purposeResult = await pool
+      .request()
+      .input("teacherId", sql.Int, teacherId)
+      .query(`
+        SELECT
+          ISNULL(p.PurposeName, 'Unknown') AS name,
+          COUNT(r.RequestId) AS value
+        FROM PhotocopyRequests r
+        LEFT JOIN Purposes p ON r.PurposeId = p.PurposeId
+        WHERE r.TeacherId = @teacherId
+        GROUP BY p.PurposeName
+        ORDER BY value DESC
+      `);
 
-      const purposeResult = await pool
-        .request()
-        .input("teacherId", sql.Int, teacherId)
-        .query(`
-          SELECT
-            ISNULL(p.PurposeName, 'Unknown') AS name,
-            COUNT(r.RequestId) AS value
-          FROM PhotocopyRequests r
-          LEFT JOIN Purposes p
-            ON r.PurposeId = p.PurposeId
-          WHERE r.TeacherId = @teacherId
-          GROUP BY p.PurposeName
-          ORDER BY value DESC
-        `);
+    const monthlyUsageResult = await pool
+      .request()
+      .input("teacherId", sql.Int, teacherId)
+      .query(`
+        SELECT
+          FORMAT(SubmittedAt, 'MMM') AS month,
+          MONTH(SubmittedAt) AS monthNumber,
+          ISNULL(SUM(TotalPages), 0) AS pages,
+          ISNULL(SUM(TotalSheets), 0) AS sheets
+        FROM PhotocopyRequests
+        WHERE TeacherId = @teacherId
+        GROUP BY FORMAT(SubmittedAt, 'MMM'), MONTH(SubmittedAt)
+        ORDER BY monthNumber ASC
+      `);
 
-        // ============================================
-        // Get Monthly Usage
-        // Groups teacher requests by month
-        // ============================================
+    const purposeTrendResult = await pool
+      .request()
+      .input("teacherId", sql.Int, teacherId)
+      .query(`
+        SELECT
+          FORMAT(r.SubmittedAt, 'MMM') AS month,
+          MONTH(r.SubmittedAt) AS monthNumber,
+          LOWER(REPLACE(ISNULL(p.PurposeName, 'others'), ' ', '')) AS purposeKey,
+          COUNT(r.RequestId) AS requestCount
+        FROM PhotocopyRequests r
+        LEFT JOIN Purposes p ON r.PurposeId = p.PurposeId
+        WHERE r.TeacherId = @teacherId
+        GROUP BY
+          FORMAT(r.SubmittedAt, 'MMM'),
+          MONTH(r.SubmittedAt),
+          LOWER(REPLACE(ISNULL(p.PurposeName, 'others'), ' ', ''))
+        ORDER BY monthNumber ASC
+      `);
 
-        const monthlyUsageResult = await pool
-          .request()
-          .input("teacherId", sql.Int, teacherId)
-          .query(`
-            SELECT
-              FORMAT(SubmittedAt, 'MMM') AS month,
-              MONTH(SubmittedAt) AS monthNumber,
-              ISNULL(SUM(TotalPages), 0) AS pages,
-              ISNULL(SUM(TotalSheets), 0) AS sheets
-            FROM PhotocopyRequests
-            WHERE TeacherId = @teacherId
-            GROUP BY
-              FORMAT(SubmittedAt, 'MMM'),
-              MONTH(SubmittedAt)
-            ORDER BY monthNumber ASC
-          `);
-
-          // ============================================
-          // Get Purpose Usage Trend
-          // Groups teacher requests by month and purpose
-          // ============================================
-
-          const purposeTrendResult = await pool
-            .request()
-            .input("teacherId", sql.Int, teacherId)
-            .query(`
-              SELECT
-                FORMAT(r.SubmittedAt, 'MMM') AS month,
-                MONTH(r.SubmittedAt) AS monthNumber,
-                LOWER(REPLACE(ISNULL(p.PurposeName, 'others'), ' ', '')) AS purposeKey,
-                COUNT(r.RequestId) AS requestCount
-              FROM PhotocopyRequests r
-              LEFT JOIN Purposes p
-                ON r.PurposeId = p.PurposeId
-              WHERE r.TeacherId = @teacherId
-              GROUP BY
-                FORMAT(r.SubmittedAt, 'MMM'),
-                MONTH(r.SubmittedAt),
-                LOWER(REPLACE(ISNULL(p.PurposeName, 'others'), ' ', ''))
-              ORDER BY monthNumber ASC
-            `);
-
-    // ============================================
-    // Success Response
-    // ============================================
     return res.status(200).json({
       stats: statsResult.recordset[0],
       recentRequests: recentResult.recordset,
@@ -569,10 +486,7 @@ const getTeacherDashboard = async (req, res) => {
       purposeTrend: purposeTrendResult.recordset,
     });
   } catch (error) {
-    console.error(
-      "Get Teacher Dashboard Error:",
-      error
-    );
+    console.error("Get Teacher Dashboard Error:", error);
 
     return res.status(500).json({
       message: "Server error while fetching teacher dashboard",
@@ -581,15 +495,103 @@ const getTeacherDashboard = async (req, res) => {
   }
 };
 
-// ============================================
-// Get logged-in teacher's uploaded attachments
-// GET /api/requests/attachments
-// ============================================
+/**
+ * @desc    Cancel teacher request before printing starts
+ * @route   PUT /api/requests/:id/cancel
+ * @access  Private - Teacher
+ */
+const cancelMyRequest = async (req, res) => {
+  try {
+    const teacherId = req.user.id;
+    const requestId = req.params.id;
+    const { remarks } = req.body || {};
 
+    const pool = await poolPromise;
+
+    // ============================================
+    // Check request ownership
+    // ============================================
+    const requestResult = await pool
+      .request()
+      .input("requestId", sql.Int, requestId)
+      .input("teacherId", sql.Int, teacherId)
+      .query(`
+        SELECT RequestId, Status
+        FROM PhotocopyRequests
+        WHERE RequestId = @requestId
+          AND TeacherId = @teacherId
+      `);
+
+    if (requestResult.recordset.length === 0) {
+      return res.status(404).json({
+        message: "Request not found or does not belong to this teacher.",
+      });
+    }
+
+    const request = requestResult.recordset[0];
+
+    // ============================================
+    // Allowed cancellation statuses
+    // Teacher can cancel before actual printing starts
+    // ============================================
+    const cancellableStatuses = [
+      "Pending",
+      "Approved by HOD",
+      "Forwarded to HOS",
+      "Pending HOS Approval",
+      "Approved by HOS",
+      "Forwarded to Printing",
+    ];
+
+    if (!cancellableStatuses.includes(request.Status)) {
+      return res.status(400).json({
+        message: `Request cannot be cancelled because it is already ${request.Status}.`,
+      });
+    }
+
+    // ============================================
+    // Cancel request and remove active approver
+    // This removes it from HOD/HOS/Printing queues
+    // ============================================
+    await pool
+      .request()
+      .input("requestId", sql.Int, requestId)
+      .input("remarks", sql.NVarChar, remarks || "Cancelled by teacher")
+      .query(`
+        UPDATE PhotocopyRequests
+        SET
+          Status = 'Cancelled by Teacher',
+          CurrentApproverId = NULL,
+          Remarks = CASE
+            WHEN Remarks IS NULL OR Remarks = ''
+            THEN @remarks
+            ELSE Remarks + CHAR(13) + CHAR(10) + @remarks
+          END
+        WHERE RequestId = @requestId
+      `);
+
+    return res.status(200).json({
+      success: true,
+      message: "Request cancelled successfully.",
+    });
+  } catch (error) {
+    console.error("Cancel Teacher Request Error:", error);
+
+    return res.status(500).json({
+      message: "Server error while cancelling request.",
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * @desc    Get logged-in teacher's uploaded attachments
+ * @route   GET /api/requests/attachments
+ * @access  Private - Teacher
+ */
 const getMyAttachments = async (req, res) => {
   try {
     const teacherId = req.user.id;
-
     const pool = await poolPromise;
 
     const result = await pool
@@ -634,4 +636,5 @@ module.exports = {
   getMyRequests,
   getRequestById,
   getMyAttachments,
+  cancelMyRequest,
 };

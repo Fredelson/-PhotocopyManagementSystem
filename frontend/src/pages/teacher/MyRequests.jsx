@@ -6,13 +6,17 @@
 //
 // Features:
 // - Keeps current Sidebar and Topbar
-// - Shows latest requests first
+// - Shows latest active requests first
 // - Shows maximum 10 requests per page
 // - Includes pagination
 // - Includes search and status filtering
+// - Allows teacher to cancel before printing starts
+// - Cancelled requests are hidden from My Requests
+// - Cancelled request attachments remain saved for history/reuse
 // ============================================
 
 import { useEffect, useMemo, useState } from "react";
+
 import {
   Box,
   TextField,
@@ -39,6 +43,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import PendingActionsIcon from "@mui/icons-material/PendingActions";
 import Inventory2Icon from "@mui/icons-material/Inventory2";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+import CancelIcon from "@mui/icons-material/Cancel";
 
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -52,17 +57,9 @@ import { useAuth } from "../../context/AuthContext";
 
 const API_URL = "http://localhost:5000/api";
 
-// ============================================
-// Main Component
-// ============================================
-
 export default function MyRequests() {
   const navigate = useNavigate();
   const { user, token } = useAuth();
-
-  // ============================================
-  // State Management
-  // ============================================
 
   const [requests, setRequests] = useState([]);
   const [statusFilter, setStatusFilter] = useState("All");
@@ -70,60 +67,96 @@ export default function MyRequests() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Pagination state
   const [page, setPage] = useState(1);
   const requestsPerPage = 10;
 
   // ============================================
-  // Fetch Logged-In Teacher Requests
-  // Backend:
+  // Fetch active teacher requests
   // GET /api/requests/my-requests
   // ============================================
 
-  useEffect(() => {
-    const fetchRequests = async () => {
-      try {
-        setLoading(true);
-        setError("");
+  const fetchRequests = async () => {
+    try {
+      setLoading(true);
+      setError("");
 
-        const response = await axios.get(`${API_URL}/requests/my-requests`, {
+      const response = await axios.get(`${API_URL}/requests/my-requests`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      setRequests(response.data || []);
+    } catch (err) {
+      console.error("Fetch My Requests Error:", err);
+      setError("Unable to load requests. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ============================================
+  // Cancel request
+  // Backend keeps the request + attachments.
+  // Frontend removes it from My Requests immediately.
+  // ============================================
+
+  const handleCancelRequest = async (requestId) => {
+    const confirmed = window.confirm(
+      "Are you sure you want to cancel this request?"
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await axios.put(
+        `${API_URL}/requests/${requestId}/cancel`,
+        {
+          remarks: "Cancelled by teacher",
+        },
+        {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        });
+        }
+      );
 
-        setRequests(response.data || []);
-      } catch (err) {
-        console.error("Fetch My Requests Error:", err);
-        setError("Unable to load requests. Please try again.");
-      } finally {
-        setLoading(false);
-      }
-    };
+      // Remove cancelled request from My Requests list.
+      // The database record and uploaded attachments remain saved.
+      setRequests((prev) =>
+        prev.filter((request) => request.RequestId !== requestId)
+      );
 
+      alert("Request cancelled successfully.");
+    } catch (err) {
+      console.error("Cancel Request Error:", err);
+
+      alert(err.response?.data?.message || "Unable to cancel request.");
+    }
+  };
+
+  useEffect(() => {
     if (token) {
       fetchRequests();
     }
   }, [token]);
-
-  // ============================================
-  // Reset Pagination When Search or Filter Changes
-  // This makes sure the user always starts from page 1
-  // after applying a new search or status filter.
-  // ============================================
 
   useEffect(() => {
     setPage(1);
   }, [searchText, statusFilter]);
 
   // ============================================
-  // Filter Requests
-  // Search by request number, purpose, or subject
-  // Filter by status
+  // Filter requests
+  // Cancelled requests are hidden from My Requests.
+  // Later they can be shown in Teacher History.
   // ============================================
 
   const filteredRequests = useMemo(() => {
     return requests.filter((request) => {
+      if (request.Status === "Cancelled by Teacher") {
+        return false;
+      }
+
       const requestNumber = request.RequestNumber || "";
       const purpose = request.PurposeName || "";
       const subject = request.SubjectName || "";
@@ -134,29 +167,17 @@ export default function MyRequests() {
         purpose.toLowerCase().includes(searchText.toLowerCase()) ||
         subject.toLowerCase().includes(searchText.toLowerCase());
 
-      const matchesStatus =
-        statusFilter === "All" || status === statusFilter;
+      const matchesStatus = statusFilter === "All" || status === statusFilter;
 
       return matchesSearch && matchesStatus;
     });
   }, [requests, searchText, statusFilter]);
-
-  // ============================================
-  // Sort Requests
-  // Newest request should always appear first.
-  // This ensures page 1 always shows the most recent requests.
-  // ============================================
 
   const sortedRequests = useMemo(() => {
     return [...filteredRequests].sort((a, b) => {
       return new Date(b.SubmittedAt || 0) - new Date(a.SubmittedAt || 0);
     });
   }, [filteredRequests]);
-
-  // ============================================
-  // Pagination Logic
-  // Shows only 10 requests per page.
-  // ============================================
 
   const totalPages = Math.ceil(sortedRequests.length / requestsPerPage);
 
@@ -166,16 +187,18 @@ export default function MyRequests() {
   );
 
   // ============================================
-  // Summary Counts
-  // These are small page summaries only.
-  // We are not changing the main dashboard KPI yet.
+  // Summary counts
   // ============================================
 
-  const activeRequests = requests.filter(
-    (request) =>
-      request.Status !== "Completed" &&
-      !request.Status?.toLowerCase().includes("rejected")
-  ).length;
+  const activeRequests = requests.filter((request) => {
+    const status = request.Status?.toLowerCase() || "";
+
+    return (
+      !status.includes("completed") &&
+      !status.includes("rejected") &&
+      !status.includes("cancelled")
+    );
+  }).length;
 
   const completedRequests = requests.filter(
     (request) => request.Status === "Completed"
@@ -184,11 +207,6 @@ export default function MyRequests() {
   const pendingRequests = requests.filter(
     (request) => request.Status === "Pending"
   ).length;
-
-  // ============================================
-  // Page UI
-  // Keeps your current sidebar and topbar unchanged.
-  // ============================================
 
   return (
     <DashboardLayout
@@ -213,7 +231,7 @@ export default function MyRequests() {
       >
         <PageHeader
           title="My Requests"
-          subtitle="Track and manage all your photocopy requests."
+          subtitle="Track and manage your active photocopy requests."
         />
 
         <Button
@@ -236,14 +254,13 @@ export default function MyRequests() {
         </Button>
       </Box>
 
-      {/* Error Message */}
       {error && (
         <Alert severity="error" sx={{ mb: 3, borderRadius: 3 }}>
           {error}
         </Alert>
       )}
 
-      {/* Small Summary Cards */}
+      {/* Summary Cards */}
       <Box
         sx={{
           display: "grid",
@@ -267,7 +284,7 @@ export default function MyRequests() {
         <SummaryCard
           title="Completed Requests"
           value={completedRequests}
-          subtitle="Successfully completed"
+          subtitle="Already completed"
           icon={<CheckCircleIcon />}
           color="#2563EB"
           bg="#EAF1FF"
@@ -283,7 +300,7 @@ export default function MyRequests() {
         />
       </Box>
 
-      {/* Search and Filter Bar */}
+      {/* Search and Filter */}
       <Card
         sx={{
           borderRadius: 4,
@@ -327,10 +344,16 @@ export default function MyRequests() {
             >
               <MenuItem value="All">All Status</MenuItem>
               <MenuItem value="Pending">Pending</MenuItem>
-              <MenuItem value="Approved">Approved</MenuItem>
+              <MenuItem value="Approved by HOD">Approved by HOD</MenuItem>
+              <MenuItem value="Pending HOS Approval">
+                Pending HOS Approval
+              </MenuItem>
+              <MenuItem value="Approved by HOS">Approved by HOS</MenuItem>
+              <MenuItem value="Forwarded to Printing">
+                Forwarded to Printing
+              </MenuItem>
               <MenuItem value="Printing">Printing</MenuItem>
               <MenuItem value="Completed">Completed</MenuItem>
-              <MenuItem value="Rejected">Rejected</MenuItem>
               <MenuItem value="Rejected by HOD">Rejected by HOD</MenuItem>
               <MenuItem value="Rejected by HOS">Rejected by HOS</MenuItem>
             </TextField>
@@ -349,9 +372,9 @@ export default function MyRequests() {
       {/* Empty State */}
       {!loading && sortedRequests.length === 0 && (
         <Card sx={{ borderRadius: 4, p: 4, textAlign: "center" }}>
-          <Typography fontWeight={700}>No requests found.</Typography>
+          <Typography fontWeight={700}>No active requests found.</Typography>
           <Typography color="text.secondary">
-            Try changing your search or create a new request.
+            Create a new request or check history later.
           </Typography>
         </Card>
       )}
@@ -366,10 +389,10 @@ export default function MyRequests() {
               onView={() =>
                 navigate(`/teacher/request-details/${request.RequestId}`)
               }
+              onCancel={() => handleCancelRequest(request.RequestId)}
             />
           ))}
 
-          {/* Pagination Footer */}
           <Box
             sx={{
               display: "flex",
@@ -403,17 +426,12 @@ export default function MyRequests() {
 }
 
 // ============================================
-// Summary Card Component
+// Summary Card
 // ============================================
 
 function SummaryCard({ title, value, subtitle, icon, color, bg }) {
   return (
-    <Card
-      sx={{
-        borderRadius: 4,
-        boxShadow: "0 8px 25px rgba(0,0,0,0.06)",
-      }}
-    >
+    <Card sx={{ borderRadius: 4, boxShadow: "0 8px 25px rgba(0,0,0,0.06)" }}>
       <CardContent>
         <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
           <Box
@@ -447,22 +465,24 @@ function SummaryCard({ title, value, subtitle, icon, color, bg }) {
 }
 
 // ============================================
-// Request Card Component
-// Shows request details + workflow timeline
+// Request Card
 // ============================================
 
-function RequestCard({ request, onView }) {
+function RequestCard({ request, onView, onCancel }) {
   const status = request.Status || "Pending";
   const statusStyle = getStatusStyle(status);
 
+  const canCancel = [
+    "Pending",
+    "Approved by HOD",
+    "Forwarded to HOS",
+    "Pending HOS Approval",
+    "Approved by HOS",
+    "Forwarded to Printing",
+  ].includes(status);
+
   return (
-    <Card
-      sx={{
-        borderRadius: 4,
-        boxShadow: "0 8px 25px rgba(0,0,0,0.06)",
-        overflow: "hidden",
-      }}
-    >
+    <Card sx={{ borderRadius: 4, boxShadow: "0 8px 25px rgba(0,0,0,0.06)" }}>
       <CardContent>
         <Box
           sx={{
@@ -475,7 +495,7 @@ function RequestCard({ request, onView }) {
             alignItems: "center",
           }}
         >
-          {/* Left Request Info */}
+          {/* Left Info */}
           <Box sx={{ display: "flex", gap: 2 }}>
             <Box
               sx={{
@@ -503,7 +523,8 @@ function RequestCard({ request, onView }) {
               </Typography>
 
               <Typography color="text.secondary" fontSize={14}>
-                {request.TotalPages || 0} Pages • {request.TotalSheets || 0} Sheets
+                {request.TotalPages || 0} Pages • {request.TotalSheets || 0}{" "}
+                Sheets
               </Typography>
 
               <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 0.5 }}>
@@ -518,10 +539,9 @@ function RequestCard({ request, onView }) {
             </Box>
           </Box>
 
-          {/* Middle Workflow Timeline */}
           <WorkflowTimeline status={status} />
 
-          {/* Right Actions */}
+          {/* Actions */}
           <Box
             sx={{
               display: "flex",
@@ -566,6 +586,18 @@ function RequestCard({ request, onView }) {
                   <VisibilityIcon sx={{ color: "#2563EB" }} />
                 </IconButton>
 
+                {canCancel && (
+                  <IconButton
+                    onClick={onCancel}
+                    sx={{
+                      border: "1px solid #E2E8F0",
+                      borderRadius: 2,
+                    }}
+                  >
+                    <CancelIcon sx={{ color: "#DC2626" }} />
+                  </IconButton>
+                )}
+
                 <IconButton
                   disabled
                   sx={{
@@ -585,7 +617,7 @@ function RequestCard({ request, onView }) {
 }
 
 // ============================================
-// Workflow Timeline Component
+// Workflow Timeline
 // ============================================
 
 function WorkflowTimeline({ status }) {
@@ -602,7 +634,10 @@ function WorkflowTimeline({ status }) {
         }}
       >
         {steps.map((step, index) => (
-          <Box key={step.label} sx={{ position: "relative", textAlign: "center" }}>
+          <Box
+            key={`${step.label}-${index}`}
+            sx={{ position: "relative", textAlign: "center" }}
+          >
             {index < steps.length - 1 && (
               <Box
                 sx={{
@@ -663,11 +698,15 @@ function WorkflowTimeline({ status }) {
 }
 
 // ============================================
-// Status Style Helper
+// Status Style
 // ============================================
 
 function getStatusStyle(status) {
   const lower = status.toLowerCase();
+
+  if (lower.includes("cancelled")) {
+    return { color: "#6B7280", bg: "#F3F4F6" };
+  }
 
   if (lower.includes("rejected")) {
     return { color: "#DC2626", bg: "#FEE2E2" };
@@ -702,10 +741,10 @@ function getWorkflowSteps(status) {
 
   if (isRejected) {
     return [
-      { label: "Submitted", caption: "Done", done: true, active: false, rejected: false, color: "#15803D" },
+      { label: "Submitted", caption: "Done", done: true, active: false, color: "#15803D" },
       { label: "HOD Review", caption: lower.includes("hod") ? "Rejected" : "Approved", done: !lower.includes("hod"), active: lower.includes("hod"), rejected: lower.includes("hod"), color: lower.includes("hod") ? "#DC2626" : "#15803D" },
       { label: "HOS Approval", caption: lower.includes("hos") ? "Rejected" : "Pending", done: false, active: lower.includes("hos"), rejected: lower.includes("hos"), color: lower.includes("hos") ? "#DC2626" : "#CBD5E1" },
-      { label: "Printing", caption: "Pending", done: false, active: false, rejected: false, color: "#CBD5E1" },
+      { label: "Printing", caption: "Pending", done: false, active: false, color: "#CBD5E1" },
     ];
   }
 

@@ -1,7 +1,8 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // Photocopy Request Routes
-// Handles request creation and request retrieval
+// Handles request creation, retrieval,
+// teacher dashboard, attachments, and cancellation
 // ============================================
 
 const express = require("express");
@@ -13,6 +14,7 @@ const {
   getMyRequests,
   getRequestById,
   getMyAttachments,
+  cancelMyRequest,
 } = require("../controllers/requestController");
 
 const { protect, authorizeRoles } = require("../middleware/authMiddleware");
@@ -30,15 +32,15 @@ router.get(
 );
 
 /**
- * @desc    Create new photocopy request
- * @route   POST /api/requests
+ * @desc    Get logged-in teacher attachments
+ * @route   GET /api/requests/attachments
  * @access  Teacher / HOD / SuperAdmin
  */
-router.post(
-  "/",
+router.get(
+  "/attachments",
   protect,
   authorizeRoles("Teacher", "HOD", "SuperAdmin"),
-  createRequest
+  getMyAttachments
 );
 
 /**
@@ -54,22 +56,40 @@ router.get(
 );
 
 /**
+ * @desc    Cancel teacher request before printing starts
+ * @route   PUT /api/requests/:id/cancel
+ * @access  Teacher
+ *
+ * IMPORTANT:
+ * This route must be before GET /:id
+ */
+router.put(
+  "/:id/cancel",
+  protect,
+  authorizeRoles("Teacher"),
+  cancelMyRequest
+);
+
+/**
+ * @desc    Create new photocopy request
+ * @route   POST /api/requests
+ * @access  Teacher / HOD / SuperAdmin
+ */
+router.post(
+  "/",
+  protect,
+  authorizeRoles("Teacher", "HOD", "SuperAdmin"),
+  createRequest
+);
+
+/**
  * @desc    Get request details by ID
  * @route   GET /api/requests/:id
  * @access  Private
+ *
+ * IMPORTANT:
+ * Keep this near the bottom because /:id can catch other routes
  */
-/**
- * @desc    Get logged-in teacher attachments
- * @route   GET /api/requests/attachments
- * @access  Teacher / HOD / SuperAdmin
- */
-router.get(
-  "/attachments",
-  protect,
-  authorizeRoles("Teacher", "HOD", "SuperAdmin"),
-  getMyAttachments
-);
-
 router.get(
   "/:id",
   protect,

@@ -1,8 +1,8 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // Printing Admin Controller
-// Handles print queue, printing progress, and completion
-// Updated to include HOD-created requests
+// Handles print queue, printing progress,
+// completion, printing logs, and inventory deduction
 // ============================================
 
 const { poolPromise, sql } = require("../config/db");
@@ -214,8 +214,7 @@ const getPrintingRequestById = async (req, res) => {
 
     if (result.recordset.length === 0) {
       return res.status(404).json({
-        message:
-          "Request not found or not assigned to this Printing Admin",
+        message: "Request not found or not assigned to this Printing Admin",
       });
     }
 
@@ -293,24 +292,39 @@ const startPrinting = async (req, res) => {
  * @desc    Complete printing request
  * @route   PUT /api/printing/requests/:id/complete
  * @access  Private - PrintingAdmin / SuperAdmin
+ *
+ * Logic:
+ * 1. Validate request is assigned and currently Printing
+ * 2. Get PaperSize and TotalSheets
+ * 3. Check PaperInventory stock
+ * 4. Deduct stock
+ * 5. Insert InventoryTransactions log
+ * 6. Mark request Completed
+ * 7. Insert PrintingLogs record
+ *
+ * All steps are inside one SQL transaction.
  */
 const completePrinting = async (req, res) => {
+  const printingAdminId = req.user.id;
+  const requestId = req.params.id;
+  const { remarks } = req.body || {};
+
+  const pool = await poolPromise;
+  const transaction = new sql.Transaction(pool);
+
   try {
-    const printingAdminId = req.user.id;
-    const requestId = req.params.id;
-    const { remarks } = req.body || {};
+    await transaction.begin();
 
-    const pool = await poolPromise;
-
-    const requestResult = await pool
-      .request()
+    // Get request details
+    const requestResult = await new sql.Request(transaction)
       .input("requestId", sql.Int, requestId)
       .input("printingAdminId", sql.Int, printingAdminId)
       .query(`
         SELECT
           RequestId,
           TotalPages,
-          TotalSheets
+          TotalSheets,
+          PaperSize
         FROM PhotocopyRequests
         WHERE RequestId = @requestId
           AND CurrentApproverId = @printingAdminId
@@ -318,6 +332,8 @@ const completePrinting = async (req, res) => {
       `);
 
     if (requestResult.recordset.length === 0) {
+      await transaction.rollback();
+
       return res.status(404).json({
         message:
           "Request not found, not printing, or not assigned to this Printing Admin",
@@ -325,9 +341,89 @@ const completePrinting = async (req, res) => {
     }
 
     const request = requestResult.recordset[0];
+    const totalSheets = request.TotalSheets || 0;
+    const paperSize = request.PaperSize || "A4";
 
-    await pool
-      .request()
+    // Find inventory item by paper type: A4 / A3
+    const inventoryResult = await new sql.Request(transaction)
+      .input("paperType", sql.VarChar, paperSize)
+      .query(`
+        SELECT
+          InventoryId,
+          PaperType,
+          CurrentStock
+        FROM PaperInventory
+        WHERE PaperType = @paperType
+      `);
+
+    if (inventoryResult.recordset.length === 0) {
+      await transaction.rollback();
+
+      return res.status(400).json({
+        message: `No inventory record found for ${paperSize}.`,
+      });
+    }
+
+    const inventory = inventoryResult.recordset[0];
+
+    // Prevent negative stock
+    if (inventory.CurrentStock < totalSheets) {
+      await transaction.rollback();
+
+      return res.status(400).json({
+        message: `Not enough ${paperSize} stock. Available: ${inventory.CurrentStock}, Required: ${totalSheets}.`,
+      });
+    }
+
+    // Deduct paper stock
+    await new sql.Request(transaction)
+      .input("inventoryId", sql.Int, inventory.InventoryId)
+      .input("quantity", sql.Int, totalSheets)
+      .query(`
+        UPDATE PaperInventory
+        SET
+          CurrentStock = CurrentStock - @quantity,
+          LastUpdated = GETDATE()
+        WHERE InventoryId = @inventoryId
+      `);
+
+    // Save inventory transaction log
+    await new sql.Request(transaction)
+      .input("itemId", sql.Int, inventory.InventoryId)
+      .input("requestId", sql.Int, requestId)
+      .input("transactionType", sql.NVarChar, "PRINT_DEDUCTION")
+      .input("quantity", sql.Int, totalSheets)
+      .input(
+        "remarks",
+        sql.NVarChar,
+        `Deducted ${totalSheets} sheets of ${paperSize} for completed print request`
+      )
+      .input("createdBy", sql.Int, printingAdminId)
+      .query(`
+        INSERT INTO InventoryTransactions
+        (
+          ItemId,
+          RequestId,
+          TransactionType,
+          Quantity,
+          Remarks,
+          CreatedBy,
+          CreatedAt
+        )
+        VALUES
+        (
+          @itemId,
+          @requestId,
+          @transactionType,
+          @quantity,
+          @remarks,
+          @createdBy,
+          GETDATE()
+        )
+      `);
+
+    // Mark request as completed
+    await new sql.Request(transaction)
       .input("requestId", sql.Int, requestId)
       .query(`
         UPDATE PhotocopyRequests
@@ -338,12 +434,12 @@ const completePrinting = async (req, res) => {
         WHERE RequestId = @requestId
       `);
 
-    await pool
-      .request()
+    // Insert printing completion log
+    await new sql.Request(transaction)
       .input("requestId", sql.Int, requestId)
       .input("printedBy", sql.Int, printingAdminId)
       .input("printedPages", sql.Int, request.TotalPages || 0)
-      .input("printedSheets", sql.Int, request.TotalSheets || 0)
+      .input("printedSheets", sql.Int, totalSheets)
       .input("remarks", sql.NVarChar, remarks || "Printing completed")
       .query(`
         INSERT INTO PrintingLogs
@@ -366,11 +462,15 @@ const completePrinting = async (req, res) => {
         )
       `);
 
+    await transaction.commit();
+
     return res.status(200).json({
       success: true,
-      message: "Printing completed successfully.",
+      message: "Printing completed successfully and inventory deducted.",
     });
   } catch (error) {
+    await transaction.rollback();
+
     console.error("Complete Printing Error:", error);
 
     return res.status(500).json({
