@@ -2,7 +2,13 @@
 // ARAB UNITY SCHOOL
 // Teacher / HOD - Create Request Page
 // Modern UI Version
-// Supports attachment upload and safe auto page counting
+// Supports:
+// - Multiple files inside one document card
+// - PDF / DOCX / PPTX / Image auto page counting
+// - Copies applied to all files in one document card
+// - Pages per sheet
+// - All pages / Custom page range
+// - Per-file sheet calculation
 // ============================================
 
 import { useEffect, useMemo, useState } from "react";
@@ -20,6 +26,8 @@ import {
   MenuItem,
   TextField,
   Typography,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
 
 import AddIcon from "@mui/icons-material/Add";
@@ -32,6 +40,10 @@ import RouteIcon from "@mui/icons-material/Route";
 import SummarizeIcon from "@mui/icons-material/Summarize";
 import FolderIcon from "@mui/icons-material/Folder";
 import ImageIcon from "@mui/icons-material/Image";
+import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
+import InfoIcon from "@mui/icons-material/Info";
+import LayersIcon from "@mui/icons-material/Layers";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 
 import DashboardLayout from "../../layouts/DashboardLayout";
 import Sidebar from "../../components/sidebar/Sidebar";
@@ -40,24 +52,177 @@ import PageHeader from "../../components/common/PageHeader";
 
 import { useAuth } from "../../context/AuthContext";
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 // ============================================
 // Empty document template
-// Used when the page loads and when adding files
+// One document card can contain multiple files.
+// Copies and print settings apply to all files
+// inside the same document card.
 // ============================================
 
 const createEmptyDocument = () => ({
   id: Date.now() + Math.random(),
   documentName: "",
   uploadType: "Office Document",
-  file: null,
-  pages: 1,
+  files: [],
   copies: 1,
   paperSize: "A4",
   printType: "Single-Sided",
   printColor: "Black & White",
+  pagesPerSheet: 1,
+  pageSelection: "All Pages",
+  customPageRange: "",
 });
+
+// ============================================
+// File Helpers
+// ============================================
+
+const getFileExtension = (fileName = "") => {
+  const parts = fileName.toLowerCase().split(".");
+  return parts.length > 1 ? parts.pop() : "";
+};
+
+const isImageFileName = (fileName = "") => {
+  const ext = getFileExtension(fileName);
+  return ["jpg", "jpeg", "png"].includes(ext);
+};
+
+const getFileKind = (fileName = "") => {
+  const ext = getFileExtension(fileName);
+
+  if (["jpg", "jpeg", "png"].includes(ext)) return "Image File";
+  if (["pdf", "doc", "docx", "ppt", "pptx", "xls", "xlsx"].includes(ext)) {
+    return "Office Document";
+  }
+
+  return "File";
+};
+
+const getFileIconColor = (fileName = "") => {
+  const ext = getFileExtension(fileName);
+
+  if (ext === "pdf") return "#DC2626";
+  if (ext === "doc" || ext === "docx") return "#2563EB";
+  if (ext === "ppt" || ext === "pptx") return "#EA580C";
+  if (ext === "xls" || ext === "xlsx") return "#16A34A";
+  if (["jpg", "jpeg", "png"].includes(ext)) return "#475569";
+
+  return "#64748B";
+};
+
+// ============================================
+// Custom Page Range Parser
+// Examples:
+// "1-3,5,8-10" = pages 1,2,3,5,8,9,10
+// The result is capped to the real file page count.
+// ============================================
+
+const countCustomPages = (customRange, maxPages) => {
+  if (!customRange || !maxPages) return maxPages;
+
+  const selectedPages = new Set();
+  const parts = customRange
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  parts.forEach((part) => {
+    if (part.includes("-")) {
+      const [startRaw, endRaw] = part.split("-");
+      const start = Number(startRaw);
+      const end = Number(endRaw);
+
+      if (!Number.isFinite(start) || !Number.isFinite(end)) return;
+
+      const from = Math.max(1, Math.min(start, end));
+      const to = Math.min(maxPages, Math.max(start, end));
+
+      for (let page = from; page <= to; page += 1) {
+        selectedPages.add(page);
+      }
+    } else {
+      const page = Number(part);
+
+      if (Number.isFinite(page) && page >= 1 && page <= maxPages) {
+        selectedPages.add(page);
+      }
+    }
+  });
+
+  return selectedPages.size > 0 ? selectedPages.size : maxPages;
+};
+
+// ============================================
+// Selected pages for a file
+// Page selection applies to all files in the card.
+// ============================================
+
+const getSelectedPagesForFile = (file, doc) => {
+  const filePages = Number(file.pages) || 1;
+
+  if (doc.pageSelection === "Custom Pages") {
+    return countCustomPages(doc.customPageRange, filePages);
+  }
+
+  return filePages;
+};
+
+// ============================================
+// Sheet calculation per file
+// Correct rule:
+// 1. Count selected pages
+// 2. Apply pages per sheet
+// 3. Apply back-to-back / double-sided
+// 4. Multiply by copies
+// ============================================
+
+const getSheetsPerFile = (file, doc) => {
+  const selectedPages = getSelectedPagesForFile(file, doc);
+  const pagesPerSheet = Number(doc.pagesPerSheet) || 1;
+
+  // Number of printed sides after pages-per-sheet.
+  let printSides = Math.ceil(selectedPages / pagesPerSheet);
+
+  // Back-to-back uses both sides of paper.
+  if (doc.printType === "Double-Sided" || doc.printType === "Back-to-Back") {
+    return Math.ceil(printSides / 2);
+  }
+
+  return printSides;
+};
+
+const getFileTotalSheets = (file, doc) => {
+  const copies = Number(doc.copies) || 1;
+  return getSheetsPerFile(file, doc) * copies;
+};
+
+const getDocumentTotals = (doc) => {
+  const copies = Number(doc.copies) || 1;
+
+  const totalPages = doc.files.reduce(
+    (sum, file) => sum + (Number(file.pages) || 0),
+    0
+  );
+
+  const selectedPagesPerSet = doc.files.reduce(
+    (sum, file) => sum + getSelectedPagesForFile(file, doc),
+    0
+  );
+
+  const sheetsPerSet = doc.files.reduce(
+    (sum, file) => sum + getSheetsPerFile(file, doc),
+    0
+  );
+
+  return {
+    totalPages,
+    selectedPagesPerSet,
+    sheetsPerSet,
+    totalSheets: sheetsPerSet * copies,
+  };
+};
 
 // ============================================
 // Main Component
@@ -222,44 +387,30 @@ export default function CreateRequest() {
   };
 
   // ============================================
-  // Handle File Selection
-  // 1. Attach selected file to UI immediately
-  // 2. Send temporary file to backend for page counting
-  // 3. Update Pages textbox automatically
+  // Remove one uploaded file from a document card
   // ============================================
 
-  const handleFileSelect = async (documentId, file) => {
-    if (!file) return;
+  const removeFileFromDocument = (documentId, fileId) => {
+    setDocuments((prev) =>
+      prev.map((doc) =>
+        doc.id === documentId
+          ? {
+              ...doc,
+              files: doc.files.filter((file) => file.id !== fileId),
+            }
+          : doc
+      )
+    );
+  };
 
-    // ============================================
-    // Attach file immediately so user can see filename
-    // ============================================
+  // ============================================
+  // Count one file using backend page counter
+  // POST /api/uploads/count-pages
+  // ============================================
 
-    updateDocument(documentId, "file", file);
-
-    // ============================================
-    // Safe fallback while counting
-    // ============================================
-
-    updateDocument(documentId, "pages", 1);
-
-    try {
-      if (!token) {
-        setError("You are not logged in.");
-        return;
-      }
-
-      // ============================================
-      // Prepare temporary upload for page counter endpoint
-      // ============================================
-
+  const countFilePages = async (file) => {
       const formData = new FormData();
       formData.append("file", file);
-
-      // ============================================
-      // Count pages before submitting the request
-      // POST /api/uploads/count-pages
-      // ============================================
 
       const response = await axios.post(`${API_URL}/uploads/count-pages`, formData, {
         headers: {
@@ -267,50 +418,147 @@ export default function CreateRequest() {
         },
       });
 
+      return Number(response.data?.pageCount) || 1;
+    };
+
+    // ============================================
+    // Handle Multiple File Selection
+    // Each selected file is counted automatically and
+    // saved inside the same document card.
+    // ============================================
+
+    const handleMultipleFileSelect = async (documentId, selectedFiles) => {
+    const files = Array.from(selectedFiles || []);
+    if (!files.length) return;
+
+    const currentDocument = documents.find((doc) => doc.id === documentId);
+
+    if (!currentDocument) return;
+
+    const allowedOffice = ["pdf", "doc", "docx", "ppt", "pptx", "xls", "xlsx"];
+    const allowedImages = ["jpg", "jpeg", "png"];
+
+    const invalidFiles = files.filter((file) => {
+      const ext = getFileExtension(file.name);
+
+      if (currentDocument.uploadType === "Image File") {
+        return !allowedImages.includes(ext);
+      }
+
+      return !allowedOffice.includes(ext);
+    });
+
+    if (invalidFiles.length > 0) {
+      setError(
+        currentDocument.uploadType === "Image File"
+          ? "Please upload image files only: JPG, JPEG, or PNG."
+          : "Please upload office documents only: PDF, DOC, DOCX, PPT, PPTX, XLS, or XLSX."
+      );
+      return;
+    }
+
+    try {
+
       // ============================================
-      // Update Pages textbox using backend result
+      // Add temporary loading files immediately
+      // so the teacher sees selected file names.
       // ============================================
 
-      const detectedPages = Number(response.data?.pageCount) || 1;
+      const tempFiles = files.map((file) => ({
+        id: Date.now() + Math.random(),
+        file,
+        fileName: file.name,
+        fileType: getFileKind(file.name),
+        pages: isImageFileName(file.name) ? 1 : 1,
+        isCounting: !isImageFileName(file.name),
+      }));
 
-      console.log("Detected Page Count:", detectedPages);
+      setDocuments((prev) =>
+        prev.map((doc) =>
+          doc.id === documentId
+            ? {
+                ...doc,
+                files: [...doc.files, ...tempFiles],
+              }
+            : doc
+        )
+      );
 
-      updateDocument(documentId, "pages", detectedPages);
+      // ============================================
+      // Count pages one by one.
+      // Images are always 1 page.
+      // Office files use the backend page counter.
+      // ============================================
+
+      for (const tempFile of tempFiles) {
+        let detectedPages = 1;
+
+        if (isImageFileName(tempFile.fileName)) {
+          detectedPages = 1;
+        } else {
+          detectedPages = await countFilePages(tempFile.file);
+        }
+
+        setDocuments((prev) =>
+          prev.map((doc) =>
+            doc.id === documentId
+              ? {
+                  ...doc,
+                  files: doc.files.map((file) =>
+                    file.id === tempFile.id
+                      ? {
+                          ...file,
+                          pages: detectedPages,
+                          isCounting: false,
+                        }
+                      : file
+                  ),
+                }
+              : doc
+          )
+        );
+      }
     } catch (err) {
-      // ============================================
-      // Do not remove the file if counting fails
-      // Keep upload stable and allow manual page entry
-      // ============================================
-
       console.error("Page Count Error:", err);
       console.log("PAGE COUNT BACKEND ERROR:", err.response?.data);
+      setError("Some files could not be counted. They were set to 1 page.");
 
-      updateDocument(documentId, "pages", 1);
+      setDocuments((prev) =>
+        prev.map((doc) =>
+          doc.id === documentId
+            ? {
+                ...doc,
+                files: doc.files.map((file) => ({
+                  ...file,
+                  isCounting: false,
+                  pages: Number(file.pages) || 1,
+                })),
+              }
+            : doc
+        )
+      );
     }
   };
 
   // ============================================
   // Calculate Request Summary
+  // The approval route should use total sheets,
+  // because sheets determine the approval threshold.
   // ============================================
 
   const summary = useMemo(() => {
     return documents.reduce(
       (total, doc) => {
-        const pages = Number(doc.pages) || 0;
-        const copies = Number(doc.copies) || 0;
-        const printedPages = pages * copies;
-
-        const sheets =
-          doc.printType === "Double-Sided"
-            ? Math.ceil(printedPages / 2)
-            : printedPages;
+        const docTotals = getDocumentTotals(doc);
 
         return {
-          totalPages: total.totalPages + printedPages,
-          totalSheets: total.totalSheets + sheets,
-          totalCopies: total.totalCopies + copies,
-          totalA4: total.totalA4 + (doc.paperSize === "A4" ? sheets : 0),
-          totalA3: total.totalA3 + (doc.paperSize === "A3" ? sheets : 0),
+          totalPages: total.totalPages + docTotals.selectedPagesPerSet,
+          totalSheets: total.totalSheets + docTotals.totalSheets,
+          totalCopies: total.totalCopies + (Number(doc.copies) || 0),
+          totalA4:
+            total.totalA4 + (doc.paperSize === "A4" ? docTotals.totalSheets : 0),
+          totalA3:
+            total.totalA3 + (doc.paperSize === "A3" ? docTotals.totalSheets : 0),
         };
       },
       {
@@ -354,15 +602,12 @@ export default function CreateRequest() {
 
   // ============================================
   // Submit Request to Backend
-  // Creates request first, then uploads attachments
+  // Creates request first, then uploads all files
+  // from every document card.
   // ============================================
 
   const handleSubmitRequest = async () => {
     try {
-      // ============================================
-      // Clear previous errors
-      // ============================================
-
       setError("");
 
       // ============================================
@@ -374,21 +619,30 @@ export default function CreateRequest() {
       if (!subjectId) return setError("Subject is required.");
       if (!purposeId) return setError("Please select a purpose.");
 
+      const totalUploadedFiles = documents.reduce(
+        (sum, doc) => sum + doc.files.length,
+        0
+      );
+
+      if (totalUploadedFiles === 0) {
+        return setError("Please upload at least one file.");
+      }
+
       if (summary.totalPages <= 0 || summary.totalSheets <= 0) {
         return setError("Total pages and sheets must be greater than zero.");
       }
 
       setSubmitting(true);
 
-      // ============================================
-      // Main document is used for request-level copies
-      // ============================================
-
       const mainDocument = documents[0];
 
       // ============================================
       // Main request payload
-      // Saves into PhotocopyRequests
+      // Note:
+      // Current backend PhotocopyRequests table stores one request-level
+      // copies value. Since copies can now differ per document card,
+      // the request-level copies uses the first document only.
+      // The real per-file/per-card copies are uploaded with attachments.
       // ============================================
 
       const payload = {
@@ -416,10 +670,6 @@ export default function CreateRequest() {
 
       console.log("Request Created:", response.data);
 
-      // ============================================
-      // Get created RequestId from backend response
-      // ============================================
-
       const createdRequestId = response.data.requestId;
 
       if (!createdRequestId) {
@@ -427,33 +677,53 @@ export default function CreateRequest() {
       }
 
       // ============================================
-      // Step 2: Upload each selected attachment
-      // Saves into RequestAttachments
-      // Backend counts pages again before saving
+      // Step 2: Upload every file inside every document card
+      // Saves into RequestAttachments.
+      // This keeps your current backend upload endpoint working.
       // ============================================
 
       for (const doc of documents) {
-        if (doc.file) {
-          // ============================================
-          // Prepare multipart/form-data
-          // ============================================
+        const docTotals = getDocumentTotals(doc);
+
+        for (const uploadedFile of doc.files) {
+          const fileSheetsPerSet = getSheetsPerFile(uploadedFile, doc);
+          const fileTotalSheets = getFileTotalSheets(uploadedFile, doc);
 
           const formData = new FormData();
 
           formData.append("requestId", createdRequestId);
           formData.append("copies", Number(doc.copies) || 1);
-          formData.append("file", doc.file);
+          formData.append("file", uploadedFile.file);
+
+          // ============================================
+          // Extra metadata for future backend support.
+          // If backend ignores these fields now, upload still works.
+          // Later we can save them into RequestAttachments.
+          // ============================================
+
+          formData.append("documentName", doc.documentName || "");
+          formData.append("paperSize", doc.paperSize);
+          formData.append("printType", doc.printType);
+          formData.append("printColor", doc.printColor);
+          formData.append("pagesPerSheet", Number(doc.pagesPerSheet) || 1);
+          formData.append("pageSelection", doc.pageSelection);
+          formData.append("customPageRange", doc.customPageRange || "");
+          formData.append("detectedPages", Number(uploadedFile.pages) || 1);
+          formData.append(
+            "selectedPages",
+            getSelectedPagesForFile(uploadedFile, doc)
+          );
+          formData.append("sheetsPerSet", fileSheetsPerSet);
+          formData.append("totalSheets", fileTotalSheets);
+          formData.append("documentTotalSheets", docTotals.totalSheets);
 
           console.log("Uploading attachment:", {
             requestId: createdRequestId,
-            fileName: doc.file.name,
+            fileName: uploadedFile.fileName,
             copies: Number(doc.copies) || 1,
+            sheetsPerSet: fileSheetsPerSet,
+            totalSheets: fileTotalSheets,
           });
-
-          // ============================================
-          // Upload final attachment
-          // POST /api/uploads/request-attachment
-          // ============================================
 
           const uploadResponse = await axios.post(
             `${API_URL}/uploads/request-attachment`,
@@ -479,10 +749,6 @@ export default function CreateRequest() {
         navigate("/teacher/my-requests");
       }
     } catch (err) {
-      // ============================================
-      // Show backend error clearly
-      // ============================================
-
       console.error("Create Request Error:", err);
       console.log("BACKEND ERROR:", err.response?.data);
 
@@ -492,10 +758,6 @@ export default function CreateRequest() {
           "Unable to submit request. Please try again."
       );
     } finally {
-      // ============================================
-      // Stop loading state
-      // ============================================
-
       setSubmitting(false);
     }
   };
@@ -566,8 +828,9 @@ export default function CreateRequest() {
             documents={documents}
             addDocument={addDocument}
             removeDocument={removeDocument}
+            removeFileFromDocument={removeFileFromDocument}
             updateDocument={updateDocument}
-            handleFileSelect={handleFileSelect}
+            handleMultipleFileSelect={handleMultipleFileSelect}
           />
 
           <Box
@@ -874,17 +1137,21 @@ function RequestInfoCard({
 
 // ============================================
 // Documents Card
-// Multiple documents can be added here
-// Uses parent handleFileSelect for safe auto count
+// Multiple document cards can be added.
+// Each card can contain multiple uploaded files.
 // ============================================
 
 function DocumentsCard({
   documents,
   addDocument,
   removeDocument,
+  removeFileFromDocument,
   updateDocument,
-  handleFileSelect,
+  handleMultipleFileSelect,
 }) {
+
+const [draggingId, setDraggingId] = useState(null);
+  
   return (
     <ModernCard
       icon={<DescriptionIcon />}
@@ -908,17 +1175,7 @@ function DocumentsCard({
       }
     >
       {documents.map((doc, index) => {
-        // ============================================
-        // Calculate document printed pages and sheets
-        // ============================================
-
-        const printedPages =
-          (Number(doc.pages) || 0) * (Number(doc.copies) || 0);
-
-        const sheets =
-          doc.printType === "Double-Sided"
-            ? Math.ceil(printedPages / 2)
-            : printedPages;
+        const docTotals = getDocumentTotals(doc);
 
         return (
           <Box
@@ -975,42 +1232,80 @@ function DocumentsCard({
               <Box sx={{ display: "grid", gap: 1.5 }}>
                 <UploadTypeButton
                   active={doc.uploadType === "Office Document"}
+                  disabled={doc.files.length > 0}
                   icon={<FolderIcon />}
-                  title="Office Document"
+                  title="Office Documents"
                   subtitle="PDF, DOCX, PPTX, XLSX"
-                  onClick={() =>
-                    updateDocument(doc.id, "uploadType", "Office Document")
-                  }
+                  onClick={() => updateDocument(doc.id, "uploadType", "Office Document")}
                 />
 
                 <UploadTypeButton
                   active={doc.uploadType === "Image File"}
+                  disabled={doc.files.length > 0}
                   icon={<ImageIcon />}
-                  title="Image File"
+                  title="Image Files"
                   subtitle="JPG, PNG, JPEG"
                   onClick={() => updateDocument(doc.id, "uploadType", "Image File")}
                 />
               </Box>
 
               <Button
-                component="label"
-                variant="outlined"
-                startIcon={<UploadFileIcon />}
+              component="label"
+              variant="outlined"
+              startIcon={<UploadFileIcon />}
+
+              onDragEnter={(e) => {
+                e.preventDefault();
+                setDraggingId(doc.id);
+              }}
+
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDraggingId(doc.id);
+              }}
+
+              onDragLeave={() => {
+                setDraggingId(null);
+              }}
+
+              onDrop={(e) => {
+                e.preventDefault();
+                setDraggingId(null);
+                handleMultipleFileSelect(doc.id, e.dataTransfer.files);
+              }}
                 sx={{
-                  minHeight: 132,
+                  minHeight: 150,
                   borderRadius: 3,
-                  borderStyle: "dashed",
+
+                  border:
+                    draggingId === doc.id
+                      ? "2px dashed #0B8F4D"
+                      : "2px dashed #CBD5E1",
+
+                  bgcolor:
+                    draggingId === doc.id
+                      ? "#EAF7EE"
+                      : "#FFFFFF",
+
+                  color:
+                    draggingId === doc.id
+                      ? "#0B8F4D"
+                      : "#64748B",
+
+                  transform:
+                    draggingId === doc.id
+                      ? "scale(1.02)"
+                      : "scale(1)",
+
+                  transition: "all 0.2s ease",
+
                   textTransform: "none",
                   display: "flex",
                   flexDirection: "column",
                   gap: 1,
-                  color: "#0B8F4D",
-                  bgcolor: "#FFFFFF",
                 }}
               >
-                <Typography fontWeight={800}>
-                  {doc.file ? doc.file.name : "Drag & drop file here"}
-                </Typography>
+                <Typography fontWeight={900}>Drag & drop files here</Typography>
 
                 <Typography fontSize={13} color="text.secondary">
                   or click to browse
@@ -1022,6 +1317,7 @@ function DocumentsCard({
 
                 <input
                   hidden
+                  multiple
                   type="file"
                   accept={
                     doc.uploadType === "Image File"
@@ -1029,116 +1325,170 @@ function DocumentsCard({
                       : ".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
                   }
                   onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    handleFileSelect(doc.id, file);
+                    handleMultipleFileSelect(doc.id, e.target.files);
+                    e.target.value = "";
                   }}
                 />
               </Button>
             </Box>
 
-            {/* Document Details */}
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: {
-                  xs: "1fr",
-                  md: "repeat(3, 1fr)",
-                },
-                gap: 2,
-              }}
-            >
-              <TextField
-                label="Document Name"
-                value={doc.documentName}
-                onChange={(e) =>
-                  updateDocument(doc.id, "documentName", e.target.value)
-                }
-                fullWidth
-              />
+            {/* Uploaded Files Table */}
+            <UploadedFilesTable
+              doc={doc}
+              removeFileFromDocument={removeFileFromDocument}
+            />
 
-              <TextField
-                type="number"
-                label="Pages"
-                value={doc.pages}
-                onChange={(e) =>
-                  updateDocument(doc.id, "pages", e.target.value)
-                }
-                fullWidth
-                disabled={
-                  doc.file?.name?.toLowerCase().endsWith(".pdf") ||
-                  doc.file?.name?.toLowerCase().endsWith(".pptx")
-                }
-                helperText={
-                  doc.file?.name?.toLowerCase().endsWith(".docx")
-                    ? "Estimated from DOCX. Please verify."
-                    : "Automatically detected from uploaded file."
-                }
-              />
-
-              <TextField
-                type="number"
-                label="Copies"
-                value={doc.copies}
-                onChange={(e) => updateDocument(doc.id, "copies", e.target.value)}
-                fullWidth
-              />
-
-              <TextField
-                select
-                label="Paper Size"
-                value={doc.paperSize}
-                onChange={(e) =>
-                  updateDocument(doc.id, "paperSize", e.target.value)
-                }
-                fullWidth
+            {/* Document Settings */}
+            <Box sx={{ mt: 2.5 }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
+                  mb: 2,
+                }}
               >
-                <MenuItem value="A4">A4</MenuItem>
-                <MenuItem value="A3">A3</MenuItem>
-              </TextField>
+                <DescriptionIcon sx={{ color: "#0B8F4D" }} />
+                <Typography fontWeight={900}>
+                  Document Settings (applied to all uploaded files)
+                </Typography>
+              </Box>
 
-              <TextField
-                select
-                label="Print Type"
-                value={doc.printType}
-                onChange={(e) =>
-                  updateDocument(doc.id, "printType", e.target.value)
-                }
-                fullWidth
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: {
+                    xs: "1fr",
+                    md: "repeat(3, 1fr)",
+                  },
+                  gap: 2,
+                }}
               >
-                <MenuItem value="Single-Sided">Single-Sided</MenuItem>
-                <MenuItem value="Double-Sided">Double-Sided</MenuItem>
-              </TextField>
+                <TextField
+                  label="Document Name"
+                  value={doc.documentName}
+                  onChange={(e) =>
+                    updateDocument(doc.id, "documentName", e.target.value)
+                  }
+                  fullWidth
+                />
 
-              <TextField
-                select
-                label="Print Color"
-                value={doc.printColor}
-                onChange={(e) =>
-                  updateDocument(doc.id, "printColor", e.target.value)
-                }
-                fullWidth
-              >
-                <MenuItem value="Black & White">Black & White</MenuItem>
-                <MenuItem value="Color">Color</MenuItem>
-              </TextField>
+                <TextField
+                  type="number"
+                  label="Copies (applies to all files)"
+                  value={doc.copies}
+                  onChange={(e) =>
+                    updateDocument(doc.id, "copies", e.target.value)
+                  }
+                  inputProps={{ min: 1 }}
+                  fullWidth
+                />
+
+                <TextField
+                  select
+                  label="Paper Size"
+                  value={doc.paperSize}
+                  onChange={(e) =>
+                    updateDocument(doc.id, "paperSize", e.target.value)
+                  }
+                  fullWidth
+                >
+                  <MenuItem value="A4">A4</MenuItem>
+                  <MenuItem value="A3">A3</MenuItem>
+                </TextField>
+
+                <TextField
+                  select
+                  label="Print Type"
+                  value={doc.printType}
+                  onChange={(e) =>
+                    updateDocument(doc.id, "printType", e.target.value)
+                  }
+                  fullWidth
+                >
+                  <MenuItem value="Single-Sided">Single-Sided</MenuItem>
+                  <MenuItem value="Double-Sided">Back-to-Back</MenuItem>
+                </TextField>
+
+                <TextField
+                  select
+                  label="Print Color"
+                  value={doc.printColor}
+                  onChange={(e) =>
+                    updateDocument(doc.id, "printColor", e.target.value)
+                  }
+                  fullWidth
+                >
+                  <MenuItem value="Black & White">Black & White</MenuItem>
+                  <MenuItem value="Color">Color</MenuItem>
+                </TextField>
+
+                <TextField
+                  select
+                  label="Pages per Sheet"
+                  value={doc.pagesPerSheet}
+                  onChange={(e) =>
+                    updateDocument(doc.id, "pagesPerSheet", e.target.value)
+                  }
+                  fullWidth
+                >
+                  <MenuItem value={1}>1</MenuItem>
+                  <MenuItem value={2}>2</MenuItem>
+                  <MenuItem value={4}>4</MenuItem>
+                </TextField>
+
+                <TextField
+                  select
+                  label="Page Selection"
+                  value={doc.pageSelection}
+                  onChange={(e) =>
+                    updateDocument(doc.id, "pageSelection", e.target.value)
+                  }
+                  fullWidth
+                >
+                  <MenuItem value="All Pages">All Pages</MenuItem>
+                  <MenuItem value="Custom Pages">Custom Pages</MenuItem>
+                </TextField>
+
+                <TextField
+                  label="Custom Page Range"
+                  value={doc.customPageRange}
+                  onChange={(e) =>
+                    updateDocument(doc.id, "customPageRange", e.target.value)
+                  }
+                  disabled={doc.pageSelection !== "Custom Pages"}
+                  placeholder="e.g. 1-3,5,8-10"
+                  helperText={
+                    doc.pageSelection === "Custom Pages"
+                      ? "Example: 1-3,5,8-10"
+                      : 'Choose "Custom Pages" to enable this field.'
+                  }
+                  fullWidth
+                  sx={{
+                    md: {
+                      gridColumn: "span 2",
+                    },
+                  }}
+                />
+              </Box>
             </Box>
 
-            {/* Sheet Calculation Preview */}
+            {/* Document Totals */}
+            <DocumentTotalsBar doc={doc} docTotals={docTotals} />
+
+            {/* Calculation note */}
             <Box
               sx={{
-                mt: 2,
-                p: 2,
-                borderRadius: 3,
-                bgcolor: "#FFFFFF",
-                border: "1px solid #E2E8F0",
+                mt: 1.5,
                 display: "flex",
-                justifyContent: "space-between",
+                alignItems: "center",
+                gap: 1,
+                color: "#64748B",
               }}
             >
-              <Typography color="text.secondary">Printed Pages</Typography>
-
-              <Typography fontWeight={900}>
-                {printedPages} pages • {sheets} sheets
+              <InfoIcon fontSize="small" />
+              <Typography fontSize={13}>
+                Sheets are calculated per file first, then multiplied by copies.
               </Typography>
             </Box>
           </Box>
@@ -1159,6 +1509,7 @@ function DocumentsCard({
           fontWeight: 800,
           color: "#0B8F4D",
           borderColor: "#A7F3D0",
+          py: 1.5,
         }}
       >
         Add Another Document
@@ -1168,22 +1519,328 @@ function DocumentsCard({
 }
 
 // ============================================
+// Uploaded Files Table
+// Shows each file with:
+// File name, pages, pages to print, pages/sheet,
+// sheets per file, and total sheets.
+// ============================================
+
+function UploadedFilesTable({ doc, removeFileFromDocument }) {
+  if (!doc.files || doc.files.length === 0) {
+    return (
+      <Box
+        sx={{
+          p: 2,
+          borderRadius: 3,
+          bgcolor: "#FFFFFF",
+          border: "1px solid #E2E8F0",
+        }}
+      >
+        <Typography color="text.secondary" fontSize={14}>
+          No files uploaded yet.
+        </Typography>
+      </Box>
+    );
+  }
+
+  return (
+    <Box sx={{ mt: 1 }}>
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 1,
+          mb: 1.5,
+        }}
+      >
+        <InsertDriveFileIcon sx={{ color: "#0B8F4D" }} />
+        <Typography fontWeight={900}>
+          Uploaded Files ({doc.files.length})
+        </Typography>
+      </Box>
+
+      <Typography color="text.secondary" fontSize={13} sx={{ mb: 1.5 }}>
+        The settings below will be applied to all uploaded files in this document.
+      </Typography>
+
+      {/* Desktop table */}
+      <Box
+        sx={{
+          display: {
+            xs: "none",
+            md: "block",
+          },
+          border: "1px solid #E2E8F0",
+          borderRadius: 3,
+          overflow: "hidden",
+          bgcolor: "#FFFFFF",
+        }}
+      >
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: "2fr 0.8fr 1fr 1fr 1fr 1.3fr 0.5fr",
+            bgcolor: "#F8FAFC",
+            borderBottom: "1px solid #E2E8F0",
+          }}
+        >
+          {[
+            "File Name",
+            "Pages",
+            "Pages to Print",
+            "Pages/Sheet",
+            "Sheets/File",
+            `Total Sheets (${Number(doc.copies) || 1} copies)`,
+            "",
+          ].map((header) => (
+            <Box
+              key={header}
+              sx={{
+                p: 1.5,
+                fontWeight: 900,
+                fontSize: 13,
+                textAlign: header === "File Name" ? "left" : "center",
+              }}
+            >
+              {header}
+            </Box>
+          ))}
+        </Box>
+
+        {doc.files.map((file) => {
+          const selectedPages = getSelectedPagesForFile(file, doc);
+          const sheetsPerFile = getSheetsPerFile(file, doc);
+          const totalSheets = getFileTotalSheets(file, doc);
+
+          return (
+            <Box
+              key={file.id}
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "2fr 0.8fr 1fr 1fr 1fr 1.3fr 0.5fr",
+                borderBottom: "1px solid #E2E8F0",
+                "&:last-child": {
+                  borderBottom: "none",
+                },
+              }}
+            >
+              <Box
+                sx={{
+                  p: 1.5,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1.2,
+                }}
+              >
+                <InsertDriveFileIcon
+                  sx={{ color: getFileIconColor(file.fileName) }}
+                />
+                <Box>
+                  <Typography fontWeight={900}>{file.fileName}</Typography>
+                  <Typography color="text.secondary" fontSize={12}>
+                    {file.fileType}
+                    {file.isCounting ? " • Counting pages..." : ""}
+                  </Typography>
+                </Box>
+              </Box>
+
+              <TableCellBox>{file.isCounting ? "..." : file.pages}</TableCellBox>
+
+              <TableCellBox>
+                {doc.pageSelection === "Custom Pages"
+                  ? `${selectedPages} selected`
+                  : "All Pages"}
+              </TableCellBox>
+
+              <TableCellBox>{doc.pagesPerSheet}</TableCellBox>
+
+              <TableCellBox>{file.isCounting ? "..." : sheetsPerFile}</TableCellBox>
+
+              <TableCellBox>{file.isCounting ? "..." : totalSheets}</TableCellBox>
+
+              <TableCellBox>
+                <Tooltip title="Remove file">
+                  <IconButton
+                    color="error"
+                    onClick={() => removeFileFromDocument(doc.id, file.id)}
+                  >
+                    <DeleteIcon />
+                  </IconButton>
+                </Tooltip>
+              </TableCellBox>
+            </Box>
+          );
+        })}
+      </Box>
+
+      {/* Mobile cards */}
+      <Box
+        sx={{
+          display: {
+            xs: "grid",
+            md: "none",
+          },
+          gap: 1.5,
+        }}
+      >
+        {doc.files.map((file) => {
+          const selectedPages = getSelectedPagesForFile(file, doc);
+          const sheetsPerFile = getSheetsPerFile(file, doc);
+          const totalSheets = getFileTotalSheets(file, doc);
+
+          return (
+            <Box
+              key={file.id}
+              sx={{
+                p: 1.5,
+                border: "1px solid #E2E8F0",
+                borderRadius: 3,
+                bgcolor: "#FFFFFF",
+              }}
+            >
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: 1,
+                  mb: 1.5,
+                }}
+              >
+                <Box sx={{ display: "flex", gap: 1.2 }}>
+                  <InsertDriveFileIcon
+                    sx={{ color: getFileIconColor(file.fileName) }}
+                  />
+
+                  <Box>
+                    <Typography fontWeight={900}>{file.fileName}</Typography>
+                    <Typography fontSize={12} color="text.secondary">
+                      {file.fileType}
+                      {file.isCounting ? " • Counting pages..." : ""}
+                    </Typography>
+                  </Box>
+                </Box>
+
+                <IconButton
+                  color="error"
+                  onClick={() => removeFileFromDocument(doc.id, file.id)}
+                >
+                  <DeleteIcon />
+                </IconButton>
+              </Box>
+
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(3, 1fr)",
+                  border: "1px solid #E2E8F0",
+                  borderRadius: 2,
+                  overflow: "hidden",
+                }}
+              >
+                <MiniMetric label="Pages" value={file.isCounting ? "..." : file.pages} />
+                <MiniMetric
+                  label="Print Pages"
+                  value={
+                    doc.pageSelection === "Custom Pages"
+                      ? `${selectedPages} selected`
+                      : "All"
+                  }
+                />
+                <MiniMetric label="Pages/Sheet" value={doc.pagesPerSheet} />
+                <MiniMetric
+                  label="Sheets/File"
+                  value={file.isCounting ? "..." : sheetsPerFile}
+                />
+                <MiniMetric
+                  label="Total Sheets"
+                  value={file.isCounting ? "..." : totalSheets}
+                />
+                <MiniMetric label="Copies" value={doc.copies} />
+              </Box>
+            </Box>
+          );
+        })}
+      </Box>
+    </Box>
+  );
+}
+
+// ============================================
+// Document Totals Bar
+// ============================================
+
+function DocumentTotalsBar({ doc, docTotals }) {
+  return (
+    <Box
+      sx={{
+        mt: 2.5,
+        p: 2,
+        borderRadius: 3,
+        bgcolor: "#FFFFFF",
+        border: "1px solid #D1FAE5",
+        display: "grid",
+        gridTemplateColumns: {
+          xs: "1fr",
+          md: "repeat(4, 1fr)",
+        },
+        gap: 2,
+      }}
+    >
+      <TotalMetric
+        icon={<DescriptionIcon />}
+        label="Total Pages"
+        value={`${docTotals.totalPages} pages`}
+      />
+
+      <TotalMetric
+        icon={<LayersIcon />}
+        label="Total Sheets per Set"
+        value={`${docTotals.sheetsPerSet} sheets`}
+      />
+
+      <TotalMetric
+        icon={<ContentCopyIcon />}
+        label="Copies"
+        value={`${Number(doc.copies) || 1} copies`}
+      />
+
+      <Box
+        sx={{
+          textAlign: {
+            xs: "left",
+            md: "right",
+          },
+        }}
+      >
+        <Typography color="#0B8F4D" fontWeight={900} fontSize={13}>
+          TOTAL SHEETS USED
+        </Typography>
+        <Typography color="#0B8F4D" fontWeight={900} fontSize={24}>
+          {docTotals.totalSheets} sheets
+        </Typography>
+      </Box>
+    </Box>
+  );
+}
+
+// ============================================
 // Upload Type Selector
 // ============================================
 
-function UploadTypeButton({ active, icon, title, subtitle, onClick }) {
+function UploadTypeButton({ active, icon, title, subtitle, onClick, disabled = false }) {
   return (
     <Box
-      onClick={onClick}
+      onClick={disabled ? undefined : onClick}
       sx={{
         p: 2,
         borderRadius: 3,
-        cursor: "pointer",
+        cursor: disabled ? "not-allowed" : "pointer",
         border: `1.5px solid ${active ? "#0B8F4D" : "#E2E8F0"}`,
         bgcolor: active ? "#EAF7EE" : "#FFFFFF",
         display: "flex",
         gap: 1.5,
         alignItems: "center",
+        opacity: disabled ? 0.5 : 1,
       }}
     >
       <Box sx={{ color: active ? "#0B8F4D" : "#64748B" }}>{icon}</Box>
@@ -1443,6 +2100,74 @@ function SummaryRow({ label, value }) {
       <Typography fontWeight={900} textAlign="right">
         {value}
       </Typography>
+    </Box>
+  );
+}
+
+// ============================================
+// Table Cell Box
+// ============================================
+
+function TableCellBox({ children }) {
+  return (
+    <Box
+      sx={{
+        p: 1.5,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        textAlign: "center",
+        fontWeight: 800,
+      }}
+    >
+      {children}
+    </Box>
+  );
+}
+
+// ============================================
+// Mobile mini metric
+// ============================================
+
+function MiniMetric({ label, value }) {
+  return (
+    <Box
+      sx={{
+        p: 1,
+        borderRight: "1px solid #E2E8F0",
+        borderBottom: "1px solid #E2E8F0",
+        textAlign: "center",
+        "&:nth-of-type(3n)": {
+          borderRight: "none",
+        },
+        "&:nth-of-type(n+4)": {
+          borderBottom: "none",
+        },
+      }}
+    >
+      <Typography fontSize={11} color="text.secondary" fontWeight={700}>
+        {label}
+      </Typography>
+      <Typography fontWeight={900}>{value}</Typography>
+    </Box>
+  );
+}
+
+// ============================================
+// Total Metric
+// ============================================
+
+function TotalMetric({ icon, label, value }) {
+  return (
+    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+      <Box sx={{ color: "#0B8F4D" }}>{icon}</Box>
+
+      <Box>
+        <Typography color="text.secondary" fontSize={13} fontWeight={700}>
+          {label}
+        </Typography>
+        <Typography fontWeight={900}>{value}</Typography>
+      </Box>
     </Box>
   );
 }

@@ -180,13 +180,42 @@ export default function RequestDetails() {
                       backgroundColor: "#F8FAFC",
                     }}
                   >
-                    <Typography fontWeight={700}>
+                    <Typography fontWeight={800}>
                       {file.OriginalFileName || file.FileName}
                     </Typography>
 
-                    <Typography color="text.secondary" fontSize={14}>
+                    <Typography color="text.secondary" fontSize={14} sx={{ mb: 2 }}>
+                      {file.DocumentName || "No document name"} •{" "}
                       {file.FileType || "File"}
                     </Typography>
+
+                    <Box
+                      sx={{
+                        display: "grid",
+                        gridTemplateColumns: {
+                          xs: "1fr 1fr",
+                          md: "repeat(3, 1fr)",
+                        },
+                        gap: 1.5,
+                        mb: 2,
+                      }}
+                    >
+                      <AttachmentMetric label="Pages" value={file.PageCount} />
+                      <AttachmentMetric label="Selected Pages" value={file.SelectedPages} />
+                      <AttachmentMetric label="Copies" value={file.Copies} />
+                      <AttachmentMetric label="Paper Size" value={file.PaperSize} />
+                      <AttachmentMetric label="Print Type" value={file.PrintType} />
+                      <AttachmentMetric label="Print Color" value={file.PrintColor} />
+                      <AttachmentMetric label="Pages / Sheet" value={file.PagesPerSheet} />
+                      <AttachmentMetric label="Sheets / Set" value={file.SheetsPerSet} />
+                      <AttachmentMetric label="Total Sheets" value={file.TotalSheets} />
+                    </Box>
+
+                    {file.PageSelection === "Custom Pages" && (
+                      <Typography color="text.secondary" fontSize={14} sx={{ mb: 1 }}>
+                        Custom Range: {file.CustomPageRange || "-"}
+                      </Typography>
+                    )}
 
                     <Button
                       size="small"
@@ -194,14 +223,11 @@ export default function RequestDetails() {
                       startIcon={<DownloadIcon />}
                       sx={{ mt: 1, textTransform: "none" }}
                       component="a"
-                      href={`http://localhost:5000${file.FilePath}`}
+                      href={`${API_URL.replace("/api", "")}${file.FilePath}`}
                       target="_blank"
                       rel="noreferrer"
                     >
                       Open / Download
-                      <Typography color="text.secondary" fontSize={14}>
-                        {file.FileType || "File"} • {file.PageCount || 0} page(s)
-                      </Typography>
                     </Button>
                   </Box>
                 ))
@@ -243,6 +269,27 @@ function InfoRow({ label, value }) {
     >
       <Typography color="text.secondary">{label}</Typography>
       <Typography fontWeight={700} textAlign="right">
+        {value || "-"}
+      </Typography>
+    </Box>
+  );
+}
+
+function AttachmentMetric({ label, value }) {
+  return (
+    <Box
+      sx={{
+        p: 1.2,
+        borderRadius: 2,
+        bgcolor: "#FFFFFF",
+        border: "1px solid #E5E7EB",
+      }}
+    >
+      <Typography fontSize={12} color="text.secondary" fontWeight={600}>
+        {label}
+      </Typography>
+
+      <Typography fontWeight={800}>
         {value || "-"}
       </Typography>
     </Box>
