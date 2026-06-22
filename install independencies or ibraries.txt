@@ -1,5 +1,7 @@
 install independencies or ibraries
 npm install libreoffice-convert pdf-lib
 npm install libreoffice-convert	
+npm install multer csv-parser
+npm install xlsx
 
 https://www.libreoffice.org/download/

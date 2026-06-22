@@ -2,11 +2,13 @@
 // ARAB UNITY SCHOOL
 // User Management Page
 // Printing Admin / Admin / SuperAdmin
+// Includes CSV User Import
 // ============================================
 
 import { useEffect, useMemo, useState } from "react";
 
 import {
+  Alert,
   Box,
   Button,
   Chip,
@@ -14,7 +16,6 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Grid,
   IconButton,
   MenuItem,
   Paper,
@@ -33,6 +34,7 @@ import {
   Edit,
   ToggleOff,
   ToggleOn,
+  UploadFile,
 } from "@mui/icons-material";
 
 import DashboardLayout from "../../layouts/DashboardLayout";
@@ -46,6 +48,10 @@ import {
   updateUser,
   activateUser,
   deactivateUser,
+  importUsersFromCSV,
+  downloadCSVUserTemplate,
+  downloadExcelUserTemplate,
+  importUsersFromExcel,
 } from "../../services/userService";
 
 import {
@@ -86,6 +92,13 @@ export default function UserManagement() {
   const [loading, setLoading] = useState(false);
 
   // ============================================
+  // CSV Import State
+  // ============================================
+  const [importFile, setImportFile] = useState(null);
+  const [importLoading, setImportLoading] = useState(false);
+  const [importResult, setImportResult] = useState(null);
+
+  // ============================================
   // Load Users
   // ============================================
   const loadUsers = async () => {
@@ -105,30 +118,27 @@ export default function UserManagement() {
   // Load Lookup Data
   // ============================================
   const loadLookups = async () => {
-  try {
-    const deptData = await getDepartments();
-    const subjectData = await getSubjects();
+    try {
+      const deptData = await getDepartments();
+      const subjectData = await getSubjects();
 
-    console.log("Departments:", deptData);
-    console.log("Subjects:", subjectData);
+      setDepartments(
+        deptData.departments ||
+          deptData.data ||
+          deptData ||
+          []
+      );
 
-    setDepartments(
-      deptData.departments ||
-      deptData.data ||
-      deptData ||
-      []
-    );
-
-    setSubjects(
-      subjectData.subjects ||
-      subjectData.data ||
-      subjectData ||
-      []
-    );
-  } catch (error) {
-    console.error("Load lookup error:", error);
-  }
-};
+      setSubjects(
+        subjectData.subjects ||
+          subjectData.data ||
+          subjectData ||
+          []
+      );
+    } catch (error) {
+      console.error("Load lookup error:", error);
+    }
+  };
 
   useEffect(() => {
     loadUsers();
@@ -155,7 +165,7 @@ export default function UserManagement() {
   }, [users, search, roleFilter]);
 
   // ============================================
-  // Role-based field visibility
+  // Role-based Field Visibility
   // ============================================
   const showDepartment = ["Teacher", "HOD", "HOS"].includes(form.role);
   const showSubject = ["HOD"].includes(form.role);
@@ -189,24 +199,22 @@ export default function UserManagement() {
 
   // ============================================
   // Handle Role Change
+  // Clears department/subject if not needed
   // ============================================
   const handleRoleChange = (role) => {
     setForm({
-        ...form,
-        role,
-        departmentId:
-        ["Teacher", "HOD", "HOS"].includes(role)
-            ? form.departmentId
-            : "",
-        subject:
-        role === "HOD"
-            ? form.subject
-            : "",
+      ...form,
+      role,
+      departmentId: ["Teacher", "HOD", "HOS"].includes(role)
+        ? form.departmentId
+        : "",
+      subject: role === "HOD" ? form.subject : "",
     });
-    };
+  };
 
   // ============================================
   // Save User
+  // Add new user or update existing user
   // ============================================
   const handleSave = async () => {
     try {
@@ -268,6 +276,42 @@ export default function UserManagement() {
     }
   };
 
+  // ============================================
+  // Import Users from CSV
+  // CSV columns:
+  // FullName, EmployeeId, SchoolEmail, Role, Department, Subject
+  //
+  // Backend will:
+  // - Convert Department name to DepartmentId
+  // - Set Password = EmployeeId
+  // - Set MustChangePassword = 1
+  // - Skip duplicate EmployeeId / SchoolEmail
+  // ============================================
+  const handleImportUsers = async () => {
+    if (!importFile) {
+      alert("Please select a CSV file first.");
+      return;
+    }
+
+    try {
+      setImportLoading(true);
+      setImportResult(null);
+
+      const result = await importUsersFromCSV(importFile);
+
+      setImportResult(result);
+      setImportFile(null);
+
+      // Refresh user table after import
+      loadUsers();
+    } catch (error) {
+      console.error("Import users error:", error);
+      alert(error.response?.data?.message || "Failed to import users.");
+    } finally {
+      setImportLoading(false);
+    }
+  };
+
   return (
     <DashboardLayout sidebar={<Sidebar />} topbar={<Topbar />}>
       <PageHeader
@@ -275,6 +319,114 @@ export default function UserManagement() {
         subtitle="Manage teachers, HOD, HOS, admin, and printing users"
       />
 
+      {/* ============================================ */}
+      {/* CSV Import Section */}
+      {/* ============================================ */}
+      <Paper
+        sx={{
+          p: 3,
+          mb: 3,
+          borderRadius: 4,
+          boxShadow: "0 8px 25px rgba(0,0,0,0.08)",
+        }}
+      >
+        <Typography variant="h6" fontWeight={800} gutterBottom>
+          Import Users from CSV
+        </Typography>
+
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          CSV columns: FullName, EmployeeId, SchoolEmail, Role, Department, Subject
+        </Typography>
+
+        <Box
+          display="flex"
+          gap={2}
+          flexWrap="wrap"
+          sx={{ mb: 2 }}
+        >
+          <Button
+            variant="outlined"
+            onClick={downloadCSVUserTemplate}
+            sx={{
+              borderRadius: 3,
+              textTransform: "none",
+              fontWeight: 700,
+            }}
+          >
+            Download CSV Template
+          </Button>
+
+          <Button
+            variant="outlined"
+            onClick={downloadExcelUserTemplate}
+            sx={{
+              borderRadius: 3,
+              textTransform: "none",
+              fontWeight: 700,
+            }}
+          >
+            Download Excel Template
+          </Button>
+        </Box>
+
+        <Box display="flex" gap={2} alignItems="center" flexWrap="wrap">
+          <Button
+            variant="outlined"
+            component="label"
+            startIcon={<UploadFile />}
+            sx={{
+              borderRadius: 3,
+              textTransform: "none",
+              fontWeight: 700,
+            }}
+          >
+            Select CSV File
+            <input
+              type="file"
+              hidden
+              accept=".csv"
+              onChange={(e) => setImportFile(e.target.files[0])}
+            />
+          </Button>
+
+          <Typography variant="body2">
+            {importFile ? importFile.name : "No file selected"}
+          </Typography>
+
+          <Button
+            variant="contained"
+            disabled={!importFile || importLoading}
+            onClick={handleImportUsers}
+            sx={{
+              bgcolor: "#2E8B3C",
+              borderRadius: 3,
+              textTransform: "none",
+              fontWeight: 700,
+              "&:hover": { bgcolor: "#246f30" },
+            }}
+          >
+            {importLoading ? "Importing..." : "Import Users"}
+          </Button>
+        </Box>
+
+        {importResult && (
+          <Alert severity="success" sx={{ mt: 2 }}>
+            Import completed. Total: {importResult.totalRows}, Inserted:{" "}
+            {importResult.inserted}, Skipped: {importResult.skipped}
+          </Alert>
+        )}
+
+        {importResult?.errors?.length > 0 && (
+          <Alert severity="warning" sx={{ mt: 2 }}>
+            Some rows were skipped. Please check duplicate users, invalid roles,
+            missing fields, or department names.
+          </Alert>
+        )}
+      </Paper>
+
+      {/* ============================================ */}
+      {/* User Table Section */}
+      {/* ============================================ */}
       <Paper
         sx={{
           p: 3,
@@ -416,102 +568,106 @@ export default function UserManagement() {
         </TableContainer>
       </Paper>
 
+      {/* ============================================ */}
+      {/* Add / Edit User Dialog */}
+      {/* ============================================ */}
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="lg" fullWidth>
         <DialogTitle>
           {editingUser ? "Edit User" : "Add New User"}
         </DialogTitle>
 
         <DialogContent>
-  <Box
-    sx={{
-      display: "grid",
-      gridTemplateColumns: {
-        xs: "1fr",
-        md: "1fr 1fr",
-      },
-      gap: 3,
-      mt: 2,
-    }}
-  >
-    <TextField
-      fullWidth
-      label="Full Name"
-      value={form.fullName}
-      onChange={(e) =>
-        setForm({ ...form, fullName: e.target.value })
-      }
-    />
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                md: "1fr 1fr",
+              },
+              gap: 3,
+              mt: 2,
+            }}
+          >
+            <TextField
+              fullWidth
+              label="Full Name"
+              value={form.fullName}
+              onChange={(e) =>
+                setForm({ ...form, fullName: e.target.value })
+              }
+            />
 
-    <TextField
-      fullWidth
-      label="Employee ID"
-      value={form.employeeId}
-      disabled={!!editingUser}
-      onChange={(e) =>
-        setForm({ ...form, employeeId: e.target.value })
-      }
-    />
+            <TextField
+              fullWidth
+              label="Employee ID"
+              value={form.employeeId}
+              disabled={!!editingUser}
+              onChange={(e) =>
+                setForm({ ...form, employeeId: e.target.value })
+              }
+            />
 
-    <TextField
-      fullWidth
-      label="School Email"
-      value={form.schoolEmail}
-      onChange={(e) =>
-        setForm({ ...form, schoolEmail: e.target.value })
-      }
-    />
+            <TextField
+              fullWidth
+              label="School Email"
+              value={form.schoolEmail}
+              onChange={(e) =>
+                setForm({ ...form, schoolEmail: e.target.value })
+              }
+            />
 
-    <TextField
-      select
-      fullWidth
-      label="Role"
-      value={form.role}
-      onChange={(e) => handleRoleChange(e.target.value)}
-    >
-      {roles.map((role) => (
-        <MenuItem key={role} value={role}>
-          {role}
-        </MenuItem>
-      ))}
-    </TextField>
+            <TextField
+              select
+              fullWidth
+              label="Role"
+              value={form.role}
+              onChange={(e) => handleRoleChange(e.target.value)}
+            >
+              {roles.map((role) => (
+                <MenuItem key={role} value={role}>
+                  {role}
+                </MenuItem>
+              ))}
+            </TextField>
 
-    {showDepartment && (
-      <TextField
-        select
-        fullWidth
-        label="Department"
-        value={form.departmentId}
-        onChange={(e) =>
-          setForm({ ...form, departmentId: e.target.value })
-        }
-      >
-        {departments.map((dept) => (
-          <MenuItem key={dept.DepartmentId} value={dept.DepartmentId}>
-            {dept.DepartmentName}
-          </MenuItem>
-        ))}
-      </TextField>
-    )}
+            {showDepartment && (
+              <TextField
+                select
+                fullWidth
+                label="Department"
+                value={form.departmentId}
+                onChange={(e) =>
+                  setForm({ ...form, departmentId: e.target.value })
+                }
+              >
+                {departments.map((dept) => (
+                  <MenuItem key={dept.DepartmentId} value={dept.DepartmentId}>
+                    {dept.DepartmentName}
+                  </MenuItem>
+                ))}
+              </TextField>
+            )}
 
-    {showSubject && (
-      <TextField
-        select
-        fullWidth
-        label="Subject"
-        value={form.subject}
-        onChange={(e) =>
-          setForm({ ...form, subject: e.target.value })
-        }
-      >
-        {subjects.map((subject) => (
-          <MenuItem key={subject.SubjectId} value={subject.SubjectName}>
-            {subject.SubjectName}
-          </MenuItem>
-        ))}
-      </TextField>
-    )}
-  </Box>
-</DialogContent>
+            {showSubject && (
+              <TextField
+                select
+                fullWidth
+                label="Subject"
+                value={form.subject}
+                onChange={(e) =>
+                  setForm({ ...form, subject: e.target.value })
+                }
+              >
+                {subjects.map((subject) => (
+                  <MenuItem key={subject.SubjectId} value={subject.SubjectName}>
+                    {subject.SubjectName}
+                  </MenuItem>
+                ))}
+              </TextField>
+            )}
+          </Box>
+        </DialogContent>
+
         <DialogActions sx={{ p: 3 }}>
           <Button onClick={() => setOpen(false)}>Cancel</Button>
 

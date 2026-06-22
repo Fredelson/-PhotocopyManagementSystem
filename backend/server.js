@@ -32,6 +32,7 @@ const printingRoutes = require("./routes/printingRoutes");
 const paperStockRoutes = require("./routes/paperStockRoutes");
 const purchaseRoutes = require("./routes/purchaseRoutes");
 const masterRoutes = require("./routes/masterRoutes");
+const userImportRoutes = require("./routes/userImportRoutes");
 
 
 // Print Limit routes
@@ -93,6 +94,7 @@ app.use("/api/requests", requestRoutes);
 app.use("/api/hod", hodRoutes);
 app.use("/api/hos", hosRoutes);
 app.use("/api/lookups", lookupRoutes);
+app.use("/api/admin", userImportRoutes);
 
 // User Management API route
 app.use("/api/users", userRoutes);
@@ -103,6 +105,7 @@ app.use("/api/teacher/dashboard", teacherDashboardRoutes);
 // Printing Admin API route
 app.use("/api/printing", printingRoutes);
 app.use("/api/distributions", distributionRoutes);
+app.use("/api/admin", userImportRoutes);
 
 // Print Limit API route
 app.use("/api/limits", limitRoutes);
@@ -114,6 +117,8 @@ app.use("/api/uploads", uploadRoutes);
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.use("/api/master", masterRoutes);
+
+
 
 // ============================================
 // Start Server
