@@ -53,7 +53,11 @@ export default function App() {
       <Route
         path="/teacher/dashboard"
         element={
-          <ProtectedRoute allowedRoles={["Teacher", "SuperAdmin"]}>
+          <ProtectedRoute allowedRoles={[
+            "Teacher",
+            "TeachingAssistant",
+            "SuperAdmin",
+          ]}>
             <TeacherDashboard />
           </ProtectedRoute>
         }
@@ -62,7 +66,11 @@ export default function App() {
       <Route
         path="/teacher/profile"
         element={
-          <ProtectedRoute allowedRoles={["Teacher", "SuperAdmin"]}>
+          <ProtectedRoute allowedRoles={[
+  "Teacher",
+  "TeachingAssistant",
+  "SuperAdmin",
+]}>
             <Profile />
           </ProtectedRoute>
         }
@@ -71,7 +79,11 @@ export default function App() {
       <Route
         path="/teacher/my-requests"
         element={
-          <ProtectedRoute allowedRoles={["Teacher", "SuperAdmin"]}>
+          <ProtectedRoute allowedRoles={[
+  "Teacher",
+  "TeachingAssistant",
+  "SuperAdmin",
+]}>
             <MyRequests />
           </ProtectedRoute>
         }
@@ -80,7 +92,11 @@ export default function App() {
       <Route
         path="/teacher/create-request"
         element={
-          <ProtectedRoute allowedRoles={["Teacher", "SuperAdmin"]}>
+          <ProtectedRoute allowedRoles={[
+  "Teacher",
+  "TeachingAssistant",
+  "SuperAdmin",
+]}>
             <CreateRequest />
           </ProtectedRoute>
         }
@@ -89,7 +105,11 @@ export default function App() {
       <Route
         path="/teacher/attachments"
         element={
-          <ProtectedRoute allowedRoles={["Teacher", "SuperAdmin"]}>
+          <ProtectedRoute allowedRoles={[
+  "Teacher",
+  "TeachingAssistant",
+  "SuperAdmin",
+]}>
             <Attachments />
           </ProtectedRoute>
         }
@@ -107,7 +127,11 @@ export default function App() {
       <Route
         path="/teacher/reports"
         element={
-          <ProtectedRoute allowedRoles={["Teacher", "SuperAdmin"]}>
+          <ProtectedRoute allowedRoles={[
+  "Teacher",
+  "TeachingAssistant",
+  "SuperAdmin",
+]}>
             <TeacherReports />
           </ProtectedRoute>
         }
@@ -116,7 +140,11 @@ export default function App() {
       <Route
         path="/teacher/request-details/:id"
         element={
-          <ProtectedRoute allowedRoles={["Teacher", "SuperAdmin"]}>
+          <ProtectedRoute allowedRoles={[
+  "Teacher",
+  "TeachingAssistant",
+  "SuperAdmin",
+]}>
             <RequestDetails />
           </ProtectedRoute>
         }
@@ -140,7 +168,11 @@ export default function App() {
       <Route
         path="/hos/subject-allocation"
         element={
-          <ProtectedRoute allowedRoles={["HOS", "SuperAdmin"]}>
+          <ProtectedRoute allowedRoles={[
+  "HOS",
+  "Secretary",
+  "SuperAdmin",
+]}>
             <SubjectAllocationPage />
           </ProtectedRoute>
         }
@@ -240,7 +272,11 @@ export default function App() {
       <Route
         path="/hos/dashboard"
         element={
-          <ProtectedRoute allowedRoles={["HOS", "SuperAdmin"]}>
+          <ProtectedRoute allowedRoles={[
+  "HOS",
+  "Secretary",
+  "SuperAdmin",
+]}>
             <HosDashboard />
           </ProtectedRoute>
         }
@@ -249,7 +285,11 @@ export default function App() {
       <Route
         path="/hos/profile"
         element={
-          <ProtectedRoute allowedRoles={["HOS", "SuperAdmin"]}>
+          <ProtectedRoute allowedRoles={[
+  "HOS",
+  "Secretary",
+  "SuperAdmin",
+]}>
             <Profile />
           </ProtectedRoute>
         }

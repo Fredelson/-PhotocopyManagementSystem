@@ -6,11 +6,10 @@
 
 const { poolPromise, sql } = require("../config/db");
 
-/**
- * @desc    Get active departments
- * @route   GET /api/lookups/departments
- * @access  Private
- */
+// ============================================
+// Get active departments
+// GET /api/lookups/departments
+// ============================================
 const getDepartments = async (req, res) => {
   try {
     const pool = await poolPromise;
@@ -35,11 +34,10 @@ const getDepartments = async (req, res) => {
   }
 };
 
-/**
- * @desc    Get active subjects
- * @route   GET /api/lookups/subjects
- * @access  Private
- */
+// ============================================
+// Get active subjects
+// GET /api/lookups/subjects
+// ============================================
 const getSubjects = async (req, res) => {
   try {
     const pool = await poolPromise;
@@ -64,11 +62,10 @@ const getSubjects = async (req, res) => {
   }
 };
 
-/**
- * @desc    Get active purposes
- * @route   GET /api/lookups/purposes
- * @access  Private
- */
+// ============================================
+// Get active purposes
+// GET /api/lookups/purposes
+// ============================================
 const getPurposes = async (req, res) => {
   try {
     const pool = await poolPromise;
@@ -93,11 +90,75 @@ const getPurposes = async (req, res) => {
   }
 };
 
-/**
- * @desc    Get active HOD users by department
- * @route   GET /api/lookups/hods?departmentId=2
- * @access  Private
- */
+// ============================================
+// Get active roles
+// GET /api/lookups/roles
+// Used by User Management role dropdown
+// ============================================
+const getRoles = async (req, res) => {
+  try {
+    const pool = await poolPromise;
+
+    const result = await pool.request().query(`
+      SELECT
+        r.RoleId,
+        r.RoleName,
+        r.DisplayName,
+        a.AccessLevelName
+      FROM Roles r
+      INNER JOIN AccessLevels a
+        ON r.AccessLevelId = a.AccessLevelId
+      WHERE r.IsActive = 1
+        AND a.IsActive = 1
+      ORDER BY r.DisplayName ASC
+    `);
+
+    return res.status(200).json(result.recordset);
+  } catch (error) {
+    console.error("Get Roles Error:", error);
+
+    return res.status(500).json({
+      message: "Server error while fetching roles",
+      error: error.message,
+    });
+  }
+};
+
+// ============================================
+// Get active access levels
+// GET /api/lookups/access-levels
+// Used by Role Management form
+// ============================================
+const getAccessLevels = async (req, res) => {
+  try {
+    const pool = await poolPromise;
+
+    const result = await pool.request().query(`
+      SELECT
+        AccessLevelId,
+        AccessLevelName,
+        DisplayName,
+        Description
+      FROM AccessLevels
+      WHERE IsActive = 1
+      ORDER BY DisplayName ASC
+    `);
+
+    return res.status(200).json(result.recordset);
+  } catch (error) {
+    console.error("Get Access Levels Error:", error);
+
+    return res.status(500).json({
+      message: "Server error while fetching access levels",
+      error: error.message,
+    });
+  }
+};
+
+// ============================================
+// Get active HOD users by department
+// GET /api/lookups/hods?departmentId=2
+// ============================================
 const getHods = async (req, res) => {
   try {
     const departmentId = Number(req.query.departmentId);
@@ -142,5 +203,7 @@ module.exports = {
   getDepartments,
   getSubjects,
   getPurposes,
+  getRoles,
+  getAccessLevels,
   getHods,
 };

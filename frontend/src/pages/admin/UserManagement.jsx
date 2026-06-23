@@ -57,6 +57,7 @@ import {
 import {
   getDepartments,
   getSubjects,
+  getRoles,
 } from "../../services/lookupService";
 
 const initialForm = {
@@ -68,19 +69,12 @@ const initialForm = {
   subject: "",
 };
 
-const roles = [
-  "Teacher",
-  "HOD",
-  "HOS",
-  "PrintingAdmin",
-  "Admin",
-  "SuperAdmin",
-];
 
 export default function UserManagement() {
   const [users, setUsers] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [subjects, setSubjects] = useState([]);
+  const [roles, setRoles] = useState([]);
 
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("All");
@@ -121,6 +115,7 @@ export default function UserManagement() {
     try {
       const deptData = await getDepartments();
       const subjectData = await getSubjects();
+      const roleData = await getRoles();
 
       setDepartments(
         deptData.departments ||
@@ -135,6 +130,9 @@ export default function UserManagement() {
           subjectData ||
           []
       );
+
+      setRoles(roleData || []);
+
     } catch (error) {
       console.error("Load lookup error:", error);
     }
@@ -167,7 +165,13 @@ export default function UserManagement() {
   // ============================================
   // Role-based Field Visibility
   // ============================================
-  const showDepartment = ["Teacher", "HOD", "HOS"].includes(form.role);
+    const showDepartment = [
+      "Teacher",
+      "TeachingAssistant",
+      "HOD",
+      "HOS",
+      "Secretary",
+    ].includes(form.role);
   const showSubject = ["HOD"].includes(form.role);
 
   // ============================================
@@ -461,8 +465,11 @@ export default function UserManagement() {
             >
               <MenuItem value="All">All Roles</MenuItem>
               {roles.map((role) => (
-                <MenuItem key={role} value={role}>
-                  {role}
+                <MenuItem
+                  key={role.RoleId}
+                  value={role.RoleName}
+                >
+                  {role.DisplayName}
                 </MenuItem>
               ))}
             </TextField>
@@ -624,8 +631,11 @@ export default function UserManagement() {
               onChange={(e) => handleRoleChange(e.target.value)}
             >
               {roles.map((role) => (
-                <MenuItem key={role} value={role}>
-                  {role}
+                <MenuItem
+                  key={role.RoleId}
+                  value={role.RoleName}
+                >
+                  {role.DisplayName}
                 </MenuItem>
               ))}
             </TextField>

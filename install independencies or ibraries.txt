@@ -5,3 +5,24 @@ npm install multer csv-parser
 npm install xlsx
 
 https://www.libreoffice.org/download/
+
+
+CREATE TABLE AccessLevels (
+    AccessLevelId INT IDENTITY(1,1) PRIMARY KEY,
+    AccessLevelName NVARCHAR(50) NOT NULL UNIQUE,
+    DisplayName NVARCHAR(100) NOT NULL,
+    Description NVARCHAR(255) NULL,
+    IsActive BIT NOT NULL DEFAULT 1,
+    CreatedAt DATETIME NOT NULL DEFAULT GETDATE()
+);
+
+INSERT INTO AccessLevels (AccessLevelName, DisplayName, Description)
+VALUES
+('TeacherLevel', 'Teacher Level', 'Can create and view own requests'),
+('HODLevel', 'HOD Level', 'Can approve department requests'),
+('HOSLevel', 'HOS Level', 'Can approve section requests'),
+('PrintingLevel', 'Printing Level', 'Can manage printing operations'),
+('AdminLevel', 'Admin Level', 'Can manage reports and administration'),
+('SuperAdminLevel', 'Super Admin Level', 'Full system access'),
+('RequestOnlyLevel', 'Request Only Level', 'Can submit requests only'),
+('ViewOnlyLevel', 'View Only Level', 'Can view information only');

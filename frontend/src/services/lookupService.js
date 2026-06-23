@@ -34,3 +34,23 @@ export const getPurposes = async () => {
   const response = await api.get("/lookups/purposes");
   return response.data;
 };
+
+// ============================================
+// Get Roles
+// GET /api/lookups/roles
+// ============================================
+
+export const getRoles = async () => {
+  const response = await api.get("/lookups/roles");
+  return response.data;
+};
+
+// ============================================
+// Get Access Levels
+// GET /api/lookups/access-levels
+// ============================================
+
+export const getAccessLevels = async () => {
+  const response = await api.get("/lookups/access-levels");
+  return response.data;
+};

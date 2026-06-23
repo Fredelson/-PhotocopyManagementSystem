@@ -1,99 +1,145 @@
 // ============================================
 // ARAB UNITY SCHOOL
-// Photocopy Request Routes
-// Handles request creation, retrieval,
-// teacher dashboard, attachments, and cancellation
+// HOS Routes
+//
+// HOS Level Access
+// HOS and Secretary share the same permissions
+//
+// Secretary = HOS Level
+// HOS = HOS Level
+// SuperAdmin = Full Access
 // ============================================
 
 const express = require("express");
-const router = express.Router();
 
 const {
-  createRequest,
-  getTeacherDashboard,
-  getMyRequests,
-  getRequestById,
-  getMyAttachments,
-  cancelMyRequest,
-} = require("../controllers/requestController");
+  getHosDashboard,
+  getHosRequests,
+  getHosRequestById,
+  getHosApprovalHistory,
+  approveHosRequest,
+  rejectHosRequest,
+} = require("../controllers/hosController");
 
-const { protect, authorizeRoles } = require("../middleware/authMiddleware");
+const {
+  protect,
+  authorizeRoles,
+} = require("../middleware/authMiddleware");
 
-/**
- * @desc    Get teacher dashboard stats
- * @route   GET /api/requests/dashboard
- * @access  Teacher / SuperAdmin
- */
+const router = express.Router();
+
+// ============================================
+// GET HOS Dashboard
+//
+// Access:
+// - HOS
+// - Secretary
+// - SuperAdmin
+// ============================================
 router.get(
   "/dashboard",
   protect,
-  authorizeRoles("Teacher", "SuperAdmin"),
-  getTeacherDashboard
+  authorizeRoles(
+    "HOS",
+    "Secretary",
+    "SuperAdmin"
+  ),
+  getHosDashboard
 );
 
-/**
- * @desc    Get logged-in teacher attachments
- * @route   GET /api/requests/attachments
- * @access  Teacher / HOD / SuperAdmin
- */
+// ============================================
+// GET HOS Approval History
+//
+// Access:
+// - HOS
+// - Secretary
+// - SuperAdmin
+// ============================================
 router.get(
-  "/attachments",
+  "/approval-history",
   protect,
-  authorizeRoles("Teacher", "HOD", "SuperAdmin"),
-  getMyAttachments
+  authorizeRoles(
+    "HOS",
+    "Secretary",
+    "SuperAdmin"
+  ),
+  getHosApprovalHistory
 );
 
-/**
- * @desc    Get logged-in user's own requests
- * @route   GET /api/requests/my-requests
- * @access  Teacher / HOD / SuperAdmin
- */
+// ============================================
+// GET HOS Requests Queue
+//
+// Access:
+// - HOS
+// - Secretary
+// - SuperAdmin
+// ============================================
 router.get(
-  "/my-requests",
+  "/requests",
   protect,
-  authorizeRoles("Teacher", "HOD", "SuperAdmin"),
-  getMyRequests
+  authorizeRoles(
+    "HOS",
+    "Secretary",
+    "SuperAdmin"
+  ),
+  getHosRequests
 );
 
-/**
- * @desc    Cancel teacher request before printing starts
- * @route   PUT /api/requests/:id/cancel
- * @access  Teacher
- *
- * IMPORTANT:
- * This route must be before GET /:id
- */
+// ============================================
+// GET Single Request Details
+//
+// Access:
+// - HOS
+// - Secretary
+// - SuperAdmin
+// ============================================
+router.get(
+  "/requests/:id",
+  protect,
+  authorizeRoles(
+    "HOS",
+    "Secretary",
+    "SuperAdmin"
+  ),
+  getHosRequestById
+);
+
+// ============================================
+// APPROVE Request
+//
+// Access:
+// - HOS
+// - Secretary
+// - SuperAdmin
+// ============================================
 router.put(
-  "/:id/cancel",
+  "/requests/:id/approve",
   protect,
-  authorizeRoles("Teacher"),
-  cancelMyRequest
+  authorizeRoles(
+    "HOS",
+    "Secretary",
+    "SuperAdmin"
+  ),
+  approveHosRequest
 );
 
-/**
- * @desc    Create new photocopy request
- * @route   POST /api/requests
- * @access  Teacher / HOD / SuperAdmin
- */
-router.post(
-  "/",
+// ============================================
+// REJECT Request
+//
+// Access:
+// - HOS
+// - Secretary
+// - SuperAdmin
+// ============================================
+router.put(
+  "/requests/:id/reject",
   protect,
-  authorizeRoles("Teacher", "HOD", "SuperAdmin"),
-  createRequest
-);
-
-/**
- * @desc    Get request details by ID
- * @route   GET /api/requests/:id
- * @access  Private
- *
- * IMPORTANT:
- * Keep this near the bottom because /:id can catch other routes
- */
-router.get(
-  "/:id",
-  protect,
-  getRequestById
+  authorizeRoles(
+    "HOS",
+    "Secretary",
+    "SuperAdmin"
+  ),
+  rejectHosRequest
 );
 
 module.exports = router;

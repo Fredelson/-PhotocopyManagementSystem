@@ -18,10 +18,16 @@ const { poolPromise, sql } = require("../config/db");
 // Allowed roles
 // Must match database role values exactly
 // ============================================
+// ============================================
+// Allowed roles
+// Must match database role values exactly
+// ============================================
 const allowedRoles = [
   "Teacher",
+  "TeachingAssistant",
   "HOD",
   "HOS",
+  "Secretary",
   "PrintingAdmin",
   "Admin",
   "SuperAdmin",
