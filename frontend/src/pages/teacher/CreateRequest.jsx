@@ -919,6 +919,7 @@ export default function CreateRequest() {
 // Visual only for now
 // ============================================
 
+
 function ModernStepper() {
   const steps = ["Request Information", "Documents", "Review & Submit"];
 
@@ -926,64 +927,76 @@ function ModernStepper() {
     <Card
       sx={{
         mb: 3,
-        borderRadius: 4,
-        boxShadow: "0 8px 25px rgba(0,0,0,0.06)",
+        borderRadius: 5,
+        border: "1px solid #EAF0F7",
+        bgcolor: "rgba(255,255,255,0.92)",
+        boxShadow: "0 18px 45px rgba(15, 23, 42, 0.06)",
+        overflow: "hidden",
       }}
     >
-      <CardContent>
+      <CardContent sx={{ py: 2.4, px: { xs: 2, md: 4 } }}>
         <Box
           sx={{
             display: "grid",
             gridTemplateColumns: "repeat(3, 1fr)",
-            alignItems: "center",
+            alignItems: "start",
           }}
         >
-          {steps.map((step, index) => (
-            <Box key={step} sx={{ position: "relative", textAlign: "center" }}>
-              {index < steps.length - 1 && (
+          {steps.map((step, index) => {
+            const active = index === 0;
+            const completedLine = index === 0;
+
+            return (
+              <Box key={step} sx={{ position: "relative", textAlign: "center" }}>
+                {index < steps.length - 1 && (
+                  <Box
+                    sx={{
+                      position: "absolute",
+                      top: 20,
+                      left: "50%",
+                      width: "100%",
+                      height: 4,
+                      borderRadius: 99,
+                      bgcolor: completedLine ? "#10B981" : "#E2E8F0",
+                      zIndex: 0,
+                    }}
+                  />
+                )}
+
                 <Box
                   sx={{
-                    position: "absolute",
-                    top: 18,
-                    left: "50%",
-                    width: "100%",
-                    height: 2,
-                    bgcolor: index === 0 ? "#0B8F4D" : "#CBD5E1",
-                    zIndex: 0,
+                    width: 44,
+                    height: 44,
+                    borderRadius: "50%",
+                    mx: "auto",
+                    bgcolor: active ? "linear-gradient(135deg, #16A34A, #059669)" : "#F8FAFC",
+                    border: `2px solid ${active ? "#16A34A" : "#CBD5E1"}`,
+                    color: active ? "#FFFFFF" : "#0F172A",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontWeight: 900,
+                    boxShadow: active
+                      ? "0 14px 30px rgba(22, 163, 74, 0.28)"
+                      : "0 8px 20px rgba(15, 23, 42, 0.06)",
+                    position: "relative",
+                    zIndex: 1,
                   }}
-                />
-              )}
+                >
+                  {index + 1}
+                </Box>
 
-              <Box
-                sx={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: "50%",
-                  mx: "auto",
-                  bgcolor: index === 0 ? "#0B8F4D" : "#FFFFFF",
-                  border: `2px solid ${index === 0 ? "#0B8F4D" : "#CBD5E1"}`,
-                  color: index === 0 ? "#FFFFFF" : "#334155",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontWeight: 900,
-                  position: "relative",
-                  zIndex: 1,
-                }}
-              >
-                {index + 1}
+                <Typography
+                  mt={1.2}
+                  fontSize={{ xs: 11, sm: 13 }}
+                  fontWeight={900}
+                  color={active ? "#059669" : "#334155"}
+                >
+                  {step}
+                </Typography>
               </Box>
-
-              <Typography
-                mt={1.2}
-                fontSize={14}
-                fontWeight={800}
-                color={index === 0 ? "#0B8F4D" : "#334155"}
-              >
-                {step}
-              </Typography>
-            </Box>
-          ))}
+            );
+          })}
         </Box>
       </CardContent>
     </Card>
@@ -1186,6 +1199,7 @@ const [draggingId, setDraggingId] = useState(null);
               border: "1px solid #E2E8F0",
               borderRadius: 4,
               bgcolor: "#F8FAFC",
+              boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.6)",
             }}
           >
             {/* Document Header */}
@@ -1769,21 +1783,23 @@ function UploadedFilesTable({ doc, removeFileFromDocument }) {
 // Document Totals Bar
 // ============================================
 
+
 function DocumentTotalsBar({ doc, docTotals }) {
   return (
     <Box
       sx={{
         mt: 2.5,
         p: 2,
-        borderRadius: 3,
+        borderRadius: 3.5,
         bgcolor: "#FFFFFF",
-        border: "1px solid #D1FAE5",
+        border: "1px solid #BFDBFE",
         display: "grid",
         gridTemplateColumns: {
           xs: "1fr",
-          md: "repeat(4, 1fr)",
+          md: "1fr 1fr 1fr 1.15fr",
         },
         gap: 2,
+        boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.6)",
       }}
     >
       <TotalMetric
@@ -1801,21 +1817,24 @@ function DocumentTotalsBar({ doc, docTotals }) {
       <TotalMetric
         icon={<ContentCopyIcon />}
         label="Copies"
-        value={`${Number(doc.copies) || 1} copies`}
+        value={`${Number(doc.copies) || 1} ${Number(doc.copies) === 1 ? "copy" : "copies"}`}
       />
 
       <Box
         sx={{
+          p: 1.5,
+          borderRadius: 3,
+          bgcolor: "#EEF4FF",
           textAlign: {
             xs: "left",
             md: "right",
           },
         }}
       >
-        <Typography color="#0B8F4D" fontWeight={900} fontSize={13}>
+        <Typography color="#06153A" fontWeight={950} fontSize={13}>
           TOTAL SHEETS USED
         </Typography>
-        <Typography color="#0B8F4D" fontWeight={900} fontSize={24}>
+        <Typography color="#06153A" fontWeight={950} fontSize={24}>
           {docTotals.totalSheets} sheets
         </Typography>
       </Box>
@@ -1827,6 +1846,7 @@ function DocumentTotalsBar({ doc, docTotals }) {
 // Upload Type Selector
 // ============================================
 
+
 function UploadTypeButton({ active, icon, title, subtitle, onClick, disabled = false }) {
   return (
     <Box
@@ -1835,21 +1855,42 @@ function UploadTypeButton({ active, icon, title, subtitle, onClick, disabled = f
         p: 2,
         borderRadius: 3,
         cursor: disabled ? "not-allowed" : "pointer",
-        border: `1.5px solid ${active ? "#0B8F4D" : "#E2E8F0"}`,
-        bgcolor: active ? "#EAF7EE" : "#FFFFFF",
+        border: `2px solid ${active ? "#22C55E" : "#D9E3F0"}`,
+        bgcolor: active ? "#F0FDF4" : "#FFFFFF",
         display: "flex",
-        gap: 1.5,
+        gap: 1.6,
         alignItems: "center",
-        opacity: disabled ? 0.5 : 1,
+        opacity: disabled ? 0.55 : 1,
+        boxShadow: active
+          ? "0 14px 28px rgba(22, 163, 74, 0.12)"
+          : "0 8px 18px rgba(15, 23, 42, 0.04)",
+        transition: "all 0.2s ease",
+        "&:hover": {
+          transform: disabled ? "none" : "translateY(-2px)",
+          borderColor: disabled ? undefined : "#22C55E",
+        },
       }}
     >
-      <Box sx={{ color: active ? "#0B8F4D" : "#64748B" }}>{icon}</Box>
+      <Box
+        sx={{
+          width: 42,
+          height: 42,
+          borderRadius: 2.5,
+          bgcolor: active ? "#DCFCE7" : "#EEF4FF",
+          color: active ? "#059669" : "#2563EB",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {icon}
+      </Box>
 
       <Box>
-        <Typography fontWeight={900} color={active ? "#0B8F4D" : "#0F172A"}>
+        <Typography fontWeight={950} color="#06153A">
           {title}
         </Typography>
-        <Typography fontSize={12} color="text.secondary">
+        <Typography fontSize={12.5} color="#475569" fontWeight={700}>
           {subtitle}
         </Typography>
       </Box>
@@ -1912,45 +1953,84 @@ function RequestSummaryCard({
 // Approval Route Card
 // ============================================
 
+
 function ApprovalRouteCard({ approvalFlow }) {
   return (
     <ModernCard icon={<RouteIcon />} title="Approval Route">
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-        {approvalFlow.map((step, index) => (
-          <Box key={step} sx={{ display: "flex", gap: 1.5, alignItems: "center" }}>
-            <Box
-              sx={{
-                width: 36,
-                height: 36,
-                borderRadius: "50%",
-                bgcolor:
-                  step === "HOD"
-                    ? "#F97316"
-                    : step === "HOS"
-                    ? "#2563EB"
-                    : step === "Printing Admin"
-                    ? "#15803D"
-                    : "#E2E8F0",
-                color: "#FFFFFF",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontWeight: 900,
-              }}
-            >
-              {index + 1}
-            </Box>
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 2.2 }}>
+        {approvalFlow.map((step, index) => {
+          const isHod = step === "HOD";
+          const isHos = step === "HOS";
+          const isPrinting = step === "Printing Admin";
 
-            <Box>
-              <Typography fontWeight={900}>{step}</Typography>
-              <Typography fontSize={13} color="text.secondary">
-                {step === "Printing Admin"
-                  ? "Final printing and processing"
-                  : "Approval review required"}
-              </Typography>
+          return (
+            <Box key={step} sx={{ display: "flex", gap: 1.6, alignItems: "center" }}>
+              <Box sx={{ position: "relative" }}>
+                {index < approvalFlow.length - 1 && (
+                  <Box
+                    sx={{
+                      position: "absolute",
+                      top: 36,
+                      left: 17,
+                      width: 3,
+                      height: 22,
+                      bgcolor: "#D8E2F0",
+                      borderRadius: 99,
+                    }}
+                  />
+                )}
+                <Box
+                  sx={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: "50%",
+                    bgcolor: isHod
+                      ? "#F97316"
+                      : isHos
+                      ? "#2563EB"
+                      : isPrinting
+                      ? "#059669"
+                      : "#3B82F6",
+                    color: "#FFFFFF",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontWeight: 950,
+                    boxShadow: "0 10px 22px rgba(15, 23, 42, 0.14)",
+                  }}
+                >
+                  {index + 1}
+                </Box>
+              </Box>
+
+              <Box
+                sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: "50%",
+                  bgcolor: isHod ? "#FFEDD5" : isPrinting ? "#DCFCE7" : "#DBEAFE",
+                  color: isHod ? "#EA580C" : isPrinting ? "#059669" : "#2563EB",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {isPrinting ? <UploadFileIcon /> : <DescriptionIcon />}
+              </Box>
+
+              <Box>
+                <Typography fontWeight={950} color="#06153A">
+                  {step}
+                </Typography>
+                <Typography fontSize={13} color="#475569" fontWeight={600}>
+                  {step === "Printing Admin"
+                    ? "Final printing and processing"
+                    : "Approval review required"}
+                </Typography>
+              </Box>
             </Box>
-          </Box>
-        ))}
+          );
+        })}
       </Box>
     </ModernCard>
   );
@@ -1960,9 +2040,10 @@ function ApprovalRouteCard({ approvalFlow }) {
 // Actions Card
 // ============================================
 
+
 function ActionsCard({ submitting, handleSubmitRequest }) {
   return (
-    <ModernCard title="Actions">
+    <ModernCard icon={<InfoIcon />} title="Actions">
       <Button
         fullWidth
         variant="outlined"
@@ -1971,9 +2052,11 @@ function ActionsCard({ submitting, handleSubmitRequest }) {
         sx={{
           mb: 2,
           borderRadius: 3,
-          py: 1.2,
+          py: 1.25,
           textTransform: "none",
-          fontWeight: 800,
+          fontWeight: 900,
+          borderColor: "#93C5FD",
+          color: "#2563EB",
         }}
       >
         Save as Draft
@@ -1987,12 +2070,13 @@ function ActionsCard({ submitting, handleSubmitRequest }) {
         disabled={submitting}
         sx={{
           borderRadius: 3,
-          py: 1.2,
-          bgcolor: "#0B8F4D",
+          py: 1.35,
+          background: "linear-gradient(135deg, #10B981 0%, #2563EB 100%)",
           textTransform: "none",
-          fontWeight: 900,
+          fontWeight: 950,
+          boxShadow: "0 16px 30px rgba(16, 185, 129, 0.25)",
           "&:hover": {
-            bgcolor: "#087A41",
+            background: "linear-gradient(135deg, #059669 0%, #1D4ED8 100%)",
           },
         }}
       >
@@ -2004,11 +2088,12 @@ function ActionsCard({ submitting, handleSubmitRequest }) {
           mt: 2,
           p: 2,
           borderRadius: 3,
-          bgcolor: "#EAF7EE",
+          bgcolor: "#ECFDF5",
           color: "#166534",
+          border: "1px solid #BBF7D0",
         }}
       >
-        <Typography fontSize={13}>
+        <Typography fontSize={13} fontWeight={700}>
           Your request will be saved securely and can be tracked in My Requests.
         </Typography>
       </Box>
@@ -2020,37 +2105,74 @@ function ActionsCard({ submitting, handleSubmitRequest }) {
 // Reusable Modern Card
 // ============================================
 
+
 function ModernCard({ icon, title, subtitle, action, children }) {
   return (
     <Card
       sx={{
         mb: 3,
-        borderRadius: 4,
-        boxShadow: "0 8px 25px rgba(0,0,0,0.06)",
+        borderRadius: 5,
+        border: "1px solid #EAF0F7",
+        bgcolor: "rgba(255,255,255,0.96)",
+        boxShadow: "0 20px 50px rgba(15, 23, 42, 0.07)",
+        overflow: "hidden",
       }}
     >
-      <CardContent sx={{ p: 3 }}>
+      <CardContent
+        sx={{
+          p: { xs: 2.2, md: 3 },
+          "& .MuiOutlinedInput-root": {
+            borderRadius: 3,
+            bgcolor: "#FFFFFF",
+            minHeight: 54,
+            transition: "all 0.2s ease",
+            "& fieldset": {
+              borderColor: "#CBD7E6",
+            },
+            "&:hover fieldset": {
+              borderColor: "#60A5FA",
+            },
+            "&.Mui-focused fieldset": {
+              borderColor: "#0B8F4D",
+              borderWidth: 2,
+            },
+          },
+          "& .MuiInputLabel-root": {
+            fontWeight: 800,
+            color: "#475569",
+          },
+          "& .MuiInputBase-input": {
+            fontWeight: 800,
+            color: "#0F172A",
+          },
+        }}
+      >
         <Box
           sx={{
             display: "flex",
             justifyContent: "space-between",
             gap: 2,
             alignItems: "flex-start",
-            mb: 2.5,
+            mb: 2.8,
           }}
         >
           <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
             {icon && (
               <Box
                 sx={{
-                  width: 46,
-                  height: 46,
-                  borderRadius: 3,
-                  bgcolor: "#EAF7EE",
-                  color: "#0B8F4D",
+                  width: 58,
+                  height: 58,
+                  borderRadius: "50%",
+                  background:
+                    "radial-gradient(circle at 30% 25%, #DCFCE7 0%, #22C55E 45%, #059669 100%)",
+                  color: "#FFFFFF",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
+                  boxShadow: "0 18px 35px rgba(22, 163, 74, 0.28)",
+                  "& svg": {
+                    fontSize: 28,
+                  },
                 }}
               >
                 {icon}
@@ -2058,12 +2180,12 @@ function ModernCard({ icon, title, subtitle, action, children }) {
             )}
 
             <Box>
-              <Typography variant="h6" fontWeight={900}>
+              <Typography variant="h5" fontWeight={950} color="#06153A">
                 {title}
               </Typography>
 
               {subtitle && (
-                <Typography color="text.secondary" fontSize={14}>
+                <Typography color="#475569" fontSize={15} fontWeight={600}>
                   {subtitle}
                 </Typography>
               )}

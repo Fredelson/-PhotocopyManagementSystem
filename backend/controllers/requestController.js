@@ -584,19 +584,23 @@ const cancelMyRequest = async (req, res) => {
   }
 };
 
-/**
- * @desc    Get logged-in teacher's uploaded attachments
- * @route   GET /api/requests/attachments
- * @access  Private - Teacher
- */
+// ============================================
+// Get logged-in user's uploaded attachments
+// Used by modern Attachments page
+// GET /api/requests/attachments
+// ============================================
+
 const getMyAttachments = async (req, res) => {
   try {
-    const teacherId = req.user.id;
+    const userId = req.user.id;
+    const userRole = req.user.role || req.user.Role;
+
     const pool = await poolPromise;
 
     const result = await pool
       .request()
-      .input("teacherId", sql.Int, teacherId)
+      .input("userId", sql.Int, userId)
+      .input("userRole", sql.NVarChar, userRole)
       .query(`
         SELECT
           a.AttachmentId,
@@ -607,15 +611,40 @@ const getMyAttachments = async (req, res) => {
           a.FileSizeKB,
           a.PageCount,
           a.UploadedAt,
+
           r.RequestNumber,
           r.Status,
-          p.PurposeName
+          r.TotalPages,
+          r.TotalSheets,
+          r.Copies,
+          r.PriorityLevel,
+          r.SubmittedAt,
+
+          p.PurposeName,
+          s.SubjectName,
+          d.DepartmentName,
+
+          u.FullName AS TeacherName,
+          u.EmployeeId
+
         FROM RequestAttachments a
         INNER JOIN PhotocopyRequests r
           ON a.RequestId = r.RequestId
         LEFT JOIN Purposes p
           ON r.PurposeId = p.PurposeId
-        WHERE r.TeacherId = @teacherId
+        LEFT JOIN Subjects s
+          ON r.SubjectId = s.SubjectId
+        LEFT JOIN Departments d
+          ON r.DepartmentId = d.DepartmentId
+        LEFT JOIN Users u
+          ON r.TeacherId = u.UserId
+
+        WHERE
+          (
+            @userRole = 'SuperAdmin'
+            OR r.TeacherId = @userId
+          )
+
         ORDER BY a.UploadedAt DESC
       `);
 

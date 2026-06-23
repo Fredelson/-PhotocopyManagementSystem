@@ -1,18 +1,19 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // Teacher - My Requests Page
-// Modern Card + Workflow Timeline UI
+// Modern Card + Dynamic Workflow Timeline UI
 // Connected to Backend API
 //
-// Features:
-// - Keeps current Sidebar and Topbar
-// - Shows latest active requests first
-// - Shows maximum 10 requests per page
-// - Includes pagination
-// - Includes search and status filtering
-// - Allows teacher to cancel before printing starts
-// - Cancelled requests are hidden from My Requests
-// - Cancelled request attachments remain saved for history/reuse
+// IMPORTANT WORKFLOW RULE:
+//
+// If TotalSheets <= 500:
+// Teacher → HOD Review → Printing
+//
+// If TotalSheets > 500:
+// Teacher → HOD Review → HOS Approval → Printing
+//
+// This means HOS Approval is hidden automatically
+// for requests that do not need HOS approval.
 // ============================================
 
 import { useEffect, useMemo, useState } from "react";
@@ -33,6 +34,10 @@ import {
   CircularProgress,
   Pagination,
 } from "@mui/material";
+
+// ============================================
+// Material UI Icons
+// ============================================
 
 import SearchIcon from "@mui/icons-material/Search";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -72,7 +77,7 @@ export default function MyRequests() {
 
   // ============================================
   // Fetch active teacher requests
-  // GET /api/requests/my-requests
+  // Backend route: GET /api/requests/my-requests
   // ============================================
 
   const fetchRequests = async () => {
@@ -97,7 +102,7 @@ export default function MyRequests() {
 
   // ============================================
   // Cancel request
-  // Backend keeps the request + attachments.
+  // Backend keeps the request and attachments.
   // Frontend removes it from My Requests immediately.
   // ============================================
 
@@ -121,8 +126,6 @@ export default function MyRequests() {
         }
       );
 
-      // Remove cancelled request from My Requests list.
-      // The database record and uploaded attachments remain saved.
       setRequests((prev) =>
         prev.filter((request) => request.RequestId !== requestId)
       );
@@ -130,7 +133,6 @@ export default function MyRequests() {
       alert("Request cancelled successfully.");
     } catch (err) {
       console.error("Cancel Request Error:", err);
-
       alert(err.response?.data?.message || "Unable to cancel request.");
     }
   };
@@ -141,6 +143,7 @@ export default function MyRequests() {
     }
   }, [token]);
 
+  // Reset pagination when search or filter changes
   useEffect(() => {
     setPage(1);
   }, [searchText, statusFilter]);
@@ -148,7 +151,6 @@ export default function MyRequests() {
   // ============================================
   // Filter requests
   // Cancelled requests are hidden from My Requests.
-  // Later they can be shown in Teacher History.
   // ============================================
 
   const filteredRequests = useMemo(() => {
@@ -173,12 +175,14 @@ export default function MyRequests() {
     });
   }, [requests, searchText, statusFilter]);
 
+  // Latest requests first
   const sortedRequests = useMemo(() => {
     return [...filteredRequests].sort((a, b) => {
       return new Date(b.SubmittedAt || 0) - new Date(a.SubmittedAt || 0);
     });
   }, [filteredRequests]);
 
+  // Pagination
   const totalPages = Math.ceil(sortedRequests.length / requestsPerPage);
 
   const paginatedRequests = sortedRequests.slice(
@@ -218,7 +222,10 @@ export default function MyRequests() {
         />
       }
     >
+      {/* ============================================ */}
       {/* Page Header */}
+      {/* ============================================ */}
+
       <Box
         sx={{
           display: "flex",
@@ -254,13 +261,17 @@ export default function MyRequests() {
         </Button>
       </Box>
 
+      {/* Error Message */}
       {error && (
         <Alert severity="error" sx={{ mb: 3, borderRadius: 3 }}>
           {error}
         </Alert>
       )}
 
+      {/* ============================================ */}
       {/* Summary Cards */}
+      {/* ============================================ */}
+
       <Box
         sx={{
           display: "grid",
@@ -300,7 +311,10 @@ export default function MyRequests() {
         />
       </Box>
 
+      {/* ============================================ */}
       {/* Search and Filter */}
+      {/* ============================================ */}
+
       <Card
         sx={{
           borderRadius: 4,
@@ -361,7 +375,10 @@ export default function MyRequests() {
         </CardContent>
       </Card>
 
+      {/* ============================================ */}
       {/* Loading State */}
+      {/* ============================================ */}
+
       {loading && (
         <Box sx={{ textAlign: "center", py: 6 }}>
           <CircularProgress />
@@ -369,7 +386,10 @@ export default function MyRequests() {
         </Box>
       )}
 
+      {/* ============================================ */}
       {/* Empty State */}
+      {/* ============================================ */}
+
       {!loading && sortedRequests.length === 0 && (
         <Card sx={{ borderRadius: 4, p: 4, textAlign: "center" }}>
           <Typography fontWeight={700}>No active requests found.</Typography>
@@ -379,7 +399,10 @@ export default function MyRequests() {
         </Card>
       )}
 
+      {/* ============================================ */}
       {/* Request Cards */}
+      {/* ============================================ */}
+
       {!loading && paginatedRequests.length > 0 && (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
           {paginatedRequests.map((request) => (
@@ -393,6 +416,7 @@ export default function MyRequests() {
             />
           ))}
 
+          {/* Pagination Footer */}
           <Box
             sx={{
               display: "flex",
@@ -426,7 +450,7 @@ export default function MyRequests() {
 }
 
 // ============================================
-// Summary Card
+// Summary Card Component
 // ============================================
 
 function SummaryCard({ title, value, subtitle, icon, color, bg }) {
@@ -465,13 +489,14 @@ function SummaryCard({ title, value, subtitle, icon, color, bg }) {
 }
 
 // ============================================
-// Request Card
+// Request Card Component
 // ============================================
 
 function RequestCard({ request, onView, onCancel }) {
   const status = request.Status || "Pending";
   const statusStyle = getStatusStyle(status);
 
+  // Teacher can cancel only before printing starts/completed/rejected
   const canCancel = [
     "Pending",
     "Approved by HOD",
@@ -495,7 +520,7 @@ function RequestCard({ request, onView, onCancel }) {
             alignItems: "center",
           }}
         >
-          {/* Left Info */}
+          {/* Left Request Info */}
           <Box sx={{ display: "flex", gap: 2 }}>
             <Box
               sx={{
@@ -527,7 +552,14 @@ function RequestCard({ request, onView, onCancel }) {
                 Sheets
               </Typography>
 
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 0.5 }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
+                  mt: 0.5,
+                }}
+              >
                 <CalendarMonthIcon sx={{ fontSize: 16, color: "#64748B" }} />
                 <Typography color="text.secondary" fontSize={13}>
                   Submitted:{" "}
@@ -539,9 +571,13 @@ function RequestCard({ request, onView, onCancel }) {
             </Box>
           </Box>
 
-          <WorkflowTimeline status={status} />
+          {/* Dynamic Workflow Timeline */}
+          <WorkflowTimeline
+            status={status}
+            totalSheets={request.TotalSheets}
+          />
 
-          {/* Actions */}
+          {/* Right Actions */}
           <Box
             sx={{
               display: "flex",
@@ -617,18 +653,33 @@ function RequestCard({ request, onView, onCancel }) {
 }
 
 // ============================================
-// Workflow Timeline
+// Dynamic Workflow Timeline Component
+//
+// This component receives:
+// - status
+// - totalSheets
+//
+// It decides whether to show:
+// 3 steps: Submitted → HOD Review → Printing
+// or
+// 4 steps: Submitted → HOD Review → HOS Approval → Printing
 // ============================================
 
-function WorkflowTimeline({ status }) {
-  const steps = getWorkflowSteps(status);
+function WorkflowTimeline({ status, totalSheets }) {
+  const steps = getWorkflowSteps(status, totalSheets);
 
   return (
     <Box>
       <Box
         sx={{
           display: "grid",
-          gridTemplateColumns: "repeat(4, 1fr)",
+
+          // Important:
+          // Uses dynamic column count.
+          // If HOS is hidden, it becomes 3 columns.
+          // If HOS is needed, it becomes 4 columns.
+          gridTemplateColumns: `repeat(${steps.length}, 1fr)`,
+
           alignItems: "start",
           gap: 1,
         }}
@@ -638,6 +689,7 @@ function WorkflowTimeline({ status }) {
             key={`${step.label}-${index}`}
             sx={{ position: "relative", textAlign: "center" }}
           >
+            {/* Connecting line between steps */}
             {index < steps.length - 1 && (
               <Box
                 sx={{
@@ -652,14 +704,20 @@ function WorkflowTimeline({ status }) {
               />
             )}
 
+            {/* Circle Indicator */}
             <Box
               sx={{
                 width: 28,
                 height: 28,
                 borderRadius: "50%",
-                bgcolor: step.active || step.done ? step.color : "#FFFFFF",
+                bgcolor:
+                  step.active || step.done || step.rejected
+                    ? step.color
+                    : "#FFFFFF",
                 border: `2px solid ${
-                  step.active || step.done ? step.color : "#CBD5E1"
+                  step.active || step.done || step.rejected
+                    ? step.color
+                    : "#CBD5E1"
                 }`,
                 color: "#FFFFFF",
                 mx: "auto",
@@ -675,18 +733,24 @@ function WorkflowTimeline({ status }) {
               {step.done ? "✓" : step.rejected ? "×" : ""}
             </Box>
 
+            {/* Step Label */}
             <Typography
               fontSize={13}
               fontWeight={700}
               mt={1}
-              color={step.active || step.done ? step.color : "#475569"}
+              color={
+                step.active || step.done || step.rejected
+                  ? step.color
+                  : "#475569"
+              }
             >
               {step.label}
             </Typography>
 
+            {/* Step Caption */}
             <Typography
               fontSize={12}
-              color={step.active ? step.color : "text.secondary"}
+              color={step.active || step.rejected ? step.color : "text.secondary"}
             >
               {step.caption}
             </Typography>
@@ -698,7 +762,7 @@ function WorkflowTimeline({ status }) {
 }
 
 // ============================================
-// Status Style
+// Status Style Helper
 // ============================================
 
 function getStatusStyle(status) {
@@ -728,30 +792,258 @@ function getStatusStyle(status) {
 }
 
 // ============================================
-// Workflow Helper
+// Dynamic Workflow Helper
+//
+// This is the most important logic.
+//
+// If TotalSheets <= 500:
+// Submitted → HOD Review → Printing
+//
+// If TotalSheets > 500:
+// Submitted → HOD Review → HOS Approval → Printing
 // ============================================
 
-function getWorkflowSteps(status) {
-  const lower = status.toLowerCase();
+function getWorkflowSteps(status, totalSheets) {
+  const lower = (status || "").toLowerCase();
+
+  const needsHos = Number(totalSheets || 0) > 500;
 
   const isRejected = lower.includes("rejected");
+  const isRejectedByHod = lower.includes("rejected by hod");
+  const isRejectedByHos = lower.includes("rejected by hos");
+
+  const isPending = lower === "pending";
+  const isApprovedByHod = lower.includes("approved by hod");
+  const isApprovedByHos = lower.includes("approved by hos");
+  const isForwardedToPrinting = lower.includes("forwarded to printing");
   const isPrinting = lower.includes("printing");
   const isCompleted = lower.includes("completed");
-  const isApproved = lower.includes("approved");
+
+  // ============================================
+  // REJECTED REQUESTS
+  // ============================================
 
   if (isRejected) {
+    // HOD rejected request
+    if (isRejectedByHod) {
+      return [
+        {
+          label: "Submitted",
+          caption: "Done",
+          done: true,
+          active: false,
+          rejected: false,
+          color: "#15803D",
+        },
+        {
+          label: "HOD Review",
+          caption: "Rejected",
+          done: false,
+          active: false,
+          rejected: true,
+          color: "#DC2626",
+        },
+        {
+          label: "Printing",
+          caption: "Stopped",
+          done: false,
+          active: false,
+          rejected: false,
+          color: "#CBD5E1",
+        },
+      ];
+    }
+
+    // HOS rejected request
+    if (isRejectedByHos) {
+      return [
+        {
+          label: "Submitted",
+          caption: "Done",
+          done: true,
+          active: false,
+          rejected: false,
+          color: "#15803D",
+        },
+        {
+          label: "HOD Review",
+          caption: "Approved",
+          done: true,
+          active: false,
+          rejected: false,
+          color: "#15803D",
+        },
+        {
+          label: "HOS Approval",
+          caption: "Rejected",
+          done: false,
+          active: false,
+          rejected: true,
+          color: "#DC2626",
+        },
+        {
+          label: "Printing",
+          caption: "Stopped",
+          done: false,
+          active: false,
+          rejected: false,
+          color: "#CBD5E1",
+        },
+      ];
+    }
+  }
+
+  // ============================================
+  // SMALL REQUESTS
+  // TotalSheets <= 500
+  // Teacher → HOD Review → Printing
+  //
+  // HOS Approval is NOT shown here.
+  // ============================================
+
+  if (!needsHos) {
     return [
-      { label: "Submitted", caption: "Done", done: true, active: false, color: "#15803D" },
-      { label: "HOD Review", caption: lower.includes("hod") ? "Rejected" : "Approved", done: !lower.includes("hod"), active: lower.includes("hod"), rejected: lower.includes("hod"), color: lower.includes("hod") ? "#DC2626" : "#15803D" },
-      { label: "HOS Approval", caption: lower.includes("hos") ? "Rejected" : "Pending", done: false, active: lower.includes("hos"), rejected: lower.includes("hos"), color: lower.includes("hos") ? "#DC2626" : "#CBD5E1" },
-      { label: "Printing", caption: "Pending", done: false, active: false, color: "#CBD5E1" },
+      {
+        label: "Submitted",
+        caption: "Done",
+        done: true,
+        active: false,
+        rejected: false,
+        color: "#15803D",
+      },
+
+      {
+        label: "HOD Review",
+        caption:
+          isApprovedByHod || isForwardedToPrinting || isPrinting || isCompleted
+            ? "Approved"
+            : "In Review",
+
+        done:
+          isApprovedByHod || isForwardedToPrinting || isPrinting || isCompleted,
+
+        active: isPending,
+
+        rejected: false,
+
+        color:
+          isApprovedByHod || isForwardedToPrinting || isPrinting || isCompleted
+            ? "#15803D"
+            : "#F59E0B",
+      },
+
+      {
+        label: "Printing",
+        caption: isCompleted
+          ? "Completed"
+          : isPrinting
+          ? "In Progress"
+          : isApprovedByHod || isForwardedToPrinting
+          ? "Pending"
+          : "Waiting",
+
+        done: isCompleted,
+
+        active: isApprovedByHod || isForwardedToPrinting || isPrinting,
+
+        rejected: false,
+
+        color: isCompleted ? "#15803D" : "#2563EB",
+      },
     ];
   }
 
+  // ============================================
+  // LARGE REQUESTS
+  // TotalSheets > 500
+  // Teacher → HOD Review → HOS Approval → Printing
+  //
+  // HOS Approval is shown here because HOS approval is required.
+  // ============================================
+
   return [
-    { label: "Submitted", caption: "Done", done: true, active: false, color: "#15803D" },
-    { label: "HOD Review", caption: isApproved || isPrinting || isCompleted ? "Approved" : "In Review", done: isApproved || isPrinting || isCompleted, active: lower.includes("pending"), color: isApproved || isPrinting || isCompleted ? "#15803D" : "#F59E0B" },
-    { label: "HOS Approval", caption: isPrinting || isCompleted ? "Approved" : "Pending", done: isPrinting || isCompleted, active: isApproved, color: isPrinting || isCompleted ? "#15803D" : "#2563EB" },
-    { label: "Printing", caption: isCompleted ? "Completed" : isPrinting ? "In Progress" : "Pending", done: isCompleted, active: isPrinting, color: isCompleted ? "#15803D" : "#2563EB" },
+    {
+      label: "Submitted",
+      caption: "Done",
+      done: true,
+      active: false,
+      rejected: false,
+      color: "#15803D",
+    },
+
+    {
+      label: "HOD Review",
+      caption:
+        isApprovedByHod ||
+        isApprovedByHos ||
+        isForwardedToPrinting ||
+        isPrinting ||
+        isCompleted
+          ? "Approved"
+          : "In Review",
+
+      done:
+        isApprovedByHod ||
+        isApprovedByHos ||
+        isForwardedToPrinting ||
+        isPrinting ||
+        isCompleted,
+
+      active: isPending,
+
+      rejected: false,
+
+      color:
+        isApprovedByHod ||
+        isApprovedByHos ||
+        isForwardedToPrinting ||
+        isPrinting ||
+        isCompleted
+          ? "#15803D"
+          : "#F59E0B",
+    },
+
+    {
+      label: "HOS Approval",
+      caption:
+        isApprovedByHos || isForwardedToPrinting || isPrinting || isCompleted
+          ? "Approved"
+          : "Pending",
+
+      done: isApprovedByHos || isForwardedToPrinting || isPrinting || isCompleted,
+
+      active:
+        isApprovedByHod &&
+        !isApprovedByHos &&
+        !isForwardedToPrinting &&
+        !isPrinting &&
+        !isCompleted,
+
+      rejected: false,
+
+      color:
+        isApprovedByHos || isForwardedToPrinting || isPrinting || isCompleted
+          ? "#15803D"
+          : "#2563EB",
+    },
+
+    {
+      label: "Printing",
+      caption: isCompleted
+        ? "Completed"
+        : isPrinting
+        ? "In Progress"
+        : isApprovedByHos || isForwardedToPrinting
+        ? "Pending"
+        : "Waiting",
+
+      done: isCompleted,
+
+      active: isApprovedByHos || isForwardedToPrinting || isPrinting,
+
+      rejected: false,
+
+      color: isCompleted ? "#15803D" : "#2563EB",
+    },
   ];
 }

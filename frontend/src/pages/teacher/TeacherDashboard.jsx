@@ -1,88 +1,93 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // Teacher Dashboard Page
-// Modern Simplified Dashboard
-//
-// Includes:
-// - KPI cards
-// - Monthly usage chart
-// - Request status overview
-// - Attachment storage summary
-// - Recent requests
-//
-// Removed:
-// - Quick Actions because actions already exist in sidebar
-// - Extra unnecessary dashboard widgets
-//
-// Future:
-// - Department / subject remaining balance will be added later
-// - Balance will NOT be shown to teachers yet
+// Backend Connected Modern Dashboard UI
 // ============================================
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-// ============================================
-// Layout Components
-// ============================================
 import DashboardLayout from "../../layouts/DashboardLayout";
 import Sidebar from "../../components/sidebar/Sidebar";
 import Topbar from "../../components/common/Topbar";
-import PageHeader from "../../components/common/PageHeader";
-import DateFilter from "../../components/common/DateFilter";
 
-// ============================================
-// MUI Components
-// ============================================
 import {
+  Alert,
+  Avatar,
   Box,
   Card,
   CardContent,
-  Typography,
+  Chip,
+  CircularProgress,
+  Divider,
+  IconButton,
   LinearProgress,
+  MenuItem,
+  Select,
+  Typography,
 } from "@mui/material";
 
-// ============================================
-// MUI Icons
-// ============================================
 import {
   Assignment,
-  Print,
-  Description,
-  Pending,
-  CheckCircle,
+  CalendarMonth,
   Cancel,
+  CheckCircle,
+  Description,
+  FolderZip,
+  Image,
+  MoreVert,
+  Pending,
+  PictureAsPdf,
   TaskAlt,
-  AttachFile,
+  TrendingDown,
+  TrendingUp,
+  Visibility,
 } from "@mui/icons-material";
 
-// ============================================
-// Auth Context
-// ============================================
-import { useAuth } from "../../context/AuthContext";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
-// ============================================
-// API Service
-// ============================================
 import { getTeacherDashboardData } from "../../services/teacherDashboardService";
 
 // ============================================
-// Dashboard Components
+// Theme Colors
 // ============================================
-import KPIGrid from "../../components/dashboard/KPIGrid";
-import MonthlyUsageChart from "../../components/dashboard/MonthlyUsageChart";
-import StatusOverview from "../../components/dashboard/StatusOverview";
-import RecentRequestsTable from "../../components/dashboard/RecentRequestsTable";
+const AUS_GREEN = "#007a3d";
+const TEXT_DARK = "#070b2d";
 
+// ============================================
+// Default Trends
+// Prevents undefined errors before backend loads
+// ============================================
+const defaultTrends = {
+  totalRequests: { percent: 0, direction: "up" },
+  totalSheets: { percent: 0, direction: "up" },
+  totalPages: { percent: 0, direction: "up" },
+  pendingRequests: { percent: 0, direction: "up" },
+  approvedRequests: { percent: 0, direction: "up" },
+  rejectedRequests: { percent: 0, direction: "up" },
+  completedRequests: { percent: 0, direction: "up" },
+};
+
+// ============================================
+// Teacher Dashboard Component
+// ============================================
 export default function TeacherDashboard() {
-  // ============================================
-  // Logged-in Teacher
-  // ============================================
-  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  // ============================================
-  // KPI State
-  // Balance fields will be added later but hidden
-  // ============================================
+  // KPI values
   const [kpis, setKpis] = useState({
     totalRequests: 0,
     totalSheets: 0,
@@ -93,51 +98,81 @@ export default function TeacherDashboard() {
     completedRequests: 0,
   });
 
-  // ============================================
-  // Dashboard Data State
-  // ============================================
+  // KPI percentage trends
+  const [trends, setTrends] = useState(defaultTrends);
+
+  // Small chart inside KPI cards
+  const [sparklineTrends, setSparklineTrends] = useState({});
+
+  // Main dashboard data
   const [recentRequests, setRecentRequests] = useState([]);
   const [monthlyUsage, setMonthlyUsage] = useState([]);
+  const [purposeBreakdown, setPurposeBreakdown] = useState([]);
 
-  // ============================================
-  // Temporary Attachment Storage State
-  // Later this will come from backend
-  // ============================================
-  const attachmentStorage = {
-    usedMB: 420,
+  // Attachment summary
+  const [attachmentSummary, setAttachmentSummary] = useState({
+    pdfFiles: 0,
+    imageFiles: 0,
+    documentFiles: 0,
+    archiveFiles: 0,
+    usedMB: 0,
     totalMB: 1024,
-    totalAttachments: 156,
-    largestFileMB: 20.4,
-  };
+    totalAttachments: 0,
+    largestFileMB: 0,
+  });
 
   // ============================================
-  // Load Teacher Dashboard Data
+  // Load Dashboard Data From Backend
   // ============================================
   useEffect(() => {
     const loadDashboardData = async () => {
       try {
-        const data = await getTeacherDashboardData();
+        setLoading(true);
+        setError("");
 
-        // Supports both backend formats:
-        // data.stats = current backend
-        // data.data = older service format
-        const stats = data.stats || data.data || {};
+        const response = await getTeacherDashboardData();
 
+        console.log("Teacher Dashboard Response:", response);
+        console.log("Purpose Breakdown Response:", response.purposeBreakdown);
+
+        const stats = response.data || response.stats || {};
+
+        // Set KPI values
         setKpis({
-          totalRequests: stats.TotalRequests || stats.totalRequests || 0,
-          totalSheets: stats.TotalSheets || stats.totalSheets || 0,
-          totalPages: stats.TotalPages || stats.totalPages || 0,
-          pendingRequests: stats.PendingRequests || stats.pendingRequests || 0,
-          approvedRequests: stats.ApprovedRequests || stats.approvedRequests || 0,
-          rejectedRequests: stats.RejectedRequests || stats.rejectedRequests || 0,
+          totalRequests: stats.totalRequests || stats.TotalRequests || 0,
+          totalSheets: stats.totalSheets || stats.TotalSheets || 0,
+          totalPages: stats.totalPages || stats.TotalPages || 0,
+          pendingRequests: stats.pendingRequests || stats.PendingRequests || 0,
+          approvedRequests: stats.approvedRequests || stats.ApprovedRequests || 0,
+          rejectedRequests: stats.rejectedRequests || stats.RejectedRequests || 0,
           completedRequests:
-            stats.CompletedRequests || stats.completedRequests || 0,
+            stats.completedRequests || stats.CompletedRequests || 0,
         });
 
-        setRecentRequests(data.recentRequests || []);
-        setMonthlyUsage(data.monthlyUsage || []);
-      } catch (error) {
-        console.error("Failed to load teacher dashboard data:", error);
+        // Set trends
+        setTrends({
+          ...defaultTrends,
+          ...(response.trends || {}),
+        });
+
+        // Set mini sparkline chart data
+        setSparklineTrends(response.sparklineTrends || {});
+
+        // Set chart/card data
+        setRecentRequests(response.recentRequests || []);
+        setMonthlyUsage(response.monthlyUsage || []);
+        setPurposeBreakdown(response.purposeBreakdown || []);
+
+        // Set attachment summary
+        setAttachmentSummary((prev) => ({
+          ...prev,
+          ...(response.attachmentSummary || {}),
+        }));
+      } catch (err) {
+        console.error("Failed to load teacher dashboard data:", err);
+        setError("Failed to load teacher dashboard data.");
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -145,225 +180,306 @@ export default function TeacherDashboard() {
   }, []);
 
   // ============================================
-  // Teacher KPI Cards
-  // Do not include department/subject balance yet
+  // Format Monthly Usage for Chart
   // ============================================
-  const dashboardStats = [
+  const chartData = useMemo(() => {
+    return (monthlyUsage || []).map((item) => ({
+      month: item.MonthName || item.month || item.Month || "Month",
+      pages: item.TotalPages || item.totalPages || item.pages || 0,
+      sheets: item.TotalSheets || item.totalSheets || item.sheets || 0,
+    }));
+  }, [monthlyUsage]);
+
+  // ============================================
+  // KPI Cards
+  // ============================================
+  const kpiCards = [
     {
       title: "Total Requests",
       value: kpis.totalRequests,
-      color: "#4F46E5",
+      icon: <Assignment />,
+      color: AUS_GREEN,
+      trend: `${trends.totalRequests?.percent || 0}% vs last month`,
+      trendDirection: trends.totalRequests?.direction || "up",
+      sparkData: sparklineTrends.totalRequests || [],
     },
     {
       title: "Total Sheets",
       value: kpis.totalSheets,
-      color: "#0EA5E9",
+      icon: <TaskAlt />,
+      color: AUS_GREEN,
+      trend: `${trends.totalSheets?.percent || 0}% vs last month`,
+      trendDirection: trends.totalSheets?.direction || "up",
+      sparkData: sparklineTrends.totalSheets || [],
     },
     {
       title: "Total Pages",
       value: kpis.totalPages,
-      color: "#8B5CF6",
+      icon: <Description />,
+      color: AUS_GREEN,
+      trend: `${trends.totalPages?.percent || 0}% vs last month`,
+      trendDirection: trends.totalPages?.direction || "up",
+      sparkData: sparklineTrends.totalPages || [],
     },
     {
       title: "Pending",
       value: kpis.pendingRequests,
-      color: "#F59E0B",
+      icon: <Pending />,
+      color: "#f59e0b",
+      trend: `${trends.pendingRequests?.percent || 0}% vs last month`,
+      trendDirection: trends.pendingRequests?.direction || "up",
+      sparkData: sparklineTrends.pendingRequests || [],
     },
     {
       title: "Approved",
       value: kpis.approvedRequests,
-      color: "#22C55E",
+      icon: <CheckCircle />,
+      color: AUS_GREEN,
+      trend: `${trends.approvedRequests?.percent || 0}% vs last month`,
+      trendDirection: trends.approvedRequests?.direction || "up",
+      sparkData: sparklineTrends.approvedRequests || [],
     },
     {
       title: "Rejected",
       value: kpis.rejectedRequests,
-      color: "#EF4444",
+      icon: <Cancel />,
+      color: "#ef4444",
+      trend: `${trends.rejectedRequests?.percent || 0}% vs last month`,
+      trendDirection: trends.rejectedRequests?.direction || "up",
+      sparkData: sparklineTrends.rejectedRequests || [],
     },
     {
       title: "Completed",
       value: kpis.completedRequests,
-      color: "#06B6D4",
+      icon: <TaskAlt />,
+      color: "#2563eb",
+      trend: `${trends.completedRequests?.percent || 0}% vs last month`,
+      trendDirection: trends.completedRequests?.direction || "up",
+      sparkData: sparklineTrends.completedRequests || [],
     },
-  ];
-
-  // ============================================
-  // KPI Icons
-  // Must match dashboardStats order
-  // ============================================
-  const icons = [
-    <Assignment />,
-    <Print />,
-    <Description />,
-    <Pending />,
-    <CheckCircle />,
-    <Cancel />,
-    <TaskAlt />,
   ];
 
   return (
     <DashboardLayout
       sidebar={<Sidebar role="teacher" />}
-      topbar={(handleMenuClick) => (
-        <Topbar onMenuClick={handleMenuClick} />
-      )}
+      topbar={(handleMenuClick) => <Topbar onMenuClick={handleMenuClick} />}
     >
-      {/* Page Header */}
-      <PageHeader
-        title={`Welcome Back, ${user?.fullName || "Teacher"}! 👋`}
-        subtitle="Here is your request summary and photocopy activity."
-        action={<DateFilter label="This Month" />}
-      />
+      <Box sx={{ px: { xs: 1, md: 2 }, pb: 3, color: TEXT_DARK }}>
+        {/* Header */}
+        <Box
+          sx={{
+            mb: 2,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: { xs: "flex-start", md: "center" },
+            flexDirection: { xs: "column", md: "row" },
+            gap: 2,
+          }}
+        >
+          <Box>
+            <Typography
+              sx={{
+                fontSize: { xs: 24, md: 32 },
+                fontWeight: 900,
+                letterSpacing: "-0.04em",
+                color: TEXT_DARK,
+              }}
+            >
+              Good morning, Teacher! 👋
+            </Typography>
 
-      {/* KPI Cards */}
-      <KPIGrid stats={dashboardStats} icons={icons} />
+            <Typography sx={{ color: "#5b6475", fontSize: 14, mt: 0.5 }}>
+              Here&apos;s your request summary and photocopy activity.
+            </Typography>
+          </Box>
 
-      {/* Main Analytics Row */}
-      <Box
-        sx={{
-          mt: 4,
-          display: "grid",
-          gridTemplateColumns: {
-            xs: "1fr",
-            xl: "2fr 1fr 1fr",
-          },
-          gap: 3,
-        }}
-      >
-        {/* Monthly Usage */}
-        <MonthlyUsageChart data={monthlyUsage} />
+          <Select
+            size="small"
+            value="current"
+            sx={{
+              minWidth: 240,
+              borderRadius: 3,
+              bgcolor: "#fff",
+              boxShadow: "0 8px 25px rgba(15, 23, 42, 0.06)",
+              "& fieldset": { borderColor: "#e5e7eb" },
+            }}
+            startAdornment={
+              <CalendarMonth sx={{ mr: 1, color: TEXT_DARK, fontSize: 20 }} />
+            }
+          >
+            <MenuItem value="current">Current Month</MenuItem>
+          </Select>
+        </Box>
 
-        {/* Request Status */}
-        <StatusOverview kpis={kpis} />
+        {/* Error Message */}
+        {error && (
+          <Alert severity="error" sx={{ mb: 2, borderRadius: 3 }}>
+            {error}
+          </Alert>
+        )}
 
-        {/* Attachment Storage Summary */}
-        <TeacherAttachmentSummary storage={attachmentStorage} />
-      </Box>
+        {/* Loading State */}
+        {loading ? (
+          <Box sx={{ py: 10, display: "grid", placeItems: "center" }}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          <>
+            {/* KPI First Row */}
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: { xs: "1fr", md: "repeat(3, 1fr)" },
+                gap: 2,
+                mb: 2,
+              }}
+            >
+              {kpiCards.slice(0, 3).map((card) => (
+                <ModernKpiCard key={card.title} {...card} />
+              ))}
+            </Box>
 
-      {/* Recent Requests */}
-      <Box sx={{ mt: 4 }}>
-        <RecentRequestsTable requests={recentRequests} />
+            {/* KPI Second Row */}
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  sm: "repeat(2, 1fr)",
+                  xl: "repeat(4, 1fr)",
+                },
+                gap: 2,
+                mb: 2,
+              }}
+            >
+              {kpiCards.slice(3).map((card) => (
+                <ModernKpiCard key={card.title} {...card} compact />
+              ))}
+            </Box>
+
+            {/* Analytics Row */}
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  lg: "2fr 1.15fr 1.2fr 1.15fr",
+                },
+                gap: 2,
+                alignItems: "stretch",
+              }}
+            >
+              <MonthlyUsageOverview data={chartData} />
+              <RequestStatusOverview kpis={kpis} />
+              <PurposeBreakdown data={purposeBreakdown} />
+              <TeacherAttachmentSummary storage={attachmentSummary} />
+            </Box>
+
+            {/* Recent Requests */}
+            <Box sx={{ mt: 2 }}>
+              <RecentRequestsModern requests={recentRequests} />
+            </Box>
+          </>
+        )}
       </Box>
     </DashboardLayout>
   );
 }
 
 // ============================================
-// Teacher Attachment Summary
-// Temporary frontend component
-// Later it should connect to backend storage usage
+// Modern KPI Card
 // ============================================
-
-function TeacherAttachmentSummary({ storage }) {
-  const usedPercent = Math.round(
-    (storage.usedMB / storage.totalMB) * 100
-  );
-
-  const remainingMB = storage.totalMB - storage.usedMB;
+function ModernKpiCard({
+  title,
+  value,
+  icon,
+  color,
+  trend,
+  trendDirection,
+  sparkData = [],
+  compact = false,
+}) {
+  const safeSparkData =
+    sparkData.length > 0
+      ? sparkData
+      : [{ value: 0 }, { value: 0 }, { value: 0 }];
 
   return (
     <Card
       sx={{
+        height: compact ? 110 : 130,
         borderRadius: 4,
-        boxShadow: "0 8px 25px rgba(0,0,0,0.06)",
-        height: "100%",
+        border: "1px solid #e8edf3",
+        boxShadow: "0 10px 28px rgba(15, 23, 42, 0.06)",
+        overflow: "hidden",
+        bgcolor: "#fff",
       }}
     >
-      <CardContent>
-        {/* Card Header */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3 }}>
-          <Box
+      <CardContent
+        sx={{
+          height: "100%",
+          p: 2.2,
+          display: "grid",
+          gridTemplateColumns: "auto 1fr 120px",
+          alignItems: "center",
+          gap: 2,
+          "&:last-child": { pb: 2.2 },
+        }}
+      >
+        <Avatar
+          sx={{
+            width: compact ? 52 : 58,
+            height: compact ? 52 : 58,
+            bgcolor: color,
+            boxShadow: `0 10px 24px ${color}40`,
+          }}
+        >
+          {icon}
+        </Avatar>
+
+        <Box>
+          <Typography sx={{ fontSize: 12, fontWeight: 800, color: TEXT_DARK }}>
+            {title}
+          </Typography>
+
+          <Typography
             sx={{
-              width: 48,
-              height: 48,
-              borderRadius: 3,
-              bgcolor: "#EAF1FF",
-              color: "#2563EB",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
+              fontSize: compact ? 27 : 32,
+              lineHeight: 1,
+              fontWeight: 950,
+              color: TEXT_DARK,
+              mt: 0.8,
             }}
           >
-            <AttachFile />
-          </Box>
-
-          <Box>
-            <Typography variant="h6" fontWeight={800}>
-              Attachment Summary
-            </Typography>
-            <Typography color="text.secondary" fontSize={14}>
-              Your attachment storage overview.
-            </Typography>
-          </Box>
-        </Box>
-
-        {/* Usage Percentage */}
-        <Box sx={{ textAlign: "center", mb: 3 }}>
-          <Typography variant="h3" fontWeight={900}>
-            {usedPercent}%
+            {Number(value || 0).toLocaleString()}
           </Typography>
-          <Typography color="text.secondary">Used</Typography>
-        </Box>
 
-        {/* Progress Bar */}
-        <LinearProgress
-          variant="determinate"
-          value={usedPercent}
-          sx={{
-            height: 10,
-            borderRadius: 10,
-            mb: 2,
-            bgcolor: "#E5E7EB",
-            "& .MuiLinearProgress-bar": {
-              borderRadius: 10,
-              bgcolor: "#2563EB",
-            },
-          }}
-        />
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: 1.2 }}>
+            {trendDirection === "up" ? (
+              <TrendingUp sx={{ fontSize: 16, color }} />
+            ) : (
+              <TrendingDown sx={{ fontSize: 16, color }} />
+            )}
 
-        <Typography
-          textAlign="center"
-          color="text.secondary"
-          fontSize={13}
-          mb={3}
-        >
-          {storage.usedMB} MB / {storage.totalMB / 1024} GB used
-        </Typography>
-
-        {/* Storage Details */}
-        <Box sx={{ display: "grid", gap: 1.5 }}>
-          <StorageRow label="Used Space" value={`${storage.usedMB} MB`} />
-          <StorageRow label="Total Space" value="1 GB" />
-          <StorageRow label="Remaining" value={`${remainingMB} MB`} />
-        </Box>
-
-        {/* Attachment Stats */}
-        <Box
-          sx={{
-            mt: 3,
-            pt: 2,
-            borderTop: "1px solid #E5E7EB",
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 2,
-          }}
-        >
-          <Box>
-            <Typography color="text.secondary" fontSize={13}>
-              Total Attachments
-            </Typography>
-            <Typography fontWeight={900}>
-              {storage.totalAttachments}
+            <Typography sx={{ fontSize: 12, fontWeight: 800, color }}>
+              {trend}
             </Typography>
           </Box>
+        </Box>
 
-          <Box>
-            <Typography color="text.secondary" fontSize={13}>
-              Largest File
-            </Typography>
-            <Typography fontWeight={900}>
-              {storage.largestFileMB} MB
-            </Typography>
-          </Box>
+        <Box sx={{ height: 58, display: { xs: "none", sm: "block" } }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={safeSparkData}>
+              <Line
+                type="monotone"
+                dataKey="value"
+                stroke={color}
+                strokeWidth={2}
+                dot={{ r: 2, fill: color }}
+              />
+              <Tooltip cursor={false} />
+            </LineChart>
+          </ResponsiveContainer>
         </Box>
       </CardContent>
     </Card>
@@ -371,20 +487,578 @@ function TeacherAttachmentSummary({ storage }) {
 }
 
 // ============================================
-// Reusable Storage Row
+// Monthly Usage Chart
 // ============================================
+function MonthlyUsageOverview({ data }) {
+  return (
+    <ModernPanel title="Monthly Usage Overview" icon={<TrendingUp />}>
+      <Box sx={{ height: 270 }}>
+        {data.length === 0 ? (
+          <EmptyBox message="No monthly usage yet." />
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data} barGap={6}>
+              <CartesianGrid stroke="#eef2f7" vertical={false} />
+              <XAxis dataKey="month" axisLine={false} tickLine={false} />
+              <YAxis axisLine={false} tickLine={false} />
+              <Tooltip />
+              <Bar dataKey="pages" radius={[8, 8, 0, 0]} fill={AUS_GREEN} />
+              <Line
+                type="monotone"
+                dataKey="sheets"
+                stroke={TEXT_DARK}
+                strokeWidth={3}
+                dot={{ r: 4, fill: TEXT_DARK }}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+      </Box>
+    </ModernPanel>
+  );
+}
 
+// ============================================
+// Request Status Overview
+// ============================================
+function RequestStatusOverview({ kpis }) {
+  const total = kpis.totalRequests || 1;
+
+  const data = [
+    { name: "Approved", value: kpis.approvedRequests, color: AUS_GREEN },
+    { name: "Pending", value: kpis.pendingRequests, color: "#f59e0b" },
+    { name: "Completed", value: kpis.completedRequests, color: "#2563eb" },
+    { name: "Rejected", value: kpis.rejectedRequests, color: "#ef4444" },
+  ];
+
+  return (
+    <ModernPanel title="Request Status Overview">
+      <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1 }}>
+        <Box sx={{ height: 190, position: "relative" }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={data}
+                innerRadius={54}
+                outerRadius={82}
+                paddingAngle={2}
+                dataKey="value"
+              >
+                {data.map((entry) => (
+                  <Cell key={entry.name} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip />
+            </PieChart>
+          </ResponsiveContainer>
+
+          <Box
+            sx={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexDirection: "column",
+              pointerEvents: "none",
+            }}
+          >
+            <Typography sx={{ fontSize: 26, fontWeight: 950 }}>
+              {kpis.totalRequests}
+            </Typography>
+            <Typography sx={{ fontSize: 12, color: "#64748b" }}>Total</Typography>
+          </Box>
+        </Box>
+
+        <Box sx={{ display: "grid", alignContent: "center", gap: 1.4 }}>
+          {data.map((item) => (
+            <StatusLegend
+              key={item.name}
+              color={item.color}
+              label={item.name}
+              value={item.value}
+              percent={Math.round((item.value / total) * 100)}
+            />
+          ))}
+        </Box>
+      </Box>
+    </ModernPanel>
+  );
+}
+
+// ============================================
+// Status Legend
+// ============================================
+function StatusLegend({ color, label, value, percent }) {
+  return (
+    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+      <Box sx={{ width: 10, height: 10, borderRadius: "50%", bgcolor: color }} />
+
+      <Typography sx={{ flex: 1, fontSize: 13, fontWeight: 700 }}>
+        {label}
+      </Typography>
+
+      <Typography sx={{ fontSize: 13, fontWeight: 800 }}>
+        {value} ({percent}%)
+      </Typography>
+    </Box>
+  );
+}
+
+// ============================================
+// Purpose Breakdown
+// FIXED: Gets purpose name properly from backend
+// Supports: purposeName, PurposeName, purpose, Purpose
+// ============================================
+function PurposeBreakdown({ data = [] }) {
+  const total = data.reduce((sum, item) => {
+    return (
+      sum +
+      Number(
+        item.totalRequests ||
+          item.TotalRequests ||
+          item.requestCount ||
+          item.RequestCount ||
+          item.count ||
+          item.Count ||
+          0
+      )
+    );
+  }, 0);
+
+  return (
+    <ModernPanel title="Purpose Breakdown">
+      {data.length === 0 ? (
+        <EmptyBox message="No purpose data available." />
+      ) : (
+        data.map((item, index) => {
+          const purposeName =
+          item.purposeName ??
+          item.PurposeName ??
+          item.PURPOSENAME ??
+          item.purpose ??
+          item.Purpose ??
+          item.name ??
+          item.Name ??
+          "Unknown Purpose";
+
+          const count = Number(
+            item.totalRequests ??
+              item.TotalRequests ??
+              item.TOTALREQUESTS ??
+              item.requestCount ??
+              item.RequestCount ??
+              item.count ??
+              item.Count ??
+              0
+          );
+
+          const percent = total > 0 ? Math.round((count / total) * 100) : 0;
+
+          return (
+            <Box key={index} sx={{ mb: 2 }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  mb: 0.8,
+                }}
+              >
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <Description sx={{ fontSize: 16, color: AUS_GREEN }} />
+
+                  <Typography
+                    sx={{
+                      fontSize: 13,
+                      fontWeight: 800,
+                      color: TEXT_DARK,
+                    }}
+                  >
+                    {purposeName}
+                  </Typography>
+                </Box>
+
+                <Typography
+                  sx={{
+                    fontSize: 13,
+                    fontWeight: 900,
+                    color: TEXT_DARK,
+                  }}
+                >
+                  {count} ({percent}%)
+                </Typography>
+              </Box>
+
+              <LinearProgress
+                variant="determinate"
+                value={percent}
+                sx={{
+                  height: 7,
+                  borderRadius: 10,
+                  bgcolor: "#eaf2f7",
+                  "& .MuiLinearProgress-bar": {
+                    borderRadius: 10,
+                    bgcolor: AUS_GREEN,
+                  },
+                }}
+              />
+            </Box>
+          );
+        })
+      )}
+    </ModernPanel>
+  );
+}
+
+// ============================================
+// Attachment Summary
+// ============================================
+function TeacherAttachmentSummary({ storage }) {
+  const usedPercent = storage.totalMB
+    ? Math.round((storage.usedMB / storage.totalMB) * 100)
+    : 0;
+
+  const remainingMB = Math.max(
+    (storage.totalMB || 0) - (storage.usedMB || 0),
+    0
+  );
+
+  const fileCards = [
+    {
+      label: "PDF Files",
+      value: storage.pdfFiles || 0,
+      icon: <PictureAsPdf />,
+      color: "#dc2626",
+      bg: "#fff1f2",
+    },
+    {
+      label: "Images",
+      value: storage.imageFiles || 0,
+      icon: <Image />,
+      color: "#16a34a",
+      bg: "#f0fdf4",
+    },
+    {
+      label: "Documents",
+      value: storage.documentFiles || 0,
+      icon: <Description />,
+      color: "#2563eb",
+      bg: "#eff6ff",
+    },
+    {
+      label: "Archives",
+      value: storage.archiveFiles || 0,
+      icon: <FolderZip />,
+      color: "#7c3aed",
+      bg: "#f5f3ff",
+    },
+  ];
+
+  return (
+    <ModernPanel title="Attachment Summary">
+      <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1.2 }}>
+        {fileCards.map((item) => (
+          <Box
+            key={item.label}
+            sx={{
+              border: "1px solid #e8edf3",
+              borderRadius: 3,
+              p: 1.3,
+              display: "flex",
+              gap: 1,
+              alignItems: "center",
+              bgcolor: "#fff",
+            }}
+          >
+            <Avatar
+              sx={{
+                width: 38,
+                height: 38,
+                bgcolor: item.bg,
+                color: item.color,
+              }}
+            >
+              {item.icon}
+            </Avatar>
+
+            <Box>
+              <Typography
+                sx={{ fontSize: 11, color: "#64748b", fontWeight: 700 }}
+              >
+                {item.label}
+              </Typography>
+              <Typography sx={{ fontSize: 22, fontWeight: 950, lineHeight: 1 }}>
+                {item.value}
+              </Typography>
+              <Typography sx={{ fontSize: 11, color: "#64748b" }}>
+                Files
+              </Typography>
+            </Box>
+          </Box>
+        ))}
+      </Box>
+
+      <Divider sx={{ my: 2 }} />
+
+      <StorageRow label="Used Space" value={`${storage.usedMB || 0} MB`} />
+      <StorageRow label="Total Space" value={`${storage.totalMB || 1024} MB`} />
+      <StorageRow label="Remaining" value={`${remainingMB} MB`} />
+
+      <LinearProgress
+        variant="determinate"
+        value={usedPercent}
+        sx={{
+          height: 8,
+          borderRadius: 10,
+          mt: 1.5,
+          bgcolor: "#e5e7eb",
+          "& .MuiLinearProgress-bar": {
+            borderRadius: 10,
+            bgcolor: AUS_GREEN,
+          },
+        }}
+      />
+    </ModernPanel>
+  );
+}
+
+// ============================================
+// Recent Requests
+// ============================================
+function RecentRequestsModern({ requests }) {
+  const rows = requests || [];
+
+  return (
+    <Card sx={{ borderRadius: 4, border: "1px solid #e8edf3" }}>
+      <CardContent>
+        <Typography sx={{ fontSize: 18, fontWeight: 900, mb: 1.5 }}>
+          Recent Requests
+        </Typography>
+
+        {rows.length === 0 ? (
+          <EmptyBox message="No recent requests yet." />
+        ) : (
+          <Box sx={{ overflowX: "auto" }}>
+            <Box
+              component="table"
+              sx={{
+                width: "100%",
+                borderCollapse: "collapse",
+                "& th": {
+                  textAlign: "left",
+                  fontSize: 12,
+                  color: "#64748b",
+                  pb: 1,
+                  borderBottom: "1px solid #e5e7eb",
+                },
+                "& td": {
+                  fontSize: 13,
+                  fontWeight: 700,
+                  py: 1.1,
+                  borderBottom: "1px solid #f1f5f9",
+                },
+              }}
+            >
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Request ID</th>
+                  <th>Purpose</th>
+                  <th>Sheets</th>
+                  <th>Pages</th>
+                  <th>Status</th>
+                  <th>Submitted</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {rows.slice(0, 5).map((row, index) => (
+                  <tr key={row.RequestId || row.requestId || index}>
+                    <td>{index + 1}</td>
+                    <td>{row.RequestNumber || row.requestNumber || "-"}</td>
+                    <td>{row.PurposeName || row.purposeName || "-"}</td>
+                    <td>{row.TotalSheets || row.totalSheets || 0}</td>
+                    <td>{row.TotalPages || row.totalPages || 0}</td>
+                    <td>
+                      <StatusChip status={row.Status || row.status || "Pending"} />
+                    </td>
+                    <td>{formatDate(row.SubmittedAt || row.submittedAt)}</td>
+                    <td>
+                      <IconButton size="small">
+                        <Visibility sx={{ fontSize: 18 }} />
+                      </IconButton>
+                      <IconButton size="small">
+                        <MoreVert sx={{ fontSize: 18 }} />
+                      </IconButton>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Box>
+          </Box>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ============================================
+// Shared Panel Wrapper
+// ============================================
+function ModernPanel({ title, icon, children }) {
+  return (
+    <Card sx={{ borderRadius: 4, border: "1px solid #e8edf3", height: "100%" }}>
+      <CardContent>
+        <Box sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1 }}>
+          {icon && (
+            <Avatar
+              sx={{
+                width: 30,
+                height: 30,
+                bgcolor: "#eaf7ef",
+                color: AUS_GREEN,
+              }}
+            >
+              {icon}
+            </Avatar>
+          )}
+
+          <Typography sx={{ fontSize: 16, fontWeight: 900 }}>
+            {title}
+          </Typography>
+        </Box>
+
+        {children}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ============================================
+// Helper Components
+// ============================================
 function StorageRow({ label, value }) {
+  return (
+    <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
+      <Typography sx={{ fontSize: 12, color: "#64748b" }}>{label}</Typography>
+      <Typography sx={{ fontSize: 12, fontWeight: 850 }}>{value}</Typography>
+    </Box>
+  );
+}
+
+function StatusChip({ status }) {
+  const cleanStatus = String(status).toLowerCase();
+
+  let style = {
+    bg: "#e5e7eb",
+    color: "#374151",
+  };
+
+  // Approved
+  if (cleanStatus.includes("approved")) {
+    style = {
+      bg: "#dcfce7",
+      color: "#15803d",
+    };
+  }
+
+  // Pending
+  else if (cleanStatus.includes("pending")) {
+    style = {
+      bg: "#ffedd5",
+      color: "#c2410c",
+    };
+  }
+
+  // Rejected
+  else if (cleanStatus.includes("rejected")) {
+    style = {
+      bg: "#fee2e2",
+      color: "#dc2626",
+    };
+  }
+
+  // Completed
+  else if (cleanStatus.includes("completed")) {
+    style = {
+      bg: "#dcfce7",
+      color: "#15803d",
+    };
+  }
+
+  // Printing
+  else if (cleanStatus.includes("printing")) {
+    style = {
+      bg: "#dbeafe",
+      color: "#1d4ed8",
+    };
+  }
+
+  // Forwarded
+  else if (cleanStatus.includes("forwarded")) {
+    style = {
+      bg: "#e0f2fe",
+      color: "#0369a1",
+    };
+  }
+
+  // Cancelled
+  else if (cleanStatus.includes("cancelled")) {
+    style = {
+      bg: "#f3e8ff",
+      color: "#7c3aed",
+    };
+  }
+
+  return (
+    <Chip
+      label={status}
+      size="small"
+      sx={{
+        minWidth: 130,
+        height: 28,
+        bgcolor: style.bg,
+        color: style.color,
+        fontWeight: 800,
+        fontSize: 11,
+        borderRadius: "999px",
+      }}
+    />
+  );
+}
+
+function EmptyBox({ message }) {
   return (
     <Box
       sx={{
-        display: "flex",
-        justifyContent: "space-between",
-        gap: 2,
+        minHeight: 170,
+        borderRadius: 3,
+        bgcolor: "#f8fafc",
+        display: "grid",
+        placeItems: "center",
+        color: "#64748b",
+        fontWeight: 700,
       }}
     >
-      <Typography color="text.secondary">{label}</Typography>
-      <Typography fontWeight={800}>{value}</Typography>
+      {message}
     </Box>
   );
+}
+
+function formatDate(value) {
+  if (!value) return "-";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 }
