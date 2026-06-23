@@ -1,7 +1,16 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // Master Data Routes
-// Subjects, Sections, Purposes
+//
+// Handles:
+// - Subjects
+// - Departments
+// - Purposes
+// - Roles
+// - Access Levels
+//
+// No hard delete:
+// Records are activated/deactivated only
 // ============================================
 
 const express = require("express");
@@ -16,24 +25,16 @@ const {
 
 const { protect } = require("../middleware/authMiddleware");
 
-// GET /api/master/subjects
-// GET /api/master/sections
-// GET /api/master/purposes
+// GET /api/master/:type
 router.get("/:type", protect, getMasterData);
 
-// POST /api/master/subjects
-// POST /api/master/sections
-// POST /api/master/purposes
+// POST /api/master/:type
 router.post("/:type", protect, createMasterData);
 
-// PUT /api/master/subjects/:id
-// PUT /api/master/sections/:id
-// PUT /api/master/purposes/:id
+// PUT /api/master/:type/:id
 router.put("/:type/:id", protect, updateMasterData);
 
-// PATCH /api/master/subjects/:id/status
-// PATCH /api/master/sections/:id/status
-// PATCH /api/master/purposes/:id/status
+// PATCH /api/master/:type/:id/status
 router.patch("/:type/:id/status", protect, updateMasterStatus);
 
 module.exports = router;

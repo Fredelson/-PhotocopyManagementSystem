@@ -1,15 +1,24 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // Master Data Controller
-// Manages Subjects, Sections, and Purposes
-// No hard delete - only activate/deactivate
+//
+// Manages:
+// - Subjects
+// - Departments
+// - Purposes
+// - Roles
+// - Access Levels
+//
+// No hard delete:
+// Activate / deactivate only
 // ============================================
 
 const { sql, poolPromise } = require("../config/db");
 
 // ============================================
-// Config for allowed master tables only
-// This prevents unsafe dynamic SQL
+// Simple Master Tables Config
+// These tables only need:
+// Id, Name, IsActive
 // ============================================
 const masterTables = {
   subjects: {
@@ -17,11 +26,13 @@ const masterTables = {
     id: "SubjectId",
     name: "SubjectName",
   },
-    departments: {
+
+  departments: {
     table: "Departments",
     id: "DepartmentId",
     name: "DepartmentName",
   },
+
   purposes: {
     table: "Purposes",
     id: "PurposeId",
@@ -30,7 +41,7 @@ const masterTables = {
 };
 
 // ============================================
-// Helper: Validate master type
+// Helper: Validate simple master type
 // ============================================
 const getConfig = (type) => {
   return masterTables[type] || null;
@@ -38,11 +49,56 @@ const getConfig = (type) => {
 
 // ============================================
 // GET /api/master/:type
-// Example: /api/master/subjects
 // ============================================
 const getMasterData = async (req, res) => {
   try {
     const { type } = req.params;
+    const pool = await poolPromise;
+
+    // ============================================
+    // Special: Roles
+    // ============================================
+    if (type === "roles") {
+      const result = await pool.request().query(`
+        SELECT
+          r.RoleId AS Id,
+          r.RoleName AS Name,
+          r.DisplayName,
+          r.AccessLevelId,
+          a.AccessLevelName,
+          a.DisplayName AS AccessLevelDisplayName,
+          r.IsSystemRole,
+          r.IsActive
+        FROM Roles r
+        INNER JOIN AccessLevels a
+          ON r.AccessLevelId = a.AccessLevelId
+        ORDER BY r.IsActive DESC, r.DisplayName ASC
+      `);
+
+      return res.json(result.recordset);
+    }
+
+    // ============================================
+    // Special: Access Levels
+    // ============================================
+    if (type === "access-levels") {
+      const result = await pool.request().query(`
+        SELECT
+          AccessLevelId AS Id,
+          AccessLevelName AS Name,
+          DisplayName,
+          Description,
+          IsActive
+        FROM AccessLevels
+        ORDER BY IsActive DESC, DisplayName ASC
+      `);
+
+      return res.json(result.recordset);
+    }
+
+    // ============================================
+    // Default simple master data
+    // ============================================
     const config = getConfig(type);
 
     if (!config) {
@@ -50,8 +106,6 @@ const getMasterData = async (req, res) => {
         message: "Invalid master data type",
       });
     }
-
-    const pool = await poolPromise;
 
     const result = await pool.request().query(`
       SELECT
@@ -75,13 +129,161 @@ const getMasterData = async (req, res) => {
 
 // ============================================
 // POST /api/master/:type
-// Body: { name: "Biology" }
 // ============================================
 const createMasterData = async (req, res) => {
   try {
     const { type } = req.params;
-    const { name } = req.body;
+    const pool = await poolPromise;
 
+    // ============================================
+    // Create Role
+    // Body:
+    // {
+    //   name,
+    //   displayName,
+    //   accessLevelId
+    // }
+    // ============================================
+    if (type === "roles") {
+      const { name, displayName, accessLevelId } = req.body;
+
+      if (!name || !displayName || !accessLevelId) {
+        return res.status(400).json({
+          message: "Role name, display name, and access level are required.",
+        });
+      }
+
+      const duplicate = await pool
+        .request()
+        .input("RoleName", sql.NVarChar(50), name.trim())
+        .query(`
+          SELECT RoleId
+          FROM Roles
+          WHERE RoleName = @RoleName
+        `);
+
+      if (duplicate.recordset.length > 0) {
+        return res.status(400).json({
+          message: "This role already exists.",
+        });
+      }
+
+      const result = await pool
+        .request()
+        .input("RoleName", sql.NVarChar(50), name.trim())
+        .input("DisplayName", sql.NVarChar(100), displayName.trim())
+        .input("AccessLevelId", sql.Int, accessLevelId)
+        .query(`
+          INSERT INTO Roles
+          (
+            RoleName,
+            DisplayName,
+            AccessLevelId,
+            IsSystemRole,
+            IsActive,
+            CreatedAt
+          )
+          OUTPUT
+            INSERTED.RoleId AS Id,
+            INSERTED.RoleName AS Name,
+            INSERTED.DisplayName,
+            INSERTED.AccessLevelId,
+            INSERTED.IsSystemRole,
+            INSERTED.IsActive
+          VALUES
+          (
+            @RoleName,
+            @DisplayName,
+            @AccessLevelId,
+            0,
+            1,
+            GETDATE()
+          )
+        `);
+
+      return res.status(201).json({
+        message: "Role created successfully.",
+        data: result.recordset[0],
+      });
+    }
+
+    // ============================================
+    // Create Access Level
+    // Body:
+    // {
+    //   name,
+    //   displayName,
+    //   description
+    // }
+    // ============================================
+    if (type === "access-levels") {
+      const { name, displayName, description } = req.body;
+
+      if (!name || !displayName) {
+        return res.status(400).json({
+          message: "Access level name and display name are required.",
+        });
+      }
+
+      const duplicate = await pool
+        .request()
+        .input("AccessLevelName", sql.NVarChar(50), name.trim())
+        .query(`
+          SELECT AccessLevelId
+          FROM AccessLevels
+          WHERE AccessLevelName = @AccessLevelName
+        `);
+
+      if (duplicate.recordset.length > 0) {
+        return res.status(400).json({
+          message: "This access level already exists.",
+        });
+      }
+
+      const result = await pool
+        .request()
+        .input("AccessLevelName", sql.NVarChar(50), name.trim())
+        .input("DisplayName", sql.NVarChar(100), displayName.trim())
+        .input("Description", sql.NVarChar(255), description || null)
+        .query(`
+          INSERT INTO AccessLevels
+          (
+            AccessLevelName,
+            DisplayName,
+            Description,
+            IsActive,
+            CreatedAt
+          )
+          OUTPUT
+            INSERTED.AccessLevelId AS Id,
+            INSERTED.AccessLevelName AS Name,
+            INSERTED.DisplayName,
+            INSERTED.Description,
+            INSERTED.IsActive
+          VALUES
+          (
+            @AccessLevelName,
+            @DisplayName,
+            @Description,
+            1,
+            GETDATE()
+          )
+        `);
+
+      return res.status(201).json({
+        message: "Access level created successfully.",
+        data: result.recordset[0],
+      });
+    }
+
+    // ============================================
+    // Create Simple Master Data
+    // Body:
+    // {
+    //   name
+    // }
+    // ============================================
+    const { name } = req.body;
     const config = getConfig(type);
 
     if (!config) {
@@ -96,12 +298,9 @@ const createMasterData = async (req, res) => {
       });
     }
 
-    const pool = await poolPromise;
-
-    // Prevent duplicate active/inactive names
     const duplicate = await pool
       .request()
-      .input("Name", sql.VarChar(100), name.trim())
+      .input("Name", sql.NVarChar(100), name.trim())
       .query(`
         SELECT ${config.id}
         FROM ${config.table}
@@ -116,7 +315,7 @@ const createMasterData = async (req, res) => {
 
     const result = await pool
       .request()
-      .input("Name", sql.VarChar(100), name.trim())
+      .input("Name", sql.NVarChar(100), name.trim())
       .query(`
         INSERT INTO ${config.table} (${config.name}, IsActive)
         OUTPUT
@@ -142,13 +341,107 @@ const createMasterData = async (req, res) => {
 
 // ============================================
 // PUT /api/master/:type/:id
-// Body: { name: "Updated Name" }
 // ============================================
 const updateMasterData = async (req, res) => {
   try {
     const { type, id } = req.params;
-    const { name } = req.body;
+    const pool = await poolPromise;
 
+    // ============================================
+    // Update Role
+    // ============================================
+    if (type === "roles") {
+      const { name, displayName, accessLevelId } = req.body;
+
+      if (!name || !displayName || !accessLevelId) {
+        return res.status(400).json({
+          message: "Role name, display name, and access level are required.",
+        });
+      }
+
+      const result = await pool
+        .request()
+        .input("RoleId", sql.Int, id)
+        .input("RoleName", sql.NVarChar(50), name.trim())
+        .input("DisplayName", sql.NVarChar(100), displayName.trim())
+        .input("AccessLevelId", sql.Int, accessLevelId)
+        .query(`
+          UPDATE Roles
+          SET
+            RoleName = @RoleName,
+            DisplayName = @DisplayName,
+            AccessLevelId = @AccessLevelId
+          OUTPUT
+            INSERTED.RoleId AS Id,
+            INSERTED.RoleName AS Name,
+            INSERTED.DisplayName,
+            INSERTED.AccessLevelId,
+            INSERTED.IsSystemRole,
+            INSERTED.IsActive
+          WHERE RoleId = @RoleId
+        `);
+
+      if (result.recordset.length === 0) {
+        return res.status(404).json({
+          message: "Role not found",
+        });
+      }
+
+      return res.json({
+        message: "Role updated successfully.",
+        data: result.recordset[0],
+      });
+    }
+
+    // ============================================
+    // Update Access Level
+    // ============================================
+    if (type === "access-levels") {
+      const { name, displayName, description } = req.body;
+
+      if (!name || !displayName) {
+        return res.status(400).json({
+          message: "Access level name and display name are required.",
+        });
+      }
+
+      const result = await pool
+        .request()
+        .input("AccessLevelId", sql.Int, id)
+        .input("AccessLevelName", sql.NVarChar(50), name.trim())
+        .input("DisplayName", sql.NVarChar(100), displayName.trim())
+        .input("Description", sql.NVarChar(255), description || null)
+        .query(`
+          UPDATE AccessLevels
+          SET
+            AccessLevelName = @AccessLevelName,
+            DisplayName = @DisplayName,
+            Description = @Description
+          OUTPUT
+            INSERTED.AccessLevelId AS Id,
+            INSERTED.AccessLevelName AS Name,
+            INSERTED.DisplayName,
+            INSERTED.Description,
+            INSERTED.IsActive
+          WHERE AccessLevelId = @AccessLevelId
+        `);
+
+      if (result.recordset.length === 0) {
+        return res.status(404).json({
+          message: "Access level not found",
+        });
+      }
+
+      return res.json({
+        message: "Access level updated successfully.",
+        data: result.recordset[0],
+      });
+    }
+
+    // ============================================
+    // Update Simple Master Data
+    // ============================================
+    const { name } = req.body;
     const config = getConfig(type);
 
     if (!config) {
@@ -163,12 +456,10 @@ const updateMasterData = async (req, res) => {
       });
     }
 
-    const pool = await poolPromise;
-
     const result = await pool
       .request()
       .input("Id", sql.Int, id)
-      .input("Name", sql.VarChar(100), name.trim())
+      .input("Name", sql.NVarChar(100), name.trim())
       .query(`
         UPDATE ${config.table}
         SET ${config.name} = @Name
@@ -201,13 +492,81 @@ const updateMasterData = async (req, res) => {
 
 // ============================================
 // PATCH /api/master/:type/:id/status
-// Body: { isActive: true/false }
 // ============================================
 const updateMasterStatus = async (req, res) => {
   try {
     const { type, id } = req.params;
     const { isActive } = req.body;
+    const pool = await poolPromise;
 
+    // ============================================
+    // Update Role Status
+    // ============================================
+    if (type === "roles") {
+      const result = await pool
+        .request()
+        .input("RoleId", sql.Int, id)
+        .input("IsActive", sql.Bit, Boolean(isActive))
+        .query(`
+          UPDATE Roles
+          SET IsActive = @IsActive
+          OUTPUT
+            INSERTED.RoleId AS Id,
+            INSERTED.RoleName AS Name,
+            INSERTED.DisplayName,
+            INSERTED.AccessLevelId,
+            INSERTED.IsSystemRole,
+            INSERTED.IsActive
+          WHERE RoleId = @RoleId
+        `);
+
+      if (result.recordset.length === 0) {
+        return res.status(404).json({
+          message: "Role not found",
+        });
+      }
+
+      return res.json({
+        message: "Role status updated successfully.",
+        data: result.recordset[0],
+      });
+    }
+
+    // ============================================
+    // Update Access Level Status
+    // ============================================
+    if (type === "access-levels") {
+      const result = await pool
+        .request()
+        .input("AccessLevelId", sql.Int, id)
+        .input("IsActive", sql.Bit, Boolean(isActive))
+        .query(`
+          UPDATE AccessLevels
+          SET IsActive = @IsActive
+          OUTPUT
+            INSERTED.AccessLevelId AS Id,
+            INSERTED.AccessLevelName AS Name,
+            INSERTED.DisplayName,
+            INSERTED.Description,
+            INSERTED.IsActive
+          WHERE AccessLevelId = @AccessLevelId
+        `);
+
+      if (result.recordset.length === 0) {
+        return res.status(404).json({
+          message: "Access level not found",
+        });
+      }
+
+      return res.json({
+        message: "Access level status updated successfully.",
+        data: result.recordset[0],
+      });
+    }
+
+    // ============================================
+    // Update Simple Master Data Status
+    // ============================================
     const config = getConfig(type);
 
     if (!config) {
@@ -215,8 +574,6 @@ const updateMasterStatus = async (req, res) => {
         message: "Invalid master data type",
       });
     }
-
-    const pool = await poolPromise;
 
     const result = await pool
       .request()

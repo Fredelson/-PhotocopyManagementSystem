@@ -16,6 +16,20 @@ CREATE TABLE AccessLevels (
     CreatedAt DATETIME NOT NULL DEFAULT GETDATE()
 );
 
+CREATE TABLE Roles (
+    RoleId INT IDENTITY(1,1) PRIMARY KEY,
+    RoleName NVARCHAR(50) NOT NULL UNIQUE,
+    DisplayName NVARCHAR(100) NOT NULL,
+    AccessLevelId INT NOT NULL,
+    IsSystemRole BIT NOT NULL DEFAULT 0,
+    IsActive BIT NOT NULL DEFAULT 1,
+    CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+
+    CONSTRAINT FK_Roles_AccessLevels
+        FOREIGN KEY (AccessLevelId)
+        REFERENCES AccessLevels(AccessLevelId)
+);
+
 INSERT INTO AccessLevels (AccessLevelName, DisplayName, Description)
 VALUES
 ('TeacherLevel', 'Teacher Level', 'Can create and view own requests'),
