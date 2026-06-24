@@ -1,27 +1,32 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // Authentication Context
-// Handles login, logout, user session
+// Handles login, logout, user session,
+// and user permissions
 // ============================================
 
 import { createContext, useContext, useEffect, useState } from "react";
-import {
-  loginUser,
-  getCurrentUser,
-} from "../services/authService";
+import { loginUser, getCurrentUser } from "../services/authService";
+import { getMyPermissions } from "../services/permissionService";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(
-    localStorage.getItem("token")
-  );
+  const [permissions, setPermissions] = useState([]);
+  const [token, setToken] = useState(localStorage.getItem("token"));
   const [loading, setLoading] = useState(true);
 
-  // ============================================
-  // Load Logged-in User on Refresh
-  // ============================================
+  const loadPermissions = async () => {
+    try {
+      const data = await getMyPermissions();
+      setPermissions(data.permissions || []);
+    } catch (error) {
+      console.error("Failed to load permissions:", error);
+      setPermissions([]);
+    }
+  };
+
   useEffect(() => {
     const loadUser = async () => {
       try {
@@ -33,6 +38,7 @@ export function AuthProvider({ children }) {
         const currentUser = await getCurrentUser();
 
         setUser(currentUser);
+        await loadPermissions();
       } catch (error) {
         console.error("Failed to load user:", error);
 
@@ -40,6 +46,7 @@ export function AuthProvider({ children }) {
 
         setToken(null);
         setUser(null);
+        setPermissions([]);
       } finally {
         setLoading(false);
       }
@@ -48,31 +55,25 @@ export function AuthProvider({ children }) {
     loadUser();
   }, [token]);
 
-  // ============================================
-  // Login User
-  // ============================================
   const login = async (employeeId, password) => {
-    const data = await loginUser(
-      employeeId,
-      password
-    );
+    const data = await loginUser(employeeId, password);
 
     localStorage.setItem("token", data.token);
 
     setToken(data.token);
     setUser(data.user);
 
+    await loadPermissions();
+
     return data.user;
   };
 
-  // ============================================
-  // Logout User
-  // ============================================
   const logout = () => {
     localStorage.removeItem("token");
 
     setToken(null);
     setUser(null);
+    setPermissions([]);
   };
 
   return (
@@ -80,9 +81,11 @@ export function AuthProvider({ children }) {
       value={{
         user,
         token,
+        permissions,
         loading,
         login,
         logout,
+        reloadPermissions: loadPermissions,
       }}
     >
       {children}
@@ -90,16 +93,11 @@ export function AuthProvider({ children }) {
   );
 }
 
-// ============================================
-// Custom Hook
-// ============================================
 export function useAuth() {
   const context = useContext(AuthContext);
 
   if (!context) {
-    throw new Error(
-      "useAuth must be used inside AuthProvider"
-    );
+    throw new Error("useAuth must be used inside AuthProvider");
   }
 
   return context;

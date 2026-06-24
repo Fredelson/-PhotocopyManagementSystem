@@ -36,6 +36,9 @@ import InventoryTransactions from "./pages/printing/InventoryTransactions";
 import MasterData from "./pages/printing/MasterData";
 import AccessLevelsPage from "./pages/printing/AccessLevelsPage";
 
+
+import superAdminLayoutRoutes from "./modules/super-admin/routes/SuperAdminLayoutRoutes";
+
 // Reusable common page
 import Profile from "./pages/common/Profile";
 
@@ -46,6 +49,25 @@ export default function App() {
       <Route path="/login" element={<LoginPage />} />
 
       {/* ================= TEACHER ROUTES ================= */}
+
+      {/* Super Admin Layout Routes */}
+      {superAdminLayoutRoutes.map((route) => (
+        <Route
+          key={route.path}
+          path={route.path}
+          element={route.element}
+        >
+          {route.children?.map((child) => (
+            <Route
+              key={child.path || "index"}
+              index={child.index}
+              path={child.path}
+              element={child.element}
+            />
+          ))}
+        </Route>
+      ))}
+
 
       <Route
         path="/teacher"
