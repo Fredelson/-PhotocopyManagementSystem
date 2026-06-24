@@ -1,0 +1,104 @@
+INSERT INTO Menus
+(
+    ModuleId,
+    ParentMenuId,
+    MenuKey,
+    MenuName,
+    Route,
+    Icon,
+    SortOrder
+)
+SELECT
+    m.ModuleId,
+    3,
+    'users',
+    'Users',
+    '/super-admin/users',
+    'people',
+    1
+FROM Modules m
+WHERE m.ModuleKey = 'user_access';
+
+INSERT INTO Menus
+(
+    ModuleId,
+    ParentMenuId,
+    MenuKey,
+    MenuName,
+    Route,
+    Icon,
+    SortOrder
+)
+SELECT
+    m.ModuleId,
+    3,
+    'roles',
+    'Roles',
+    '/super-admin/roles',
+    'admin_panel_settings',
+    2
+FROM Modules m
+WHERE m.ModuleKey = 'user_access';
+
+INSERT INTO Menus
+(
+    ModuleId,
+    ParentMenuId,
+    MenuKey,
+    MenuName,
+    Route,
+    Icon,
+    SortOrder
+)
+SELECT
+    m.ModuleId,
+    3,
+    'permissions',
+    'Permissions',
+    '/super-admin/permissions',
+    'security',
+    3
+FROM Modules m
+WHERE m.ModuleKey = 'user_access';
+
+INSERT INTO Menus
+(
+    ModuleId,
+    ParentMenuId,
+    MenuKey,
+    MenuName,
+    Route,
+    Icon,
+    SortOrder
+)
+SELECT
+    m.ModuleId,
+    3,
+    'access_levels',
+    'Access Levels',
+    '/super-admin/access-levels',
+    'verified_user',
+    4
+FROM Modules m
+WHERE m.ModuleKey = 'user_access';
+
+INSERT INTO Menus
+(
+    ModuleId,
+    ParentMenuId,
+    MenuKey,
+    MenuName,
+    Route,
+    Icon,
+    SortOrder
+)
+SELECT
+    m.ModuleId,
+    3,
+    'user_overrides',
+    'User Overrides',
+    '/super-admin/user-overrides',
+    'manage_accounts',
+    5
+FROM Modules m
+WHERE m.ModuleKey = 'user_access';

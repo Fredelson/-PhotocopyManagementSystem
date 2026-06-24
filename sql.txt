@@ -1,0 +1,21 @@
+sql
+
+-- ============================================
+-- AUS OPERATIONS PLATFORM
+-- ASSIGN ALL PERMISSIONS TO SUPER ADMIN
+-- ============================================
+
+INSERT INTO RolePermissions (RoleId, PermissionId, IsAllowed)
+SELECT
+    r.RoleId,
+    p.PermissionId,
+    1
+FROM Roles r
+CROSS JOIN Permissions p
+WHERE r.RoleKey = 'SuperAdmin'
+AND NOT EXISTS (
+    SELECT 1
+    FROM RolePermissions rp
+    WHERE rp.RoleId = r.RoleId
+      AND rp.PermissionId = p.PermissionId
+);

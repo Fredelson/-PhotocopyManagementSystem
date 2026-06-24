@@ -41,6 +41,20 @@ const accessLevelRoutes = require("./routes/accessLevelRoutes");
 const limitRoutes = require("./routes/limitRoutes");
 const distributionRoutes = require("./routes/distributionRoutes");
 
+const superAdminPermissionRoutes = require("./routes/superadmin/permissionRoutes");
+const superAdminMenuRoutes = require("./routes/superadmin/menuRoutes");
+const superAdminModuleRoutes = require("./routes/superadmin/moduleRoutes");
+const superAdminFeatureFlagRoutes = require("./routes/superadmin/featureFlagRoutes");
+const superAdminSystemSettingsRoutes = require("./routes/superadmin/systemSettingsRoutes");
+const superAdminWidgetRoutes = require("./routes/superadmin/widgetRoutes");
+const superAdminAuditLogRoutes = require("./routes/superadmin/auditLogRoutes");
+const superAdminDashboardRoutes = require("./routes/superadmin/dashboardRoutes");
+const superAdminRoleRoutes = require("./routes/superadmin/roleRoutes");
+const superAdminUserOverrideRoutes = require("./routes/superadmin/userPermissionOverrideRoutes");
+const superAdminButtonRoutes = require("./routes/superadmin/buttonRoutes");
+
+
+
 // ============================================
 // Initialize Express App
 // ============================================
@@ -96,7 +110,6 @@ app.use("/api/requests", requestRoutes);
 app.use("/api/hod", hodRoutes);
 app.use("/api/hos", hosRoutes);
 app.use("/api/lookups", lookupRoutes);
-app.use("/api/admin", userImportRoutes);
 
 // User Management API route
 app.use("/api/users", userRoutes);
@@ -121,6 +134,18 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.use("/api/master", masterRoutes);
 app.use("/api/access-levels", accessLevelRoutes);
+
+app.use("/api/superadmin/permissions", superAdminPermissionRoutes);
+app.use("/api/superadmin/menus", superAdminMenuRoutes);
+app.use("/api/superadmin/modules", superAdminModuleRoutes);
+app.use("/api/superadmin/feature-flags", superAdminFeatureFlagRoutes);
+app.use("/api/superadmin/system-settings", superAdminSystemSettingsRoutes);
+app.use("/api/superadmin/widgets", superAdminWidgetRoutes);
+app.use("/api/superadmin/audit-logs", superAdminAuditLogRoutes);
+app.use("/api/superadmin/dashboard", superAdminDashboardRoutes);
+app.use("/api/superadmin/roles", superAdminRoleRoutes);
+app.use("/api/superadmin/user-overrides", superAdminUserOverrideRoutes);
+app.use("/api/superadmin/buttons", superAdminButtonRoutes);
 
 
 // ============================================

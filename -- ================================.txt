@@ -1,0 +1,32 @@
+-- ============================================
+-- AUS OPERATIONS PLATFORM
+-- FEATURE FLAGS SEED
+-- ============================================
+
+INSERT INTO FeatureFlags (FeatureKey, FeatureName, Description, IsEnabled)
+VALUES
+('enable_printing_management', 'Enable Printing Management', 'Enable photocopy request and printing workflow module', 1),
+('enable_inventory_management', 'Enable Inventory Management', 'Enable paper inventory, purchases and transactions', 1),
+('enable_it_service_desk', 'Enable IT Service Desk', 'Enable IT tickets and support desk module', 1),
+('enable_it_asset_management', 'Enable IT Asset Management', 'Enable IT assets, assignments and maintenance module', 1),
+('enable_academic_operations', 'Enable Academic Operations', 'Enable students, classrooms, terms and academic structure module', 1),
+('enable_teacher_observations', 'Enable Teacher Observations', 'Enable teacher observation and feedback module', 1),
+('enable_end_term_campaigns', 'Enable End-of-Term Campaigns', 'Enable Term 1, Term 2 and Term 3 device check campaigns', 1),
+('enable_emailing_system', 'Enable Emailing System', 'Enable email templates, queue, logs and sending', 1),
+('enable_notifications', 'Enable Notifications', 'Enable in-app notifications and notification rules', 1),
+('enable_announcements', 'Enable Announcements', 'Enable system announcements', 1),
+('enable_reports_analytics', 'Enable Reports & Analytics', 'Enable reports center and executive dashboards', 1),
+('enable_hr_management', 'Enable HR Management', 'Enable future HR management module', 1),
+('enable_workflow_engine', 'Enable Workflow Engine', 'Enable configurable approval workflows', 1),
+('enable_form_builder', 'Enable Form Builder', 'Enable dynamic form creation', 1),
+('enable_document_management', 'Enable Document Management', 'Enable shared document and attachment management', 1),
+('enable_calendar_scheduling', 'Enable Calendar & Scheduling', 'Enable calendar, campaigns and scheduling tools', 1),
+('enable_task_center', 'Enable Task Center', 'Enable task and to-do center', 1),
+('enable_knowledge_base', 'Enable Knowledge Base', 'Enable help center and support articles', 1),
+('enable_archive_center', 'Enable Archive Center', 'Enable archive and retention center', 1),
+('enable_global_search', 'Enable Global Search', 'Enable global search across platform records', 1),
+('enable_security_center', 'Enable Security Center', 'Enable login history, sessions and password policies', 1),
+('enable_dark_mode', 'Enable Dark Mode', 'Allow users to use dark mode', 1),
+('enable_light_mode', 'Enable Light Mode', 'Allow users to use light mode', 1),
+('enable_email_notifications', 'Enable Email Notifications', 'Allow rules to send email notifications', 1),
+('enable_in_app_notifications', 'Enable In-App Notifications', 'Allow rules to send in-app notifications', 1);

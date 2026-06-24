@@ -1,0 +1,129 @@
+seed button
+
+-- ============================================
+-- AUS OPERATIONS PLATFORM
+-- SEED BUTTONS / ACTIONS
+-- ============================================
+
+-- USER & ACCESS BUTTONS
+INSERT INTO Buttons (ModuleId, ButtonKey, ButtonName, RequiredPermissionKey, IsVisible, IsActive)
+SELECT ModuleId, 'user_add', 'Add User', 'User.Create', 1, 1
+FROM Modules WHERE ModuleKey = 'user_access';
+
+INSERT INTO Buttons (ModuleId, ButtonKey, ButtonName, RequiredPermissionKey, IsVisible, IsActive)
+SELECT ModuleId, 'user_edit', 'Edit User', 'User.Edit', 1, 1
+FROM Modules WHERE ModuleKey = 'user_access';
+
+INSERT INTO Buttons (ModuleId, ButtonKey, ButtonName, RequiredPermissionKey, IsVisible, IsActive)
+SELECT ModuleId, 'user_delete', 'Delete User', 'User.Delete', 1, 1
+FROM Modules WHERE ModuleKey = 'user_access';
+
+INSERT INTO Buttons (ModuleId, ButtonKey, ButtonName, RequiredPermissionKey, IsVisible, IsActive)
+SELECT ModuleId, 'user_import', 'Import Users', 'User.Import', 1, 1
+FROM Modules WHERE ModuleKey = 'user_access';
+
+INSERT INTO Buttons (ModuleId, ButtonKey, ButtonName, RequiredPermissionKey, IsVisible, IsActive)
+SELECT ModuleId, 'user_export', 'Export Users', 'User.Export', 1, 1
+FROM Modules WHERE ModuleKey = 'user_access';
+
+-- PRINTING BUTTONS
+INSERT INTO Buttons (ModuleId, ButtonKey, ButtonName, RequiredPermissionKey, IsVisible, IsActive)
+SELECT ModuleId, 'request_create', 'Create Request', 'Request.Create', 1, 1
+FROM Modules WHERE ModuleKey = 'printing';
+
+INSERT INTO Buttons (ModuleId, ButtonKey, ButtonName, RequiredPermissionKey, IsVisible, IsActive)
+SELECT ModuleId, 'request_approve_hod', 'Approve as HOD', 'Request.ApproveHOD', 1, 1
+FROM Modules WHERE ModuleKey = 'printing';
+
+INSERT INTO Buttons (ModuleId, ButtonKey, ButtonName, RequiredPermissionKey, IsVisible, IsActive)
+SELECT ModuleId, 'request_approve_hos', 'Approve as HOS', 'Request.ApproveHOS', 1, 1
+FROM Modules WHERE ModuleKey = 'printing';
+
+INSERT INTO Buttons (ModuleId, ButtonKey, ButtonName, RequiredPermissionKey, IsVisible, IsActive)
+SELECT ModuleId, 'request_start_printing', 'Start Printing', 'Request.PrintStart', 1, 1
+FROM Modules WHERE ModuleKey = 'printing';
+
+INSERT INTO Buttons (ModuleId, ButtonKey, ButtonName, RequiredPermissionKey, IsVisible, IsActive)
+SELECT ModuleId, 'request_complete_printing', 'Complete Printing', 'Request.PrintComplete', 1, 1
+FROM Modules WHERE ModuleKey = 'printing';
+
+-- INVENTORY BUTTONS
+INSERT INTO Buttons (ModuleId, ButtonKey, ButtonName, RequiredPermissionKey, IsVisible, IsActive)
+SELECT ModuleId, 'inventory_edit', 'Edit Inventory', 'Inventory.Edit', 1, 1
+FROM Modules WHERE ModuleKey = 'inventory';
+
+INSERT INTO Buttons (ModuleId, ButtonKey, ButtonName, RequiredPermissionKey, IsVisible, IsActive)
+SELECT ModuleId, 'inventory_purchase_create', 'Add Paper Purchase', 'Inventory.Purchase.Create', 1, 1
+FROM Modules WHERE ModuleKey = 'inventory';
+
+INSERT INTO Buttons (ModuleId, ButtonKey, ButtonName, RequiredPermissionKey, IsVisible, IsActive)
+SELECT ModuleId, 'inventory_adjustment_create', 'Create Stock Adjustment', 'Inventory.Adjustment.Create', 1, 1
+FROM Modules WHERE ModuleKey = 'inventory';
+
+-- IT TICKETING BUTTONS
+INSERT INTO Buttons (ModuleId, ButtonKey, ButtonName, RequiredPermissionKey, IsVisible, IsActive)
+SELECT ModuleId, 'ticket_create', 'Create Ticket', 'Ticket.Create', 1, 1
+FROM Modules WHERE ModuleKey = 'it_service_desk';
+
+INSERT INTO Buttons (ModuleId, ButtonKey, ButtonName, RequiredPermissionKey, IsVisible, IsActive)
+SELECT ModuleId, 'ticket_assign', 'Assign Ticket', 'Ticket.Assign', 1, 1
+FROM Modules WHERE ModuleKey = 'it_service_desk';
+
+INSERT INTO Buttons (ModuleId, ButtonKey, ButtonName, RequiredPermissionKey, IsVisible, IsActive)
+SELECT ModuleId, 'ticket_update_status', 'Update Ticket Status', 'Ticket.UpdateStatus', 1, 1
+FROM Modules WHERE ModuleKey = 'it_service_desk';
+
+INSERT INTO Buttons (ModuleId, ButtonKey, ButtonName, RequiredPermissionKey, IsVisible, IsActive)
+SELECT ModuleId, 'ticket_resolve', 'Resolve Ticket', 'Ticket.Resolve', 1, 1
+FROM Modules WHERE ModuleKey = 'it_service_desk';
+
+-- IT ASSET BUTTONS
+INSERT INTO Buttons (ModuleId, ButtonKey, ButtonName, RequiredPermissionKey, IsVisible, IsActive)
+SELECT ModuleId, 'asset_create', 'Create Asset', 'Asset.Create', 1, 1
+FROM Modules WHERE ModuleKey = 'it_assets';
+
+INSERT INTO Buttons (ModuleId, ButtonKey, ButtonName, RequiredPermissionKey, IsVisible, IsActive)
+SELECT ModuleId, 'asset_edit', 'Edit Asset', 'Asset.Edit', 1, 1
+FROM Modules WHERE ModuleKey = 'it_assets';
+
+INSERT INTO Buttons (ModuleId, ButtonKey, ButtonName, RequiredPermissionKey, IsVisible, IsActive)
+SELECT ModuleId, 'asset_assign', 'Assign Asset', 'Asset.Assign', 1, 1
+FROM Modules WHERE ModuleKey = 'it_assets';
+
+-- COMMUNICATION BUTTONS
+INSERT INTO Buttons (ModuleId, ButtonKey, ButtonName, RequiredPermissionKey, IsVisible, IsActive)
+SELECT ModuleId, 'email_send', 'Send Email', 'Email.Send', 1, 1
+FROM Modules WHERE ModuleKey = 'communication';
+
+INSERT INTO Buttons (ModuleId, ButtonKey, ButtonName, RequiredPermissionKey, IsVisible, IsActive)
+SELECT ModuleId, 'email_template_edit', 'Edit Email Template', 'Email.Template.Edit', 1, 1
+FROM Modules WHERE ModuleKey = 'communication';
+
+INSERT INTO Buttons (ModuleId, ButtonKey, ButtonName, RequiredPermissionKey, IsVisible, IsActive)
+SELECT ModuleId, 'notification_rule_edit', 'Edit Notification Rule', 'Notification.Rule.Edit', 1, 1
+FROM Modules WHERE ModuleKey = 'communication';
+
+INSERT INTO Buttons (ModuleId, ButtonKey, ButtonName, RequiredPermissionKey, IsVisible, IsActive)
+SELECT ModuleId, 'announcement_create', 'Create Announcement', 'Announcement.Create', 1, 1
+FROM Modules WHERE ModuleKey = 'communication';
+
+-- SYSTEM CONTROL BUTTONS
+INSERT INTO Buttons (ModuleId, ButtonKey, ButtonName, RequiredPermissionKey, IsVisible, IsActive)
+SELECT ModuleId, 'module_edit', 'Edit Module', 'Module.Edit', 1, 1
+FROM Modules WHERE ModuleKey = 'system_control';
+
+INSERT INTO Buttons (ModuleId, ButtonKey, ButtonName, RequiredPermissionKey, IsVisible, IsActive)
+SELECT ModuleId, 'menu_edit', 'Edit Menu', 'Menu.Edit', 1, 1
+FROM Modules WHERE ModuleKey = 'system_control';
+
+INSERT INTO Buttons (ModuleId, ButtonKey, ButtonName, RequiredPermissionKey, IsVisible, IsActive)
+SELECT ModuleId, 'button_edit', 'Edit Button', 'Button.Edit', 1, 1
+FROM Modules WHERE ModuleKey = 'system_control';
+
+INSERT INTO Buttons (ModuleId, ButtonKey, ButtonName, RequiredPermissionKey, IsVisible, IsActive)
+SELECT ModuleId, 'widget_edit', 'Edit Widget', 'Widget.Edit', 1, 1
+FROM Modules WHERE ModuleKey = 'system_control';
+
+INSERT INTO Buttons (ModuleId, ButtonKey, ButtonName, RequiredPermissionKey, IsVisible, IsActive)
+SELECT ModuleId, 'feature_flag_edit', 'Edit Feature Flag', 'FeatureFlag.Edit', 1, 1
+FROM Modules WHERE ModuleKey = 'system_control';
