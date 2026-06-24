@@ -2,23 +2,18 @@
 // ARAB UNITY SCHOOL
 // Operations Platform
 // Super Admin Layout
-// Phase 3 Super Admin UI Foundation
 // ============================================
 //
-// Description:
-// Layout wrapper for all Super Admin pages.
+// Purpose:
+// - Provides one shared layout for all Super Admin pages
+// - Keeps the topbar fixed at the top
+// - Keeps the sidebar fixed below the topbar
+// - Renders page content using React Router Outlet
 //
-// Responsibilities:
-// - Provide Super Admin sidebar
-// - Provide top content spacing
-// - Keep Super Admin pages visually consistent
-// - Separate layout from page content
-//
-// Future Enhancements:
-// - Add Super Admin topbar
-// - Add breadcrumbs
-// - Add collapsible sidebar
-// - Add mobile drawer support
+// Layout:
+// Topbar: full width, fixed top
+// Sidebar: fixed left, starts below topbar
+// Content: starts beside sidebar and below topbar
 //
 // ============================================
 
@@ -26,12 +21,14 @@ import { Box } from "@mui/material";
 import { Outlet } from "react-router-dom";
 
 import SuperAdminSidebar from "./SuperAdminSidebar";
+import SuperAdminTopbar from "./SuperAdminTopbar";
 
 // ============================================
 // Layout Constants
 // ============================================
 
-const SIDEBAR_WIDTH = 280;
+const SIDEBAR_WIDTH = 360;
+const TOPBAR_HEIGHT = 78;
 
 // ============================================
 // Super Admin Layout Component
@@ -43,19 +40,24 @@ export default function SuperAdminLayout() {
       sx={{
         minHeight: "100vh",
         bgcolor: "#f8fafc",
-        display: "flex",
       }}
     >
-      {/* Sidebar Area */}
-      <SuperAdminSidebar width={SIDEBAR_WIDTH} />
+      {/* Fixed Topbar */}
+      <SuperAdminTopbar height={TOPBAR_HEIGHT} />
 
-      {/* Main Content Area */}
+      {/* Fixed Sidebar Below Topbar */}
+      <SuperAdminSidebar
+        width={SIDEBAR_WIDTH}
+        topOffset={TOPBAR_HEIGHT}
+      />
+
+      {/* Main Page Content */}
       <Box
         component="main"
         sx={{
-          flexGrow: 1,
-          minHeight: "100vh",
           ml: `${SIDEBAR_WIDTH}px`,
+          pt: `${TOPBAR_HEIGHT}px`,
+          minHeight: "100vh",
           p: 3,
         }}
       >

@@ -2,18 +2,31 @@
 // ARAB UNITY SCHOOL
 // Operations Platform
 // Super Admin Layout Routes
-// Phase 3 Super Admin UI Foundation
 // ============================================
 //
-// Description:
-// Central nested route configuration for all
-// Super Admin pages using SuperAdminLayout.
+// Purpose:
+// Central route configuration for all
+// Super Admin pages.
 //
 // Responsibilities:
-// - Wrap all Super Admin pages inside one layout
-// - Keep route structure clean
-// - Avoid repeating layout code per page
-// - Prepare for future route permission control
+// - Wrap all pages inside SuperAdminLayout
+// - Apply ModuleGuard protection
+// - Provide nested routing
+// - Support future backend permissions
+// - Support future feature flags
+//
+// Architecture:
+// /super-admin
+// ├── dashboard
+// ├── modules
+// ├── menus
+// ├── buttons
+// ├── widgets
+// ├── roles
+// ├── permissions
+// ├── audit-logs
+// ├── settings
+// └── future modules...
 //
 // ============================================
 
@@ -23,6 +36,10 @@ import ModuleGuard from "../../../components/permissions/ModuleGuard";
 import { MODULES } from "../../../config/modules";
 
 import SuperAdminLayout from "../layout/SuperAdminLayout";
+
+// ============================================
+// Existing Pages
+// ============================================
 
 import SuperAdminDashboard from "../pages/SuperAdminDashboard";
 import ModuleManager from "../pages/ModuleManager";
@@ -36,61 +53,248 @@ import AuditLogs from "../pages/AuditLogs";
 import SystemSettings from "../pages/SystemSettings";
 
 // ============================================
+// Temporary Placeholder Page
+// Used until real modules are built
+// ============================================
+
+import SuperAdminComingSoon from "../pages/SuperAdminComingSoon";
+
+// ============================================
 // Super Admin Nested Layout Route
 // ============================================
 
 const superAdminLayoutRoutes = [
   {
     path: "/super-admin",
+
     element: (
       <ModuleGuard module={MODULES.SUPER_ADMIN}>
         <SuperAdminLayout />
       </ModuleGuard>
     ),
+
     children: [
+      // ======================================
+      // Default Redirect
+      // ======================================
+
       {
         index: true,
-        element: <Navigate to="/super-admin/dashboard" replace />,
+        element: (
+          <Navigate
+            to="/super-admin/dashboard"
+            replace
+          />
+        ),
       },
+
+      // ======================================
+      // Dashboard
+      // ======================================
+
       {
         path: "dashboard",
         element: <SuperAdminDashboard />,
       },
+
+      // ======================================
+      // Platform Administration
+      // ======================================
+
       {
         path: "modules",
         element: <ModuleManager />,
       },
+
       {
         path: "menus",
         element: <MenuManager />,
       },
+
       {
         path: "buttons",
         element: <ButtonManager />,
       },
+
       {
         path: "widgets",
         element: <WidgetManager />,
       },
+
       {
         path: "feature-flags",
         element: <FeatureFlags />,
       },
+
+      // ======================================
+      // Security & Access
+      // ======================================
+
+      {
+        path: "users",
+        element: (
+          <SuperAdminComingSoon
+            title="User Management"
+          />
+        ),
+      },
+
       {
         path: "roles",
         element: <RolesManager />,
       },
+
+      {
+        path: "access-levels",
+        element: (
+          <SuperAdminComingSoon
+            title="Access Levels"
+          />
+        ),
+      },
+
       {
         path: "permissions",
         element: <PermissionsMatrix />,
       },
+
+      // ======================================
+      // Operations Modules
+      // ======================================
+
+      {
+        path: "printing",
+        element: (
+          <SuperAdminComingSoon
+            title="Printing Management"
+          />
+        ),
+      },
+
+      {
+        path: "inventory",
+        element: (
+          <SuperAdminComingSoon
+            title="Inventory Management"
+          />
+        ),
+      },
+
+      {
+        path: "it-tickets",
+        element: (
+          <SuperAdminComingSoon
+            title="IT Service Desk"
+          />
+        ),
+      },
+
+      {
+        path: "assets",
+        element: (
+          <SuperAdminComingSoon
+            title="IT Asset Management"
+          />
+        ),
+      },
+
+      {
+        path: "academic",
+        element: (
+          <SuperAdminComingSoon
+            title="Academic Operations"
+          />
+        ),
+      },
+
+      {
+        path: "observations",
+        element: (
+          <SuperAdminComingSoon
+            title="Teacher Observations"
+          />
+        ),
+      },
+
+      {
+        path: "communication",
+        element: (
+          <SuperAdminComingSoon
+            title="Communication Center"
+          />
+        ),
+      },
+
+      {
+        path: "reports",
+        element: (
+          <SuperAdminComingSoon
+            title="Reports & Analytics"
+          />
+        ),
+      },
+
+      {
+        path: "hr",
+        element: (
+          <SuperAdminComingSoon
+            title="HR Management"
+          />
+        ),
+      },
+
+      // ======================================
+      // Monitoring
+      // ======================================
+
       {
         path: "audit-logs",
         element: <AuditLogs />,
       },
+
+      {
+        path: "activity-logs",
+        element: (
+          <SuperAdminComingSoon
+            title="Activity Logs"
+          />
+        ),
+      },
+
+      // ======================================
+      // System Control
+      // ======================================
+
       {
         path: "settings",
         element: <SystemSettings />,
+      },
+
+      {
+        path: "backups",
+        element: (
+          <SuperAdminComingSoon
+            title="Backup & Restore"
+          />
+        ),
+      },
+
+      {
+        path: "integrations",
+        element: (
+          <SuperAdminComingSoon
+            title="Integrations"
+          />
+        ),
+      },
+
+      {
+        path: "database-tools",
+        element: (
+          <SuperAdminComingSoon
+            title="Database Tools"
+          />
+        ),
       },
     ],
   },
