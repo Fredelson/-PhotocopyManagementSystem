@@ -1,13 +1,11 @@
-// ============================================
-// ARAB UNITY SCHOOL
-// Teacher Reports Service
-// Uses teacher dashboard backend data
-// ============================================
+// frontend/src/services/teacherReportService.js
 
 import api from "./api";
 
-// GET /api/requests/dashboard
-export const getTeacherReportsData = async () => {
-  const response = await api.get("/requests/dashboard");
+export const getTeacherReportsData = async (filters = {}) => {
+  const response = await api.get("/teacher/reports", {
+    params: filters,
+  });
+
   return response.data;
 };

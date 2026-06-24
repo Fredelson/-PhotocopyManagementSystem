@@ -26,6 +26,7 @@ const path = require("path");
 
 // Teacher Dashboard routes
 const teacherDashboardRoutes = require("./routes/teacherDashboardRoutes");
+const teacherReportRoutes = require("./routes/teacherReportRoutes");
 
 // Printing Admin routes
 const printingRoutes = require("./routes/printingRoutes");
@@ -102,6 +103,7 @@ app.use("/api/users", userRoutes);
 
 // Teacher Dashboard API route
 app.use("/api/teacher/dashboard", teacherDashboardRoutes);
+app.use("/api/teacher/reports", teacherReportRoutes);
 
 // Printing Admin API route
 app.use("/api/printing", printingRoutes);

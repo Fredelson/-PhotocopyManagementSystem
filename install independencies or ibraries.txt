@@ -83,3 +83,5 @@ VALUES
 ('SuperAdminLevel', 'Super Admin Level', 'Full system access'),
 ('RequestOnlyLevel', 'Request Only Level', 'Can submit requests only'),
 ('ViewOnlyLevel', 'View Only Level', 'Can view information only');
+
+npm install html2canvas jspdf
