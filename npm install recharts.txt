@@ -1,4 +1,0 @@
-npm install recharts
-
-install recharts
-oy the break. We'll continue from All Modules Section when you're back. 🚀
