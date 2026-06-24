@@ -1,77 +1,115 @@
 // ============================================
 // ARAB UNITY SCHOOL
-// Reusable Module Card
+// Reusable Dashboard Module Card
+//
+// Purpose:
+// Displays one module shortcut/card on the
+// Super Admin Dashboard.
+//
+// Reusable:
+// Yes. This card can later be reused in:
+// - Module Manager
+// - Super Admin Dashboard
+// - User Permission Dashboard
+// - Future system module overview pages
 // ============================================
 
-import { Card, CardContent, Typography, Avatar, Chip, Box } from "@mui/material";
-import { dashboardColors } from "../../theme/dashboardColors";
+import { Box, Typography } from "@mui/material";
+import ArrowForwardIosRoundedIcon from "@mui/icons-material/ArrowForwardIosRounded";
+
+// ============================================
+// Component
+// ============================================
 
 export default function ModuleCard({
   title,
   description,
   icon: Icon,
-  enabled,
-  color = dashboardColors.modules,
+  color,
+  lightColor,
 }) {
   return (
-    <Card
+    <Box
       sx={{
-        height: "100%",
-        borderRadius: 4,
-        border: `1px solid ${dashboardColors.border}`,
-        background: "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
-        boxShadow: "0 12px 30px rgba(15,23,42,0.06)",
-        transition: "all 0.25s ease",
+        p: 2,
+        borderRadius: 3,
+        bgcolor: "#ffffff",
+        border: "1px solid #e8edf3",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 1.5,
+        cursor: "pointer",
+        transition: "all 0.2s ease",
 
         "&:hover": {
-          transform: "translateY(-4px)",
-          boxShadow: "0 20px 42px rgba(15,23,42,0.12)",
+          transform: "translateY(-2px)",
+          boxShadow: "0 10px 25px rgba(15, 23, 42, 0.08)",
+          borderColor: color,
         },
       }}
     >
-      <CardContent sx={{ p: 2.5 }}>
-        {/* Header */}
+      {/* Left side: icon + text */}
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 1.5,
+          minWidth: 0,
+        }}
+      >
+        {/* Module icon box */}
         <Box
           sx={{
-            mb: 2,
+            width: 46,
+            height: 46,
+            borderRadius: 2.5,
+            bgcolor: lightColor,
+            color,
             display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
           }}
         >
-          <Avatar
-            sx={{
-              width: 64,
-              height: 64,
-              bgcolor: color,
-              color: "#ffffff",
-              boxShadow: `0 12px 28px ${color}40`,
-            }}
-          >
-            {Icon && <Icon sx={{ fontSize: 34 }} />}
-          </Avatar>
-
-          <Chip
-            label={enabled ? "Enabled" : "Disabled"}
-            size="small"
-            sx={{
-              fontWeight: 800,
-              bgcolor: enabled
-                ? dashboardColors.successLight
-                : dashboardColors.dangerLight,
-              color: enabled ? "#166534" : "#991b1b",
-            }}
-          />
+          {Icon && <Icon sx={{ fontSize: 25 }} />}
         </Box>
 
-        <Typography fontWeight={900} color={dashboardColors.navy} sx={{ mb: 0.5 }}>
-          {title}
-        </Typography>
+        {/* Module text */}
+        <Box sx={{ minWidth: 0 }}>
+          <Typography
+            sx={{
+              fontSize: 14,
+              fontWeight: 800,
+              color: "#0f172a",
+              lineHeight: 1.2,
+              mb: 0.5,
+            }}
+          >
+            {title}
+          </Typography>
 
-        <Typography variant="body2" color="text.secondary">
-          {description}
-        </Typography>
-      </CardContent>
-    </Card>
+          <Typography
+            sx={{
+              fontSize: 12.5,
+              fontWeight: 600,
+              color: "#64748b",
+              lineHeight: 1.3,
+            }}
+          >
+            {description}
+          </Typography>
+        </Box>
+      </Box>
+
+      {/* Right arrow */}
+      <ArrowForwardIosRoundedIcon
+        sx={{
+          fontSize: 15,
+          color: "#94a3b8",
+          flexShrink: 0,
+        }}
+      />
+    </Box>
   );
 }

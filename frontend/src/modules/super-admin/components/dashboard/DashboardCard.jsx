@@ -1,20 +1,26 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // Reusable Dashboard Card
+//
+// Purpose:
+// Shared card wrapper for dashboard sections.
+//
+// Important:
+// Do not force height: 100% here.
+// Each dashboard row should control its own height.
 // ============================================
 
 import { Card, CardContent, Typography, Box } from "@mui/material";
-import { dashboardColors } from "../../theme/dashboardColors";
+import { dashboardColors } from "../../../../theme/dashboardColors";
 
 export default function DashboardCard({ title, subtitle, action, children }) {
   return (
     <Card
       sx={{
-        height: "100%",
         borderRadius: 4,
         border: `1px solid ${dashboardColors.border}`,
-        background: "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
-        boxShadow: "0 14px 35px rgba(15, 23, 42, 0.06)",
+        background: `linear-gradient(180deg, ${dashboardColors.cardBackground} 0%, ${dashboardColors.background} 100%)`,
+        boxShadow: `0 14px 35px ${dashboardColors.shadow}`,
       }}
     >
       <CardContent sx={{ p: 2.5 }}>
@@ -24,21 +30,37 @@ export default function DashboardCard({ title, subtitle, action, children }) {
             mb: 2,
             display: "flex",
             justifyContent: "space-between",
+            alignItems: "flex-start",
             gap: 2,
           }}
         >
+          {/* Title and subtitle */}
           <Box>
-            <Typography fontWeight={900} color={dashboardColors.navy}>
+            <Typography
+              sx={{
+                fontSize: 16,
+                fontWeight: 900,
+                color: dashboardColors.navy,
+                lineHeight: 1.2,
+              }}
+            >
               {title}
             </Typography>
 
             {subtitle && (
-              <Typography variant="body2" color="text.secondary">
+              <Typography
+                sx={{
+                  fontSize: 13,
+                  color: dashboardColors.textSecondary,
+                  mt: 0.3,
+                }}
+              >
                 {subtitle}
               </Typography>
             )}
           </Box>
 
+          {/* Optional right action */}
           {action}
         </Box>
 

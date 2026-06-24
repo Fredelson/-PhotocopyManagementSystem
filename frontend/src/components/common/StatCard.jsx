@@ -1,53 +1,52 @@
 // ============================================
 // ARAB UNITY SCHOOL
-// Modern KPI Card
-// Used by Teacher / HOD / HOS / Printing
+// Reusable Modern KPI / Stat Card
+//
+// Purpose:
+// Displays KPI numbers across dashboards.
+//
+// Used By:
+// - Teacher
+// - HOD
+// - HOS
+// - Printing Admin
+// - Super Admin
+// - Admin
 // ============================================
 
-import {
-  Card,
-  CardContent,
-  Box,
-  Typography,
-} from "@mui/material";
+import { Card, CardContent, Box, Typography } from "@mui/material";
+import { dashboardColors } from "../../../../../theme/dashboardColors";
 
 export default function StatCard({
   title,
   value,
   icon,
-  color = "#2563EB",
+  color = dashboardColors.info,
 }) {
   return (
     <Card
       sx={{
         borderRadius: 5,
-
-        background:
-          "linear-gradient(135deg,#ffffff 0%,#f8fafc 100%)",
-
-        border: "1px solid #E2E8F0",
-
-        boxShadow:
-          "0 10px 30px rgba(15,23,42,0.06)",
-
+        background: `linear-gradient(135deg, ${dashboardColors.cardBackground} 0%, ${dashboardColors.background} 100%)`,
+        border: `1px solid ${dashboardColors.border}`,
+        boxShadow: `0 10px 30px ${dashboardColors.shadow}`,
         transition: "all 0.25s ease",
-
         overflow: "hidden",
 
         "&:hover": {
           transform: "translateY(-4px)",
-          boxShadow:
-            "0 20px 40px rgba(15,23,42,0.12)",
+          boxShadow: "0 20px 40px rgba(15,23,42,0.12)",
         },
       }}
     >
       <CardContent sx={{ p: 3 }}>
-        {/* Top Row */}
+        {/* Top Row: KPI text + icon */}
         <Box
           sx={{
             display: "flex",
             justifyContent: "space-between",
             alignItems: "flex-start",
+            gap: 2,
           }}
         >
           {/* KPI Text */}
@@ -56,7 +55,7 @@ export default function StatCard({
               sx={{
                 fontSize: 13,
                 fontWeight: 700,
-                color: "#64748B",
+                color: dashboardColors.textSecondary,
                 textTransform: "uppercase",
                 letterSpacing: 0.5,
               }}
@@ -69,7 +68,7 @@ export default function StatCard({
                 mt: 1.5,
                 fontSize: 34,
                 fontWeight: 900,
-                color: "#0F172A",
+                color: dashboardColors.textPrimary,
                 lineHeight: 1,
               }}
             >
@@ -83,14 +82,12 @@ export default function StatCard({
               width: 58,
               height: 58,
               borderRadius: 4,
-
               bgcolor: `${color}15`,
-
               color,
-
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
+              flexShrink: 0,
 
               "& svg": {
                 fontSize: 30,
@@ -105,13 +102,9 @@ export default function StatCard({
         <Box
           sx={{
             mt: 3,
-
             height: 5,
-
             borderRadius: 999,
-
             bgcolor: `${color}30`,
-
             overflow: "hidden",
           }}
         >

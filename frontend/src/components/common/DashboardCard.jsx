@@ -1,10 +1,22 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // Reusable Dashboard Card
-// Used for dashboard sections, summaries, forms, and tables
+//
+// Purpose:
+// Shared card wrapper for dashboard sections,
+// summaries, forms, and table containers.
+//
+// Used By:
+// - Super Admin
+// - Printing Admin
+// - HOD
+// - HOS
+// - Admin
+// - Teacher
 // ============================================
 
 import { Card, CardContent, Typography, Box } from "@mui/material";
+import { dashboardColors } from "../../../../../theme/dashboardColors";
 
 export default function DashboardCard({
   title,
@@ -12,29 +24,42 @@ export default function DashboardCard({
   action,
   children,
   sx = {},
+  contentSx = {},
 }) {
   return (
     <Card
       sx={{
         borderRadius: 4,
-        boxShadow: "0 8px 25px rgba(0,0,0,0.08)",
+        border: `1px solid ${dashboardColors.border}`,
+        background: `linear-gradient(180deg, ${dashboardColors.cardBackground} 0%, ${dashboardColors.background} 100%)`,
+        boxShadow: `0 14px 35px ${dashboardColors.shadow}`,
+        overflow: "hidden",
         ...sx,
       }}
     >
-      <CardContent>
+      <CardContent sx={{ p: 2.5, ...contentSx }}>
+        {/* Card Header */}
         {(title || subtitle || action) && (
           <Box
             sx={{
+              mb: 2,
               display: "flex",
               justifyContent: "space-between",
               alignItems: "flex-start",
-              mb: 3,
               gap: 2,
             }}
           >
+            {/* Title and subtitle */}
             <Box>
               {title && (
-                <Typography variant="h6" fontWeight={700}>
+                <Typography
+                  sx={{
+                    fontSize: 16,
+                    fontWeight: 900,
+                    color: dashboardColors.navy,
+                    lineHeight: 1.2,
+                  }}
+                >
                   {title}
                 </Typography>
               )}
@@ -42,9 +67,9 @@ export default function DashboardCard({
               {subtitle && (
                 <Typography
                   sx={{
-                    color: "#64748B",
                     fontSize: 13,
-                    mt: 0.5,
+                    color: dashboardColors.textSecondary,
+                    mt: 0.3,
                   }}
                 >
                   {subtitle}
@@ -52,10 +77,12 @@ export default function DashboardCard({
               )}
             </Box>
 
+            {/* Optional action */}
             {action && <Box>{action}</Box>}
           </Box>
         )}
 
+        {/* Card Body */}
         {children}
       </CardContent>
     </Card>

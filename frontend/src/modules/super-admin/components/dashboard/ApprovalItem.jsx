@@ -13,7 +13,7 @@ import { Box, Chip, Typography } from "@mui/material";
 
 import HourglassTopIcon from "@mui/icons-material/HourglassTop";
 
-import { dashboardColors } from "../../theme/dashboardColors";
+import { dashboardColors } from "../../../../theme/dashboardColors";
 
 export default function ApprovalItem({
   title,

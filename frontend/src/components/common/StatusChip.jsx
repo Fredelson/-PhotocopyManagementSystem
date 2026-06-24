@@ -1,47 +1,97 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // Reusable Status Chip
-// Used across Teacher, HOD, HOS, Admin pages
+//
+// Purpose:
+// Displays status consistently across
+// all modules in the AUS Operations Platform.
+//
+// Reusable:
+// - Teacher
+// - HOD
+// - HOS
+// - Printing Admin
+// - Admin
+// - Super Admin
 // ============================================
 
-import { Chip } from "@mui/material";
+import Chip from "@mui/material/Chip";
+import { dashboardColors } from "../../../../../theme/dashboardColors";
 
-// Status color mapping
-const getStatusColor = (status) => {
-  switch (status) {
-    case "Completed":
-    case "Approved":
-      return "success";
+// ============================================
+// Status Style Mapping
+// ============================================
 
-    case "Printing":
-      return "info";
+const getStatusStyles = (status = "") => {
+  const normalized = status.toLowerCase();
 
-    case "Pending HOD":
-    case "Pending Approval":
-      return "warning";
+  switch (normalized) {
+    case "approved":
+    case "completed":
+    case "active":
+      return {
+        color: dashboardColors.success,
+        backgroundColor: dashboardColors.successLight,
+      };
 
-    case "Pending HOS":
-      return "secondary";
+    case "printing":
+    case "open":
+    case "in progress":
+      return {
+        color: dashboardColors.info,
+        backgroundColor: dashboardColors.infoLight,
+      };
 
-    case "Rejected":
-      return "error";
+    case "pending":
+    case "pending hod":
+    case "pending hos":
+    case "pending approval":
+      return {
+        color: dashboardColors.warning,
+        backgroundColor: dashboardColors.warningLight,
+      };
 
-    case "Draft":
-      return "default";
+    case "rejected":
+    case "inactive":
+    case "failed":
+      return {
+        color: dashboardColors.danger,
+        backgroundColor: dashboardColors.dangerLight,
+      };
+
+    case "draft":
+      return {
+        color: dashboardColors.neutral,
+        backgroundColor: "#f1f5f9",
+      };
 
     default:
-      return "default";
+      return {
+        color: dashboardColors.textPrimary,
+        backgroundColor: dashboardColors.background,
+      };
   }
 };
 
-export default function StatusChip({ status, size = "small" }) {
+// ============================================
+// Component
+// ============================================
+
+export default function StatusChip({
+  status,
+  size = "small",
+}) {
+  const styles = getStatusStyles(status);
+
   return (
     <Chip
       label={status}
-      color={getStatusColor(status)}
       size={size}
       sx={{
-        fontWeight: 600,
+        fontWeight: 700,
+        color: styles.color,
+        backgroundColor: styles.backgroundColor,
+        border: "none",
       }}
     />
   );

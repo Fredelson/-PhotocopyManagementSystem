@@ -20,7 +20,7 @@ import {
 } from "recharts";
 
 import DashboardCard from "./DashboardCard";
-import { dashboardColors } from "../../theme/dashboardColors";
+import { dashboardColors } from "../../../../theme/dashboardColors";
 
 // ============================================
 // Status Colors

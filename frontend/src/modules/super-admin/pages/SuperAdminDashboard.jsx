@@ -15,6 +15,8 @@ import { Box } from "@mui/material";
 import DashboardHeader from "../components/dashboard/DashboardHeader";
 import DashboardKpis from "../components/dashboard/DashboardKpis";
 import DashboardMiddleRow from "../components/dashboard/DashboardMiddleRow";
+import AllModules from "../components/dashboard/AllModules";
+import DashboardBottomRow from "../components/dashboard/DashboardBottomRow";
 
 import {
   dashboardStats,
@@ -22,6 +24,11 @@ import {
   moduleStatus,
   systemHealth,
   recentActivities,
+  modulesOverview,
+  pendingApprovals,
+  topPrintRequests,
+  ticketStatus,
+  assetSummary,
 } from "../data/superAdminDashboardData";
 
 // ============================================
@@ -52,6 +59,17 @@ export default function SuperAdminDashboard() {
         moduleStatusData={moduleStatus}
         systemHealthData={systemHealth}
         recentActivityData={recentActivities}
+      />
+
+      {/* All Modules Section */}
+      <AllModules modules={modulesOverview} />
+
+      {/* Bottom Analytics Row */}
+      <DashboardBottomRow
+        topPrintRequests={topPrintRequests}
+        ticketStatus={ticketStatus}
+        assetSummary={assetSummary}
+        pendingApprovals={pendingApprovals}
       />
     </Box>
   );

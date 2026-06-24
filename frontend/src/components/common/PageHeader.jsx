@@ -1,6 +1,28 @@
-import { Box, Typography } from "@mui/material";
+// ============================================
+// ARAB UNITY SCHOOL
+// Reusable Page Header
+//
+// Purpose:
+// Standard page title/header used across
+// all modules in the AUS Operations Platform.
+//
+// Reusable:
+// - Super Admin
+// - Printing Admin
+// - HOD
+// - HOS
+// - Admin
+// - Teacher
+// ============================================
 
-export default function PageHeader({ title, subtitle, action }) {
+import { Box, Typography } from "@mui/material";
+import { dashboardColors } from "../../theme/dashboardColors";
+
+export default function PageHeader({
+  title,
+  subtitle,
+  action,
+}) {
   return (
     <Box
       sx={{
@@ -9,20 +31,36 @@ export default function PageHeader({ title, subtitle, action }) {
         alignItems: "center",
         justifyContent: "space-between",
         gap: 2,
+        flexWrap: "wrap",
       }}
     >
+      {/* Left Side */}
       <Box>
-        <Typography variant="h5" fontWeight={700}>
+        <Typography
+          sx={{
+            fontSize: 28,
+            fontWeight: 900,
+            color: dashboardColors.textPrimary,
+            lineHeight: 1.1,
+          }}
+        >
           {title}
         </Typography>
 
         {subtitle && (
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+          <Typography
+            sx={{
+              mt: 0.5,
+              fontSize: 14,
+              color: dashboardColors.textSecondary,
+            }}
+          >
             {subtitle}
           </Typography>
         )}
       </Box>
 
+      {/* Right Side Actions */}
       {action && <Box>{action}</Box>}
     </Box>
   );

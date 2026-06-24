@@ -15,7 +15,7 @@
 // - GET /api/superadmin/modules
 // ============================================
 
-import { dashboardColors } from "../theme/dashboardColors";
+import { dashboardColors } from "../../../theme/dashboardColors";
 
 // KPI Icons
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
@@ -197,34 +197,39 @@ export const modulesOverview = [
     icon: PrintOutlinedIcon,
     enabled: true,
     color: dashboardColors.printing,
+    lightColor: dashboardColors.printingLight,
   },
   {
     title: "Inventory Management",
     description: "248 Total Items",
     icon: Inventory2OutlinedIcon,
     enabled: true,
-    color: dashboardColors.assets,
+    color: dashboardColors.inventory,
+    lightColor: dashboardColors.inventoryLight,
   },
   {
-    title: "IT Service Desk (Tickets)",
+    title: "IT Service Desk",
     description: "18 Open Tickets",
     icon: ConfirmationNumberOutlinedIcon,
     enabled: true,
     color: dashboardColors.tickets,
+    lightColor: dashboardColors.ticketsLight,
   },
   {
     title: "IT Asset Management",
     description: "248 Total Assets",
     icon: ComputerOutlinedIcon,
     enabled: true,
-    color: dashboardColors.users,
+    color: dashboardColors.assets,
+    lightColor: dashboardColors.assetsLight,
   },
   {
     title: "Academic Operations",
     description: "1,245 Students",
     icon: SchoolOutlinedIcon,
     enabled: true,
-    color: dashboardColors.modules,
+    color: dashboardColors.academics,
+    lightColor: dashboardColors.academicsLight,
   },
   {
     title: "Teacher Observations",
@@ -232,6 +237,7 @@ export const modulesOverview = [
     icon: VisibilityOutlinedIcon,
     enabled: true,
     color: dashboardColors.observations,
+    lightColor: dashboardColors.observationsLight,
   },
   {
     title: "End-of-Term Campaigns",
@@ -239,13 +245,15 @@ export const modulesOverview = [
     icon: CampaignOutlinedIcon,
     enabled: true,
     color: dashboardColors.campaigns,
+    lightColor: dashboardColors.campaignsLight,
   },
   {
     title: "Communication Center",
     description: "17 Unread Messages",
     icon: MailOutlineOutlinedIcon,
     enabled: true,
-    color: dashboardColors.messages,
+    color: dashboardColors.communication,
+    lightColor: dashboardColors.communicationLight,
   },
   {
     title: "Reports & Analytics",
@@ -253,6 +261,7 @@ export const modulesOverview = [
     icon: BarChartOutlinedIcon,
     enabled: true,
     color: dashboardColors.reports,
+    lightColor: dashboardColors.reportsLight,
   },
   {
     title: "HR Management",
@@ -260,7 +269,89 @@ export const modulesOverview = [
     icon: GroupsOutlinedIcon,
     enabled: true,
     color: dashboardColors.hr,
+    lightColor: dashboardColors.hrLight,
   },
+];
+
+// ============================================
+// SYSTEM ALERTS
+// ============================================
+
+export const systemAlerts = [
+  {
+    title: "Backup completed successfully",
+    severity: "success",
+    time: "Today • 02:00 AM",
+  },
+  {
+    title: "3 users awaiting activation",
+    severity: "warning",
+    time: "Today • 09:15 AM",
+  },
+  {
+    title: "Email queue delay detected",
+    severity: "danger",
+    time: "Today • 10:05 AM",
+  },
+  {
+    title: "Workflow engine running normally",
+    severity: "info",
+    time: "Today • 10:30 AM",
+  },
+];
+
+// ============================================
+// TOP PRINT REQUESTS
+// ============================================
+
+export const topPrintRequests = [
+  {
+    label: "Student Worksheets",
+    value: 45,
+    color: dashboardColors.success,
+  },
+  {
+    label: "Exams",
+    value: 38,
+    color: dashboardColors.modules,
+  },
+  {
+    label: "Presentations",
+    value: 27,
+    color: dashboardColors.assets,
+  },
+  {
+    label: "Assignments",
+    value: 19,
+    color: dashboardColors.info,
+  },
+  {
+    label: "Others",
+    value: 12,
+    color: dashboardColors.navy,
+  },
+];
+
+// ============================================
+// TICKETS BY STATUS
+// ============================================
+
+export const ticketStatus = [
+  { key: "active", label: "Open", value: 8 },
+  { key: "inProgress", label: "In Progress", value: 6 },
+  { key: "comingSoon", label: "Pending", value: 3 },
+  { key: "disabled", label: "Closed", value: 1 },
+];
+
+// ============================================
+// ASSET SUMMARY
+// ============================================
+
+export const assetSummary = [
+  { key: "active", label: "In Use", value: 156 },
+  { key: "inProgress", label: "Available", value: 52 },
+  { key: "comingSoon", label: "Maintenance", value: 28 },
+  { key: "disabled", label: "Retired", value: 12 },
 ];
 
 // ============================================
