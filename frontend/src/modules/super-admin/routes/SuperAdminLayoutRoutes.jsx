@@ -35,7 +35,7 @@ import { Navigate } from "react-router-dom";
 import ModuleGuard from "../../../components/permissions/ModuleGuard";
 import { MODULES } from "../../../config/modules";
 
-import SuperAdminLayout from "../layout/SuperAdminLayout";
+import PlatformLayout from "../../../platform/layout/PlatformLayout";
 
 // ============================================
 // Existing Pages
@@ -69,7 +69,7 @@ const superAdminLayoutRoutes = [
 
     element: (
       <ModuleGuard module={MODULES.SUPER_ADMIN}>
-        <SuperAdminLayout />
+        <PlatformLayout />
       </ModuleGuard>
     ),
 

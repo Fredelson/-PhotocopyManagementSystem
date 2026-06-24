@@ -38,6 +38,7 @@ import HistoryIcon from "@mui/icons-material/History";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import SettingsIcon from "@mui/icons-material/Settings";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
+import { getSidebarItemsByRole } from "../../platform/navigation/sidebar/getSidebarItemsByRole";
 
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -258,14 +259,7 @@ export default function Sidebar() {
     },
   ];
 
-  const getMenuItems = () => {
-    if (role === "HOD") return hodMenuItems;
-    if (role === "HOS") return hosMenuItems;
-    if (role === "PrintingAdmin") return printingMenuItems;
-    return teacherMenuItems;
-  };
-
-  const menuItems = getMenuItems();
+  const menuItems = getSidebarItemsByRole(role);
 
   const isActiveRoute = (path) => {
     return location.pathname === path;

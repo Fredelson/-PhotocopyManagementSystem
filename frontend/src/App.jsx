@@ -27,7 +27,10 @@ import DepartmentLimitsPage from "./pages/printing/DepartmentLimitsPage";
 import SubjectAllocationPage from "./pages/hos/SubjectAllocationPage";
 
 // Printing page
-import PrintingDashboard from "./pages/printing/PrintingDashboard";
+import PrintingAdminDashboard from "./modules/printing-admin/pages/PrintingAdminDashboard";
+import printingAdminLayoutRoutes from "./modules/printing-admin/routes/PrintingAdminLayoutRoutes";
+
+
 import UserManagement from "./pages/admin/UserManagement";
 import PaperStockPage from "./pages/printing/PaperStockPage";
 import PaperPurchases from "./pages/printing/PaperPurchases";
@@ -327,20 +330,25 @@ export default function App() {
         element={<Navigate to="/printing/dashboard" replace />}
       />
 
+      {/* Printing Admin Layout Routes */}
+{printingAdminLayoutRoutes.map((route) => (
+  <Route key={route.path} path={route.path} element={route.element}>
+    {route.children?.map((child) => (
+      <Route
+        key={child.path || "index"}
+        index={child.index}
+        path={child.path}
+        element={child.element}
+      />
+    ))}
+  </Route>
+))}
+
       <Route
         path="/printing/dashboard"
         element={
           <ProtectedRoute allowedRoles={["PrintingAdmin", "SuperAdmin"]}>
-            <PrintingDashboard />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/printing/profile"
-        element={
-          <ProtectedRoute allowedRoles={["PrintingAdmin", "SuperAdmin"]}>
-            <Profile />
+            <PrintingAdminDashboard />
           </ProtectedRoute>
         }
       />

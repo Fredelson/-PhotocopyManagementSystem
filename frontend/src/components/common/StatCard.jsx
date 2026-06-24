@@ -15,7 +15,7 @@
 // ============================================
 
 import { Card, CardContent, Box, Typography } from "@mui/material";
-import { dashboardColors } from "../../../../../theme/dashboardColors";
+import { dashboardColors } from "../../theme/dashboardColors";
 
 export default function StatCard({
   title,

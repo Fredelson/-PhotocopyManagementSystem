@@ -11,7 +11,7 @@
 // Example:
 //
 // <ModuleGuard module="Printing">
-//   <PrintingDashboard />
+
 // </ModuleGuard>
 //
 // ============================================

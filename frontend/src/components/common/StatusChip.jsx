@@ -16,8 +16,7 @@
 // ============================================
 
 import Chip from "@mui/material/Chip";
-import { dashboardColors } from "../../../../../theme/dashboardColors";
-
+import { dashboardColors } from "../../theme/dashboardColors";
 // ============================================
 // Status Style Mapping
 // ============================================

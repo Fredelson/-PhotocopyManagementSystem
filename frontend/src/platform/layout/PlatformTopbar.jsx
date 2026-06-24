@@ -1,22 +1,15 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // Operations Platform
-// Super Admin Topbar
-// Modern dark gradient header
-// ============================================
+// Platform Topbar
 //
 // Purpose:
-// - Show current page area
-// - Provide global search
-// - Show notification/message icons
-// - Show current user profile
-// - Prepare for backend notifications and auth data
+// Shared topbar for Super Admin, Printing Admin,
+// and future platform roles.
 //
-// Backend later:
-// - GET /api/auth/me
-// - GET /api/notifications
-// - GET /api/messages/unread-count
-//
+// Important:
+// Do not hardcode user name or role here.
+// User details come from AuthContext.
 // ============================================
 
 import {
@@ -28,7 +21,6 @@ import {
   Typography,
 } from "@mui/material";
 
-import MenuOutlinedIcon from "@mui/icons-material/MenuOutlined";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
 import MailOutlineOutlinedIcon from "@mui/icons-material/MailOutlineOutlined";
@@ -36,7 +28,54 @@ import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import HelpOutlineOutlinedIcon from "@mui/icons-material/HelpOutlineOutlined";
 import KeyboardArrowDownOutlinedIcon from "@mui/icons-material/KeyboardArrowDownOutlined";
 
-export default function SuperAdminTopbar() {
+import { useAuth } from "../../context/AuthContext";
+
+const getTopbarContext = (role) => {
+  switch (role) {
+    case "SuperAdmin":
+      return {
+        title: "Dashboard",
+        subtitle: "Super Admin Control Center",
+      };
+
+    case "PrintingAdmin":
+      return {
+        title: "Printing Management",
+        subtitle: "Operations Control Center",
+      };
+
+    default:
+      return {
+        title: "Dashboard",
+        subtitle: "Operations Platform",
+      };
+  }
+};
+
+export default function PlatformTopbar() {
+  const { user } = useAuth();
+
+  const role = user?.role || user?.Role;
+
+  const context = getTopbarContext(role);
+
+  const displayName =
+    user?.fullName ||
+    user?.FullName ||
+    "User";
+
+  const displayRole =
+    user?.displayRole ||
+    user?.DisplayRole ||
+    (role === "SuperAdmin"
+      ? "Super Administrator"
+      : role === "PrintingAdmin"
+      ? "Printing Administrator"
+      : role || "User");
+
+  const initial =
+    displayName?.charAt(0)?.toUpperCase() || "U";
+
   return (
     <Box
       sx={{
@@ -57,29 +96,29 @@ export default function SuperAdminTopbar() {
       {/* Left Area */}
       <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
         <Box
-            component="img"
-            src="/arab-unity-logo.jpg"
-            alt="Arab Unity School Logo"
-            sx={{
+          component="img"
+          src="/arab-unity-logo.jpg"
+          alt="Arab Unity School Logo"
+          sx={{
             width: 100,
             height: 60,
             objectFit: "contain",
             bgcolor: "#fff",
             borderRadius: 2,
             p: 0.5,
-            }}
+          }}
         />
 
         <Box>
-            <Typography fontWeight={900} fontSize={18}>
-            Dashboard
-            </Typography>
+          <Typography fontWeight={900} fontSize={18}>
+            {context.title}
+          </Typography>
 
-            <Typography variant="caption" sx={{ opacity: 0.75 }}>
-            Super Admin Control Center
-            </Typography>
+          <Typography variant="caption" sx={{ opacity: 0.75 }}>
+            {context.subtitle}
+          </Typography>
         </Box>
-        </Box>
+      </Box>
 
       {/* Search */}
       <Box
@@ -149,22 +188,25 @@ export default function SuperAdminTopbar() {
           }}
         >
           <Avatar
-            src="/arab-unity-logo.png"
             sx={{
               width: 42,
               height: 42,
               bgcolor: "#fff",
+              color: "#061B52",
+              fontWeight: 900,
               border: "2px solid rgba(255,255,255,0.45)",
             }}
-          />
+          >
+            {initial}
+          </Avatar>
 
           <Box sx={{ display: { xs: "none", lg: "block" } }}>
             <Typography fontWeight={900} fontSize={13.5}>
-              Super Admin
+              {displayName}
             </Typography>
 
             <Typography variant="caption" sx={{ opacity: 0.75 }}>
-              Super Administrator
+              {displayRole}
             </Typography>
           </Box>
 

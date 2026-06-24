@@ -25,8 +25,8 @@
 import { Box } from "@mui/material";
 import { Outlet } from "react-router-dom";
 
-import SuperAdminSidebar from "./SuperAdminSidebar";
-import SuperAdminTopbar from "./SuperAdminTopbar";
+import SuperAdminSidebar from "./PlatformSidebar";
+import SuperAdminTopbar from "./PlatformTopbar";
 
 // ============================================
 // Layout Constants

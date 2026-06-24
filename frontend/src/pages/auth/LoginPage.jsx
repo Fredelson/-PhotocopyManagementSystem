@@ -86,7 +86,7 @@ export default function LoginPage() {
       // Super Admin
       // ========================================
       case "SuperAdmin":
-        navigate("/teacher/dashboard");
+        navigate("/super-admin/dashboard");
         break;
 
       // ========================================
