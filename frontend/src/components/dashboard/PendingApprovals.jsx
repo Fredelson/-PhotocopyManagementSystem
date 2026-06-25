@@ -12,7 +12,7 @@
 
 import Box from "@mui/material/Box";
 
-import DashboardCard from "../common/DashboardCard";
+import DashboardCard from "./DashboardCard";
 // NEW
 import ApprovalItem from "../widgets/ApprovalItem";
 

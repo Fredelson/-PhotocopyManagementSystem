@@ -12,7 +12,7 @@
 // ============================================
 
 import { Box, Typography, LinearProgress, Button } from "@mui/material";
-import DashboardCard from "../common/DashboardCard";
+import DashboardCard from "./DashboardCard";
 import { dashboardColors } from "../../theme/dashboardColors";
 
 // ============================================

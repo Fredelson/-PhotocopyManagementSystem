@@ -12,7 +12,7 @@
 import { Box, Typography } from "@mui/material";
 
 import PageHeader from "../../../components/common/PageHeader";
-import DashboardCard from "../../../components/common/DashboardCard";
+import { DashboardCard } from "../../../components/dashboard";
 
 export default function SuperAdminComingSoon({ title }) {
   return (

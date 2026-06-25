@@ -9,7 +9,7 @@
 // Can be reused later by IT Asset Management.
 // ============================================
 
-import ModuleStatusChart from "../../../components/dashboard/ModuleStatusChart";
+import { ModuleStatusChart } from "../../../components/charts";
 
 // ============================================
 // Component

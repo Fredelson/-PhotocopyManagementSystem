@@ -5,7 +5,7 @@
 
 import Box from "@mui/material/Box";
 
-import DashboardCard from "../common/DashboardCard";
+import DashboardCard from "./DashboardCard";
 import HealthItem from "../widgets/HealthItem";
 
 export default function SystemHealth({ items = [] }) {

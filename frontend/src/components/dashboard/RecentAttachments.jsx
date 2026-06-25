@@ -1,8 +1,20 @@
 // ============================================
 // ARAB UNITY SCHOOL
-// Photocopy Management System
-// Teacher Dashboard
-// Recent Attachments Component
+// Operations Platform
+// Reusable Recent Attachments Component
+//
+// Purpose:
+// Displays recently uploaded attachments.
+//
+// Reusable:
+// - Teacher Dashboard
+// - Printing Admin Dashboard
+// - Super Admin Dashboard
+// - Future modules
+//
+// Notes:
+// - Data is passed from the parent page.
+// - No hardcoded imports.
 // ============================================
 
 import {
@@ -21,41 +33,86 @@ import ImageIcon from "@mui/icons-material/Image";
 import SlideshowIcon from "@mui/icons-material/Slideshow";
 import DownloadIcon from "@mui/icons-material/Download";
 
-import { recentAttachmentsData } from "../../data/dashboardData";
+import { dashboardColors } from "../../theme/dashboardColors";
 
 // ============================================
 // File Icon Helper
-// Returns icon based on file type
+//
+// Returns the correct icon based on file type.
 // ============================================
 
 const getFileIcon = (type) => {
-  switch (type) {
+  switch (type?.toUpperCase()) {
     case "PDF":
-      return <PictureAsPdfIcon color="error" />;
+      return (
+        <PictureAsPdfIcon
+          sx={{ color: dashboardColors.danger }}
+        />
+      );
+
+    case "DOC":
     case "DOCX":
-      return <DescriptionIcon color="primary" />;
+      return (
+        <DescriptionIcon
+          sx={{ color: dashboardColors.info }}
+        />
+      );
+
     case "PNG":
     case "JPG":
     case "JPEG":
-      return <ImageIcon color="success" />;
+      return (
+        <ImageIcon
+          sx={{ color: dashboardColors.success }}
+        />
+      );
+
+    case "PPT":
     case "PPTX":
-      return <SlideshowIcon color="warning" />;
+      return (
+        <SlideshowIcon
+          sx={{ color: dashboardColors.warning }}
+        />
+      );
+
     default:
-      return <DescriptionIcon />;
+      return (
+        <DescriptionIcon
+          sx={{ color: dashboardColors.textSecondary }}
+        />
+      );
   }
 };
 
-export default function RecentAttachments() {
+// ============================================
+// Component
+// ============================================
+
+export default function RecentAttachments({
+  items = [],
+  title = "Recent Attachments",
+  showViewAll = true,
+  onViewAll,
+}) {
   return (
     <Card
       sx={{
         borderRadius: 4,
-        boxShadow: "0 8px 25px rgba(0,0,0,0.08)",
+        border: `1px solid ${dashboardColors.border}`,
+        background: `linear-gradient(
+          180deg,
+          ${dashboardColors.cardBackground} 0%,
+          ${dashboardColors.background} 100%
+        )`,
+        boxShadow: `0 14px 35px ${dashboardColors.shadow}`,
         height: "100%",
       }}
     >
-      <CardContent>
-        {/* Header */}
+      <CardContent sx={{ p: 2.5 }}>
+        {/* ==========================================
+            Header
+        ========================================== */}
+
         <Box
           sx={{
             display: "flex",
@@ -64,18 +121,49 @@ export default function RecentAttachments() {
             mb: 2,
           }}
         >
-          <Typography variant="h6" fontWeight={700}>
-            Recent Attachments
+          <Typography
+            sx={{
+              fontSize: 16,
+              fontWeight: 900,
+              color: dashboardColors.navy,
+            }}
+          >
+            {title}
           </Typography>
 
-          <Button size="small" variant="outlined">
-            View All
-          </Button>
+          {showViewAll && (
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={onViewAll}
+            >
+              View All
+            </Button>
+          )}
         </Box>
 
-        {/* Attachment List */}
-        {recentAttachmentsData.map((file, index) => (
-          <Box key={file.id}>
+        {/* ==========================================
+            Empty State
+        ========================================== */}
+
+        {items.length === 0 && (
+          <Typography
+            sx={{
+              textAlign: "center",
+              color: dashboardColors.textSecondary,
+              py: 4,
+            }}
+          >
+            No attachments found.
+          </Typography>
+        )}
+
+        {/* ==========================================
+            Attachment List
+        ========================================== */}
+
+        {items.map((file, index) => (
+          <Box key={file.id ?? index}>
             <Box
               sx={{
                 display: "flex",
@@ -92,7 +180,8 @@ export default function RecentAttachments() {
                 py: 1.5,
               }}
             >
-              {/* File Info */}
+              {/* File Information */}
+
               <Box
                 sx={{
                   display: "flex",
@@ -104,27 +193,52 @@ export default function RecentAttachments() {
                 {getFileIcon(file.type)}
 
                 <Box sx={{ minWidth: 0 }}>
-                  <Typography fontWeight={700} noWrap>
+                  <Typography
+                    noWrap
+                    sx={{
+                      fontWeight: 700,
+                      color: dashboardColors.textPrimary,
+                    }}
+                  >
                     {file.name}
                   </Typography>
 
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography
+                    sx={{
+                      fontSize: 13,
+                      color: dashboardColors.textSecondary,
+                    }}
+                  >
                     {file.size} • {file.uploadedDate}
                   </Typography>
                 </Box>
               </Box>
 
               {/* File Actions */}
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                <Chip label={file.type} size="small" variant="outlined" />
 
-                <Button size="small" startIcon={<DownloadIcon />}>
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
+                }}
+              >
+                <Chip
+                  label={file.type}
+                  size="small"
+                  variant="outlined"
+                />
+
+                <Button
+                  size="small"
+                  startIcon={<DownloadIcon />}
+                >
                   Download
                 </Button>
               </Box>
             </Box>
 
-            {index !== recentAttachmentsData.length - 1 && <Divider />}
+            {index !== items.length - 1 && <Divider />}
           </Box>
         ))}
       </CardContent>

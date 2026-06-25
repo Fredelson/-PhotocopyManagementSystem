@@ -35,7 +35,7 @@ import {
 } from "@mui/icons-material";
 
 import KpiGrid from "../../components/common/KpiGrid";
-import DashboardCard from "../../components/dashboard/DashboardCard";
+import { DashboardCard } from "../../components/dashboard";
 
 
 

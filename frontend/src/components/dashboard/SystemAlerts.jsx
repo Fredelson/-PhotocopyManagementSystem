@@ -11,20 +11,15 @@
 
 import { Box } from "@mui/material";
 
-import DashboardSection from "../../../components/dashboard/DashboardSection";
-import AlertItem from "./AlertItem";
+import { DashboardSection } from "../layout";
+import { AlertItem } from "../widgets";
 
-export default function SystemAlerts({
-  items = [],
-}) {
+export default function SystemAlerts({ items = [] }) {
   return (
     <DashboardSection title="System Alerts">
       <Box>
         {items.map((alert, index) => (
-          <AlertItem
-            key={index}
-            {...alert}
-          />
+          <AlertItem key={index} {...alert} />
         ))}
       </Box>
     </DashboardSection>

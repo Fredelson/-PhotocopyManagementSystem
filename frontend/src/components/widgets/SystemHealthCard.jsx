@@ -7,10 +7,10 @@
 // platform services.
 //
 // Reusable:
-// Super Admin
-// IT Management
-// Asset Management
-// Future Modules
+// - Super Admin
+// - IT Management
+// - Asset Management
+// - Future Modules
 // ============================================
 
 import {
@@ -22,13 +22,18 @@ import {
   Typography,
 } from "@mui/material";
 
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import ErrorOutlineOutlinedIcon from "@mui/icons-material/ErrorOutlineOutlined";
+
 import { dashboardColors } from "../../theme/dashboardColors";
 
 // ============================================
 // Status Config
+//
+// Important:
+// Uses dashboardColors only.
+// No hardcoded colors.
 // ============================================
 
 const STATUS_CONFIG = {
@@ -36,7 +41,7 @@ const STATUS_CONFIG = {
     label: "Healthy",
     color: dashboardColors.success,
     background: dashboardColors.successLight,
-    icon: <CheckCircleOutlineIcon fontSize="small" />,
+    icon: <CheckCircleOutlineOutlinedIcon fontSize="small" />,
   },
 
   warning: {
@@ -101,8 +106,7 @@ export default function SystemHealthCard({
         <Stack spacing={2}>
           {data.map((item) => {
             const config =
-              STATUS_CONFIG[item.status] ||
-              STATUS_CONFIG.healthy;
+              STATUS_CONFIG[item.status] || STATUS_CONFIG.healthy;
 
             return (
               <Box
@@ -114,14 +118,11 @@ export default function SystemHealthCard({
                   p: 1.5,
                   borderRadius: 3,
                   border: `1px solid ${dashboardColors.border}`,
+                  backgroundColor: dashboardColors.cardBackground,
                 }}
               >
-                {/* Left */}
-                <Stack
-                  direction="row"
-                  spacing={1.5}
-                  alignItems="center"
-                >
+                {/* Left Side */}
+                <Stack direction="row" spacing={1.5} alignItems="center">
                   <Box
                     sx={{
                       width: 36,
@@ -159,7 +160,7 @@ export default function SystemHealthCard({
                   </Box>
                 </Stack>
 
-                {/* Right */}
+                {/* Right Side Status */}
                 <Chip
                   label={config.label}
                   size="small"

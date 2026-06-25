@@ -1,8 +1,21 @@
 // ============================================
 // ARAB UNITY SCHOOL
-// Photocopy Management System
-// Teacher Dashboard
-// Attachment Summary Component
+// Operations Platform
+// Reusable Attachment Summary Component
+//
+// Purpose:
+// Displays attachment statistics.
+//
+// Reusable:
+// - Teacher Dashboard
+// - HOD Dashboard
+// - HOS Dashboard
+// - Printing Admin Dashboard
+// - Super Admin Dashboard
+//
+// Notes:
+// - Data is supplied by the parent page.
+// - No direct dashboard data imports.
 // ============================================
 
 import {
@@ -18,11 +31,10 @@ import ImageIcon from "@mui/icons-material/Image";
 import DownloadIcon from "@mui/icons-material/Download";
 import StorageIcon from "@mui/icons-material/Storage";
 
-import { attachmentSummaryData } from "../../data/dashboardData";
+import { dashboardColors } from "../../theme/dashboardColors";
 
 // ============================================
-// Icon Helper
-// Matches summary item title with an icon
+// Returns icon based on summary title
 // ============================================
 
 const getSummaryIcon = (title) => {
@@ -30,30 +42,54 @@ const getSummaryIcon = (title) => {
   if (title.includes("Images")) return <ImageIcon />;
   if (title.includes("Downloads")) return <DownloadIcon />;
   if (title.includes("Storage")) return <StorageIcon />;
+
   return <InsertDriveFileIcon />;
 };
 
 // ============================================
-// Attachment Summary Component
+// Component
 // ============================================
 
-export default function AttachmentSummary() {
+export default function AttachmentSummary({
+  items = [],
+  storageUsage = 0,
+  title = "Attachment Summary",
+}) {
   return (
     <Card
       sx={{
         borderRadius: 4,
-        boxShadow: "0 8px 25px rgba(0,0,0,0.08)",
+        border: `1px solid ${dashboardColors.border}`,
+        background: `linear-gradient(
+          180deg,
+          ${dashboardColors.cardBackground} 0%,
+          ${dashboardColors.background} 100%
+        )`,
+        boxShadow: `0 14px 35px ${dashboardColors.shadow}`,
         height: "100%",
       }}
     >
-      <CardContent>
-        {/* Section Title */}
-        <Typography variant="h6" fontWeight={700} mb={3}>
-          Attachment Summary
+      <CardContent sx={{ p: 2.5 }}>
+        {/* ==========================================
+            Header
+        ========================================== */}
+
+        <Typography
+          sx={{
+            fontSize: 16,
+            fontWeight: 900,
+            color: dashboardColors.navy,
+            mb: 3,
+          }}
+        >
+          {title}
         </Typography>
 
-        {/* Summary Items */}
-        {attachmentSummaryData.map((item) => (
+        {/* ==========================================
+            Summary Items
+        ========================================== */}
+
+        {items.map((item) => (
           <Box
             key={item.title}
             sx={{
@@ -63,13 +99,20 @@ export default function AttachmentSummary() {
               mb: 2.5,
             }}
           >
-            {/* Left Side: Icon + Title */}
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+            {/* Left Side */}
+
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1.5,
+              }}
+            >
               <Box
                 sx={{
                   width: 36,
                   height: 36,
-                  borderRadius: "12px",
+                  borderRadius: 3,
                   backgroundColor: `${item.color}15`,
                   color: item.color,
                   display: "flex",
@@ -80,19 +123,35 @@ export default function AttachmentSummary() {
                 {getSummaryIcon(item.title)}
               </Box>
 
-              <Typography fontSize={14} fontWeight={600}>
+              <Typography
+                sx={{
+                  fontSize: 14,
+                  fontWeight: 700,
+                  color: dashboardColors.textPrimary,
+                }}
+              >
                 {item.title}
               </Typography>
             </Box>
 
-            {/* Right Side: Value */}
-            <Typography fontSize={14} fontWeight={800}>
+            {/* Right Side */}
+
+            <Typography
+              sx={{
+                fontSize: 14,
+                fontWeight: 800,
+                color: dashboardColors.textPrimary,
+              }}
+            >
               {item.value}
             </Typography>
           </Box>
         ))}
 
-        {/* Storage Progress Bar */}
+        {/* ==========================================
+            Storage Usage
+        ========================================== */}
+
         <Box sx={{ mt: 2 }}>
           <Box
             sx={{
@@ -101,26 +160,37 @@ export default function AttachmentSummary() {
               mb: 1,
             }}
           >
-            <Typography variant="body2" color="text.secondary">
+            <Typography
+              sx={{
+                fontSize: 13,
+                color: dashboardColors.textSecondary,
+              }}
+            >
               Storage Usage
             </Typography>
 
-            <Typography variant="body2" fontWeight={700}>
-              24%
+            <Typography
+              sx={{
+                fontSize: 13,
+                fontWeight: 700,
+                color: dashboardColors.textPrimary,
+              }}
+            >
+              {storageUsage}%
             </Typography>
           </Box>
 
           <LinearProgress
             variant="determinate"
-            value={24}
+            value={storageUsage}
             sx={{
               height: 8,
               borderRadius: 5,
-              backgroundColor: "#E5E7EB",
+              backgroundColor: dashboardColors.border,
 
               "& .MuiLinearProgress-bar": {
                 borderRadius: 5,
-                backgroundColor: "#2563EB",
+                backgroundColor: dashboardColors.info,
               },
             }}
           />

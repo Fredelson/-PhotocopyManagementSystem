@@ -16,7 +16,7 @@
 import { Box, Typography, LinearProgress } from "@mui/material";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 
-import DashboardCard from "../../../components/common/DashboardCard";
+import { DashboardCard } from "../../../components/dashboard";
 import { dashboardColors } from "../../../theme/dashboardColors";
 
 // ============================================

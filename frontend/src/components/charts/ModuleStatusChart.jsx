@@ -19,7 +19,7 @@ import {
   Tooltip,
 } from "recharts";
 
-import DashboardCard from "../common/DashboardCard";
+import DashboardCard from "../dashboard/DashboardCard";
 import { dashboardColors } from "../../theme/dashboardColors";
 
 // ============================================

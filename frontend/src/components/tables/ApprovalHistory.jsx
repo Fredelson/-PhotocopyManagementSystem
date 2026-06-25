@@ -9,7 +9,7 @@
 import { Box, Chip, Typography } from "@mui/material";
 
 // Reusable Dashboard Card
-import DashboardCard from "../common/DashboardCard";
+import DashboardCard from "../dashboard/DashboardCard";
 
 // ============================================
 // Component
