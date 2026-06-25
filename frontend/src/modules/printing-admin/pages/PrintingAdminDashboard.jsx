@@ -22,7 +22,7 @@ import { Box } from "@mui/material";
 
 import PageHeader from "../../../components/common/PageHeader";
 
-import DashboardKpis from "../../../components/dashboard/DashboardKpis";
+import KpiGrid from "../../../components/common/KpiGrid";
 import DashboardMiddleRow from "../../../components/layout/DashboardMiddleRow";
 import TopPrintRequests from "../../../components/dashboard/TopPrintRequests";
 import ModuleStatusChart from "../../../components/charts/ModuleStatusChart";
@@ -116,7 +116,7 @@ export default function PrintingAdminDashboard() {
       />
 
       {/* KPI Cards */}
-      <DashboardKpis stats={dashboardData.stats} />
+      <KpiGrid stats={dashboardData.stats} />
 
       {/* 
         Main Analytics Row:

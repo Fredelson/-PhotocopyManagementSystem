@@ -11,23 +11,23 @@
 
 import { Box, Typography } from "@mui/material";
 
-import SuperAdminPageHeader from "../../../components/superadmin/SuperAdminPageHeader";
-import SuperAdminDashboardCard from "../../../components/superadmin/SuperAdminDashboardCard";
+import PageHeader from "../../../components/common/PageHeader";
+import DashboardCard from "../../../components/common/DashboardCard";
 
 export default function SuperAdminComingSoon({ title }) {
   return (
     <Box>
-      <SuperAdminPageHeader
+      <PageHeader
         title={title}
         subtitle="This module is planned for the AUS Operations Platform."
       />
 
-      <SuperAdminDashboardCard title="Coming Soon">
+      <DashboardCard title="Coming Soon">
         <Typography variant="body2" color="text.secondary">
           This page is currently a placeholder. Later, this module will be
           connected to backend permissions, reports, workflows, and live data.
         </Typography>
-      </SuperAdminDashboardCard>
+      </DashboardCard>
     </Box>
   );
 }

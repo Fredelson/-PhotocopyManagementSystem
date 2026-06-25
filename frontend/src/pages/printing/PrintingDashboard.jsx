@@ -34,7 +34,7 @@ import {
   CheckCircle,
 } from "@mui/icons-material";
 
-import KPIGrid from "../../components/dashboard/KPIGrid";
+import KpiGrid from "../../components/common/KpiGrid";
 import DashboardCard from "../../components/dashboard/DashboardCard";
 
 

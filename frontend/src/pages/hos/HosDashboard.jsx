@@ -27,7 +27,7 @@ import {
 } from "@mui/icons-material";
 
 // Dashboard
-import KPIGrid from "../../components/dashboard/KPIGrid";
+import KpiGrid from "../../components/common/KpiGrid";
 
 // Charts
 import HodApprovalTrend from "../../components/charts/HodApprovalTrend";
@@ -51,6 +51,7 @@ import {
   approveHosRequest,
   rejectHosRequest,
 } from "../../services/hosService";
+
 export default function HosDashboard() {
   const { user } = useAuth();
 

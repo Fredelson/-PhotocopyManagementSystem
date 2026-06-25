@@ -13,7 +13,7 @@
 import { Box } from "@mui/material";
 
 import AllModules from "../../../components/dashboard/AllModules";
-import DashboardKpis from "../../../components/dashboard/DashboardKpis";
+import KpiGrid from "../../../components/common/KpiGrid";
 import DashboardHeader from "../../../components/layout/DashboardHeader";
 import DashboardMiddleRow from "../../../components/layout/DashboardMiddleRow";
 import DashboardBottomRow from "../../../components/layout/DashboardBottomRow";
@@ -48,7 +48,7 @@ export default function SuperAdminDashboard() {
       <DashboardHeader />
 
       {/* KPI Cards */}
-      <DashboardKpis stats={dashboardStats} />
+      <KpiGrid stats={dashboardStats} />
 
       {/* 
         Middle Row:

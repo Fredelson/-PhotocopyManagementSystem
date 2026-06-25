@@ -22,7 +22,7 @@ import PageHeader from "../../components/common/PageHeader";
 import DateFilter from "../../components/common/DateFilter";
 import Topbar from "../../components/common/Topbar";
 
-import KPIGrid from "../../components/dashboard/KPIGrid";
+import KpiGrid from "../../components/common/KpiGrid";
 
 import HodApprovalTrend from "../../components/charts/HodApprovalTrend";
 import DepartmentDistributionChart from "../../components/charts/DepartmentDistributionChart";
@@ -430,7 +430,7 @@ export default function HodDashboard() {
       ) : (
         <>
           {/* KPI Cards */}
-          <KPIGrid stats={hodDashboardStats} icons={icons} />
+          <KpiGrid stats={hodDashboardStats} icons={icons} />
 
           {/* Charts Grid */}
           <Box
