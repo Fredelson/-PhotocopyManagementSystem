@@ -6,7 +6,7 @@
 import { Avatar, Box, Typography } from "@mui/material";
 import HistoryIcon from "@mui/icons-material/History";
 
-import { dashboardColors } from "../../../../theme/dashboardColors";
+import { dashboardColors } from "../../theme/dashboardColors";
 
 export default function ActivityItem({ title, description, time }) {
   return (

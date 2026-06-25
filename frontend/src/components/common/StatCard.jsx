@@ -1,63 +1,111 @@
 // ============================================
 // ARAB UNITY SCHOOL
-// Reusable Modern KPI / Stat Card
+// Reusable KPI Card
 //
-// Purpose:
-// Displays KPI numbers across dashboards.
+// Supports:
+// 1. Static frontend icon component
+//    icon: PrintOutlinedIcon
 //
-// Used By:
-// - Teacher
-// - HOD
-// - HOS
-// - Printing Admin
-// - Super Admin
-// - Admin
+// 2. Backend icon key
+//    icon: "printing"
 // ============================================
 
-import { Card, CardContent, Box, Typography } from "@mui/material";
+import { Card, CardContent, Box, Typography, Avatar } from "@mui/material";
+
+import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
+import PrintOutlinedIcon from "@mui/icons-material/PrintOutlined";
+import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
+import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
+import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
+import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
+import PersonOutlinedIcon from "@mui/icons-material/PersonOutlined";
+
 import { dashboardColors } from "../../theme/dashboardColors";
+
+// ============================================
+// Backend Icon Key Map
+// ============================================
+
+const KPI_ICON_MAP = {
+  pending: AssignmentOutlinedIcon,
+  printing: PrintOutlinedIcon,
+  completed: CheckCircleOutlineOutlinedIcon,
+  calendar: CalendarMonthOutlinedIcon,
+  inventory: Inventory2OutlinedIcon,
+  warning: WarningAmberOutlinedIcon,
+};
 
 export default function StatCard({
   title,
   value,
+  change,
+  changeLabel,
+  status,
+  subtitle,
   icon,
-  color = dashboardColors.info,
+  color = dashboardColors.success,
 }) {
+  const isNegative = String(change || status || "").startsWith("-");
+
+  // Supports icon component OR backend string key
+  const Icon =
+    typeof icon === "string"
+      ? KPI_ICON_MAP[icon] || PersonOutlinedIcon
+      : icon || PersonOutlinedIcon;
+
   return (
     <Card
       sx={{
-        borderRadius: 5,
-        background: `linear-gradient(135deg, ${dashboardColors.cardBackground} 0%, ${dashboardColors.background} 100%)`,
+        height: 112,
+        minWidth: 0,
+        borderRadius: 3,
         border: `1px solid ${dashboardColors.border}`,
-        boxShadow: `0 10px 30px ${dashboardColors.shadow}`,
-        transition: "all 0.25s ease",
+        background: dashboardColors.cardBackground,
+        boxShadow: `0 10px 26px ${dashboardColors.shadow}`,
         overflow: "hidden",
-
-        "&:hover": {
-          transform: "translateY(-4px)",
-          boxShadow: "0 20px 40px rgba(15,23,42,0.12)",
-        },
       }}
     >
-      <CardContent sx={{ p: 3 }}>
-        {/* Top Row: KPI text + icon */}
+      <CardContent
+        sx={{
+          height: "100%",
+          p: 1.75,
+          "&:last-child": {
+            pb: 1.75,
+          },
+        }}
+      >
         <Box
           sx={{
+            height: "100%",
             display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
-            gap: 2,
+            alignItems: "center",
+            gap: 1.5,
+            minWidth: 0,
           }}
         >
-          {/* KPI Text */}
-          <Box>
+          <Avatar
+            sx={{
+              width: 44,
+              height: 44,
+              bgcolor: color,
+              color: "#ffffff",
+              boxShadow: `0 8px 18px ${color}30`,
+              flexShrink: 0,
+            }}
+          >
+            <Icon sx={{ fontSize: 22 }} />
+          </Avatar>
+
+          <Box sx={{ minWidth: 0 }}>
             <Typography
+              variant="body2"
               sx={{
-                fontSize: 13,
-                fontWeight: 700,
-                color: dashboardColors.textSecondary,
-                textTransform: "uppercase",
-                letterSpacing: 0.5,
+                fontWeight: 800,
+                color: dashboardColors.textPrimary,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                fontSize: "0.82rem",
               }}
             >
               {title}
@@ -65,56 +113,51 @@ export default function StatCard({
 
             <Typography
               sx={{
-                mt: 1.5,
-                fontSize: 34,
                 fontWeight: 900,
                 color: dashboardColors.textPrimary,
-                lineHeight: 1,
+                lineHeight: 1.05,
+                fontSize: {
+                  xs: "1.45rem",
+                  md: "1.55rem",
+                },
               }}
             >
               {value}
             </Typography>
+
+            {(change || status) && (
+              <Typography
+                sx={{
+                  fontSize: "0.78rem",
+                  fontWeight: 800,
+                  color: isNegative
+                    ? dashboardColors.danger
+                    : dashboardColors.success,
+                  lineHeight: 1.1,
+                  mt: 0.3,
+                }}
+              >
+                {isNegative ? "↓" : "↑"} {change || status}
+              </Typography>
+            )}
+
+            {(changeLabel || subtitle) && (
+              <Typography
+                variant="caption"
+                sx={{
+                  display: "block",
+                  color: dashboardColors.textSecondary,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  lineHeight: 1.1,
+                  mt: 0.2,
+                }}
+              >
+                {changeLabel || subtitle}
+              </Typography>
+            )}
           </Box>
-
-          {/* Icon Container */}
-          <Box
-            sx={{
-              width: 58,
-              height: 58,
-              borderRadius: 4,
-              bgcolor: `${color}15`,
-              color,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-
-              "& svg": {
-                fontSize: 30,
-              },
-            }}
-          >
-            {icon}
-          </Box>
-        </Box>
-
-        {/* Bottom Accent Line */}
-        <Box
-          sx={{
-            mt: 3,
-            height: 5,
-            borderRadius: 999,
-            bgcolor: `${color}30`,
-            overflow: "hidden",
-          }}
-        >
-          <Box
-            sx={{
-              width: "100%",
-              height: "100%",
-              bgcolor: color,
-            }}
-          />
         </Box>
       </CardContent>
     </Card>

@@ -6,7 +6,7 @@
 // ============================================
 
 import { Box } from "@mui/material";
-import DashboardCard from "./DashboardCard";
+import DashboardCard from "../common/DashboardCard";
 
 export default function DataTableCard({
   title,

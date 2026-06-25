@@ -12,11 +12,11 @@
 
 import { Box } from "@mui/material";
 
-import DashboardHeader from "../components/dashboard/DashboardHeader";
-import DashboardKpis from "../components/dashboard/DashboardKpis";
-import DashboardMiddleRow from "../components/dashboard/DashboardMiddleRow";
-import AllModules from "../components/dashboard/AllModules";
-import DashboardBottomRow from "../components/dashboard/DashboardBottomRow";
+import AllModules from "../../../components/dashboard/AllModules";
+import DashboardHeader from "../../../components/dashboard/DashboardHeader";
+import DashboardKpis from "../../../components/dashboard/DashboardKpis";
+import DashboardMiddleRow from "../../../components/dashboard/DashboardMiddleRow";
+import DashboardBottomRow from "../../../components/dashboard/DashboardBottomRow";
 
 import {
   dashboardStats,

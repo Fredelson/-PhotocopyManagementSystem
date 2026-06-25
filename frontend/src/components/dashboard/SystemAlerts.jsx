@@ -11,7 +11,7 @@
 
 import { Box } from "@mui/material";
 
-import DashboardSection from "./DashboardSection";
+import DashboardSection from "../../../components/dashboard/DashboardSection";
 import AlertItem from "./AlertItem";
 
 export default function SystemAlerts({

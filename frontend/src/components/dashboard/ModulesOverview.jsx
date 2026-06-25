@@ -19,7 +19,7 @@
 
 import { Grid } from "@mui/material";
 
-import DashboardCard from "./DashboardCard";
+import DashboardCard from "../common/DashboardCard";
 import ModuleCard from "./ModuleCard";
 
 // ============================================

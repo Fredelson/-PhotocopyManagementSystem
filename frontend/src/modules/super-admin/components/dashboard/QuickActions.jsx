@@ -3,7 +3,7 @@
 // ============================================
 
 import { Grid, Button } from "@mui/material";
-import DashboardCard from "./DashboardCard";
+import DashboardCard from "../common/DashboardCard";
 
 export default function QuickActions({ actions }) {
   return (

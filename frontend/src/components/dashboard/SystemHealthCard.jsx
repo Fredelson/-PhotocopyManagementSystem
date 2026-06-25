@@ -25,7 +25,7 @@ import {
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import ErrorOutlineOutlinedIcon from "@mui/icons-material/ErrorOutlineOutlined";
-import { dashboardColors } from "../../../../theme/dashboardColors";
+import { dashboardColors } from "../../theme/dashboardColors";
 
 // ============================================
 // Status Config

@@ -14,7 +14,7 @@ import {
   TableRow,
 } from "@mui/material";
 
-import DashboardCard from "./DashboardCard";
+import DashboardCard from "../common/DashboardCard";
 
 export default function HodPendingRequestsTable({ requests = [], onReview }) {
   return (

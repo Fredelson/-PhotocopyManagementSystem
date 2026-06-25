@@ -19,8 +19,8 @@ import {
   Tooltip,
 } from "recharts";
 
-import DashboardCard from "./DashboardCard";
-import { dashboardColors } from "../../../../theme/dashboardColors";
+import DashboardCard from "../common/DashboardCard";
+import { dashboardColors } from "../../theme/dashboardColors";
 
 // ============================================
 // Status Colors

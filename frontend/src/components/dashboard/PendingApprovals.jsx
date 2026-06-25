@@ -12,7 +12,7 @@
 
 import Box from "@mui/material/Box";
 
-import DashboardCard from "./DashboardCard";
+import DashboardCard from "../common/DashboardCard";
 import ApprovalItem from "./ApprovalItem";
 
 export default function PendingApprovals({

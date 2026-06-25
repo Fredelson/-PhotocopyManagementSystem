@@ -6,7 +6,7 @@
 // ============================================
 
 import { Box } from "@mui/material";
-import StatCard from "./StatCard";
+import StatCard from "../common/StatCard";
 
 export default function KPIGrid({ stats = [], icons = [] }) {
   return (

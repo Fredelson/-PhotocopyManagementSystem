@@ -1,7 +1,8 @@
 // DashboardKpis.jsx
 
 import { Box } from "@mui/material";
-import StatCard from "./StatCard";
+// NEW
+import StatCard from "../common/StatCard";
 
 export default function DashboardKpis({ stats = [] }) {
   return (

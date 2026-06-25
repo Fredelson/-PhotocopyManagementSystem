@@ -12,7 +12,7 @@ import {
 } from "@mui/material";
 
 // Reusable Dashboard Card
-import DashboardCard from "./DashboardCard";
+import DashboardCard from "../common/DashboardCard";
 
 // ============================================
 // Component
