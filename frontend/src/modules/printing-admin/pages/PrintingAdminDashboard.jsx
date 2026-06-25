@@ -12,8 +12,12 @@
 // Architecture:
 // Reuses Super Admin dashboard components
 // and adds printing-specific widgets.
+//
+// Backend:
+// GET /api/printing/dashboard
 // ============================================
 
+import { useEffect, useState } from "react";
 import { Box } from "@mui/material";
 
 import PageHeader from "../../../components/common/PageHeader";
@@ -25,6 +29,8 @@ import ModuleStatusChart from "../../super-admin/components/dashboard/ModuleStat
 import PendingApprovals from "../../super-admin/components/dashboard/PendingApprovals";
 
 import InventorySummaryCard from "../components/InventorySummaryCard";
+
+import { getPrintingDashboard } from "../../../services/printingService";
 
 import {
   printingDashboardStats,
@@ -43,6 +49,54 @@ import {
 // ============================================
 
 export default function PrintingAdminDashboard() {
+  const [dashboardData, setDashboardData] = useState({
+    stats: printingDashboardStats,
+    printActivity: printActivityData,
+    jobStatus: printJobStatus,
+    inventoryHealth,
+    recentJobs: recentPrintJobs,
+    topDepartments: topPrintingDepartments,
+    paperUsage: paperUsageStatus,
+    pendingActions: printingPendingActions,
+    inventorySummary: paperInventorySummary,
+  });
+
+  const [loading, setLoading] = useState(false);
+
+  // ============================================
+  // Load Dashboard Data
+  // Uses backend data when available.
+  // Falls back to static demo data if backend fails.
+  // ============================================
+
+  useEffect(() => {
+    const loadDashboard = async () => {
+      try {
+        setLoading(true);
+
+        const data = await getPrintingDashboard();
+
+        setDashboardData({
+          stats: data?.stats || printingDashboardStats,
+          printActivity: data?.printActivity || printActivityData,
+          jobStatus: data?.jobStatus || printJobStatus,
+          inventoryHealth: data?.inventoryHealth || inventoryHealth,
+          recentJobs: data?.recentJobs || recentPrintJobs,
+          topDepartments: data?.topDepartments || topPrintingDepartments,
+          paperUsage: data?.paperUsage || paperUsageStatus,
+          pendingActions: data?.pendingActions || printingPendingActions,
+          inventorySummary: data?.inventorySummary || paperInventorySummary,
+        });
+      } catch (error) {
+        console.error("Failed to load printing dashboard:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDashboard();
+  }, []);
+
   return (
     <Box
       sx={{
@@ -54,21 +108,25 @@ export default function PrintingAdminDashboard() {
       {/* Page Header */}
       <PageHeader
         title="Printing Management"
-        subtitle="Manage print jobs, paper inventory, usage, and operational alerts"
+        subtitle={
+          loading
+            ? "Loading dashboard data..."
+            : "Manage print jobs, paper inventory, usage, and operational alerts"
+        }
       />
 
       {/* KPI Cards */}
-      <DashboardKpis stats={printingDashboardStats} />
+      <DashboardKpis stats={dashboardData.stats} />
 
       {/* 
         Main Analytics Row:
         Print Activity | Job Status | Inventory Health | Recent Print Jobs
       */}
       <DashboardMiddleRow
-        platformActivityData={printActivityData}
-        moduleStatusData={printJobStatus}
-        systemHealthData={inventoryHealth}
-        recentActivityData={recentPrintJobs}
+        platformActivityData={dashboardData.printActivity}
+        moduleStatusData={dashboardData.jobStatus}
+        systemHealthData={dashboardData.inventoryHealth}
+        recentActivityData={dashboardData.recentJobs}
       />
 
       {/* 
@@ -92,24 +150,24 @@ export default function PrintingAdminDashboard() {
         <TopPrintRequests
           title="Top Departments"
           subtitle="This Month"
-          items={topPrintingDepartments}
+          items={dashboardData.topDepartments}
         />
 
         {/* Paper Usage */}
         <ModuleStatusChart
           title="Paper Usage"
           subtitle="Current paper consumption"
-          data={paperUsageStatus}
+          data={dashboardData.paperUsage}
         />
 
         {/* Inventory Summary */}
-        <InventorySummaryCard items={paperInventorySummary} />
+        <InventorySummaryCard items={dashboardData.inventorySummary} />
 
         {/* Inventory Alerts */}
         <PendingApprovals
           title="Inventory Alerts"
           subtitle="Items requiring attention"
-          items={printingPendingActions}
+          items={dashboardData.pendingActions}
         />
       </Box>
     </Box>

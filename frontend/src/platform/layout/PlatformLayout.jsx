@@ -4,80 +4,133 @@
 // Super Admin Layout
 //
 // Purpose:
-// Provides one shared layout for all Super Admin pages.
+// Shared responsive layout for all Super Admin pages.
 //
-// Layout:
-// - Topbar stays fixed at the top
-// - Sidebar stays fixed below the topbar
-// - Content starts beside the sidebar and below the topbar
+// Layout Behavior:
+// - Desktop:
+//   Fixed topbar + fixed sidebar.
+//   Content starts beside the sidebar and below the topbar.
 //
-// Important:
-// This layout controls spacing for ALL Super Admin pages.
-// If spacing is wrong here, Dashboard, Module Manager,
-// Menu Manager, Button Manager, Widget Manager, etc.
-// will all look wrong.
+// - Tablet / Mobile:
+//   Fixed topbar only.
+//   Sidebar becomes a drawer opened by hamburger button.
+//   Content uses full width and starts below the topbar.
 // ============================================
 
-// ============================================
-// Imports
-// ============================================
-
-import { Box } from "@mui/material";
+import { useState } from "react";
+import { Box, Drawer, useMediaQuery } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import { Outlet } from "react-router-dom";
 
-import SuperAdminSidebar from "./PlatformSidebar";
-import SuperAdminTopbar from "./PlatformTopbar";
+import PlatformSidebar from "./PlatformSidebar";
+import PlatformTopbar from "./PlatformTopbar";
 
 // ============================================
 // Layout Constants
 // ============================================
 
-// Matches the approved dashboard reference width
 const SIDEBAR_WIDTH = 340;
-
-// Fixed topbar height
+const MOBILE_SIDEBAR_WIDTH = 300;
 const TOPBAR_HEIGHT = 78;
 
 // ============================================
-// Super Admin Layout Component
+// Component
 // ============================================
 
 export default function SuperAdminLayout() {
+  const theme = useTheme();
+
+  // Desktop starts at lg and above.
+  const isDesktop = useMediaQuery(theme.breakpoints.up("lg"));
+
+  // Controls mobile/tablet drawer.
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Opens mobile sidebar drawer.
+  const handleOpenMobileSidebar = () => {
+    setMobileOpen(true);
+  };
+
+  // Closes mobile sidebar drawer.
+  const handleCloseMobileSidebar = () => {
+    setMobileOpen(false);
+  };
+
   return (
     <Box
       sx={{
         minHeight: "100vh",
         bgcolor: "#f8fafc",
+
+        // Prevent horizontal scrolling from layout itself.
+        overflowX: "hidden",
       }}
     >
       {/* Fixed Topbar */}
-      <SuperAdminTopbar height={TOPBAR_HEIGHT} />
-
-      {/* Fixed Sidebar Below Topbar */}
-      <SuperAdminSidebar
-        width={SIDEBAR_WIDTH}
-        topOffset={TOPBAR_HEIGHT}
+      <PlatformTopbar
+        height={TOPBAR_HEIGHT}
+        onMenuClick={() => setMobileOpen((prev) => !prev)}
       />
+
+      {/* Desktop Fixed Sidebar */}
+      {isDesktop && (
+        <PlatformSidebar
+          width={SIDEBAR_WIDTH}
+          topOffset={TOPBAR_HEIGHT}
+        />
+      )}
+
+      {/* Mobile / Tablet Sidebar Drawer */}
+      {!isDesktop && (
+        <Drawer
+          open={mobileOpen}
+          onClose={handleCloseMobileSidebar}
+          ModalProps={{
+            keepMounted: true,
+          }}
+          PaperProps={{
+            sx: {
+              width: MOBILE_SIDEBAR_WIDTH,
+              maxWidth: "85vw",
+              bgcolor: "#061B52",
+              overflowX: "hidden",
+            },
+          }}
+        >
+          <PlatformSidebar
+            width={MOBILE_SIDEBAR_WIDTH}
+            topOffset={0}
+            isMobile
+            onNavigate={handleCloseMobileSidebar}
+          />
+        </Drawer>
+      )}
 
       {/* Main Page Content */}
       <Box
         component="main"
         sx={{
-          // Content starts after sidebar
-          ml: `${SIDEBAR_WIDTH}px`,
+          // Desktop content starts after sidebar.
+          ml: {
+            xs: 0,
+            lg: `${SIDEBAR_WIDTH}px`,
+          },
 
-          // Content starts after topbar
+          // Content starts below fixed topbar.
           pt: `${TOPBAR_HEIGHT}px`,
 
-          // Page background
+          // Full width on mobile, remaining width on desktop.
+          width: {
+            xs: "100%",
+            lg: `calc(100% - ${SIDEBAR_WIDTH}px)`,
+          },
+
           bgcolor: "#f8fafc",
-
-          // Full page height
           minHeight: "100vh",
+          maxWidth: "100%",
+          overflowX: "hidden",
 
-          // IMPORTANT:
-          // Keep this small because pages already have their own spacing.
-          // This prevents the dashboard from being too far from sidebar/topbar.
+          // Page components already control their own padding.
           p: 0,
         }}
       >

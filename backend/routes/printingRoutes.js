@@ -22,7 +22,10 @@ const {
 
 const router = express.Router();
 
-// Printing dashboard KPI statistics
+// ============================================
+// Printing Dashboard
+// GET /api/printing/dashboard
+// ============================================
 router.get(
   "/dashboard",
   protect,
@@ -30,8 +33,11 @@ router.get(
   getPrintingDashboard
 );
 
-// Printing history
+// ============================================
+// Printing History
 // IMPORTANT: keep this before /requests/:id
+// GET /api/printing/history
+// ============================================
 router.get(
   "/history",
   protect,
@@ -39,7 +45,21 @@ router.get(
   getPrintingHistory
 );
 
-// Get print queue requests
+// ============================================
+// Inventory Transaction Logs
+// GET /api/printing/inventory-transactions
+// ============================================
+router.get(
+  "/inventory-transactions",
+  protect,
+  authorizeRoles("PrintingAdmin", "SuperAdmin"),
+  getInventoryTransactions
+);
+
+// ============================================
+// Print Queue Requests
+// GET /api/printing/requests
+// ============================================
 router.get(
   "/requests",
   protect,
@@ -47,7 +67,10 @@ router.get(
   getPrintingRequests
 );
 
-// Get single printing request
+// ============================================
+// Single Printing Request
+// GET /api/printing/requests/:id
+// ============================================
 router.get(
   "/requests/:id",
   protect,
@@ -55,7 +78,10 @@ router.get(
   getPrintingRequestById
 );
 
-// Start printing
+// ============================================
+// Start Printing
+// PUT /api/printing/requests/:id/start
+// ============================================
 router.put(
   "/requests/:id/start",
   protect,
@@ -63,15 +89,15 @@ router.put(
   startPrinting
 );
 
-// Complete printing
+// ============================================
+// Complete Printing
+// PUT /api/printing/requests/:id/complete
+// ============================================
 router.put(
   "/requests/:id/complete",
   protect,
   authorizeRoles("PrintingAdmin", "SuperAdmin"),
   completePrinting
 );
-
-// Inventory Transaction
-router.get("/inventory-transactions", getInventoryTransactions);
 
 module.exports = router;

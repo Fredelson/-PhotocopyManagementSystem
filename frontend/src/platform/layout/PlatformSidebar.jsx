@@ -3,19 +3,8 @@
 // Platform Sidebar
 //
 // Purpose:
-// Shared sidebar for all platform roles.
-//
-// Roles:
-// - SuperAdmin
-// - PrintingAdmin
-// - HOD
-// - HOS
-// - Teacher
-//
-// Future:
-// - Menu Manager
-// - Permission Engine
-// - Feature Flags
+// Shared desktop sidebar for platform roles.
+// Mobile drawer can be added later.
 // ============================================
 
 import {
@@ -32,20 +21,11 @@ import { NavLink } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { getSidebarItemsByRole } from "../navigation/sidebar/getSidebarItemsByRole";
 
-// ============================================
-// Component
-// ============================================
-
-export default function PlatformSidebar({
-  width = 340,
-  topOffset = 78,
-}) {
+export default function PlatformSidebar({ width = 340, topOffset = 78 }) {
   const { user } = useAuth();
 
   const role = user?.role || user?.Role;
-
-  const sidebarSections =
-    getSidebarItemsByRole(role);
+  const sidebarSections = getSidebarItemsByRole(role);
 
   return (
     <Box
@@ -57,33 +37,22 @@ export default function PlatformSidebar({
         top: `${topOffset}px`,
         bgcolor: "#061B52",
         color: "#fff",
-        borderRight:
-          "1px solid rgba(255,255,255,0.08)",
+        borderRight: "1px solid rgba(255,255,255,0.08)",
         overflowY: "auto",
         overflowX: "hidden",
+        zIndex: 15,
       }}
     >
-      <Box
-        sx={{
-          px: 2.5,
-          pt: 2,
-          pb: 2,
-        }}
-      >
+      <Box sx={{ px: 2.5, pt: 2, pb: 2 }}>
         {sidebarSections.map((section) => (
-          <Box
-            key={section.title}
-            sx={{ mb: 2.4 }}
-          >
-            {/* Section Title */}
+          <Box key={section.title} sx={{ mb: 2.4 }}>
             <Typography
               variant="caption"
               sx={{
                 display: "block",
                 px: 2,
                 mb: 0.9,
-                color:
-                  "rgba(255,255,255,0.42)",
+                color: "rgba(255,255,255,0.42)",
                 fontWeight: 900,
                 textTransform: "uppercase",
                 letterSpacing: 0.9,
@@ -92,7 +61,6 @@ export default function PlatformSidebar({
               {section.title}
             </Typography>
 
-            {/* Menu Items */}
             <List disablePadding>
               {section.items.map((item) => (
                 <ListItemButton
@@ -104,27 +72,22 @@ export default function PlatformSidebar({
                     borderRadius: 2.8,
                     mb: 0.45,
                     px: 2,
-                    color:
-                      "rgba(255,255,255,0.78)",
-                    transition:
-                      "all 0.2s ease",
+                    color: "rgba(255,255,255,0.78)",
+                    transition: "all 0.2s ease",
 
                     "&:hover": {
-                      bgcolor:
-                        "rgba(255,255,255,0.08)",
+                      bgcolor: "rgba(255,255,255,0.08)",
                       color: "#fff",
                     },
 
                     "&.active": {
                       bgcolor: "#4CAF50",
                       color: "#fff",
-                      boxShadow:
-                        "0 10px 24px rgba(76,175,80,0.25)",
+                      boxShadow: "0 10px 24px rgba(76,175,80,0.25)",
 
-                      "& .MuiListItemIcon-root":
-                        {
-                          color: "#fff",
-                        },
+                      "& .MuiListItemIcon-root": {
+                        color: "#fff",
+                      },
 
                       "&:hover": {
                         bgcolor: "#43A047",
@@ -150,6 +113,7 @@ export default function PlatformSidebar({
                     primaryTypographyProps={{
                       fontSize: 14.5,
                       fontWeight: 750,
+                      noWrap: true,
                     }}
                   />
                 </ListItemButton>

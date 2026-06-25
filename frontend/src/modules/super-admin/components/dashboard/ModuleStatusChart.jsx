@@ -27,12 +27,19 @@ import { dashboardColors } from "../../../../theme/dashboardColors";
 // ============================================
 
 const STATUS_COLORS = {
+  // Platform module statuses
   active: dashboardColors.success,
   inProgress: dashboardColors.info,
   comingSoon: dashboardColors.warning,
   disabled: dashboardColors.neutral,
   inactive: dashboardColors.neutral,
   maintenance: dashboardColors.warning,
+
+  // Printing dashboard statuses
+  pending: dashboardColors.warning,
+  printing: dashboardColors.info,
+  completed: dashboardColors.success,
+  rejected: dashboardColors.danger,
 };
 
 // ============================================

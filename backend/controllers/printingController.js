@@ -8,7 +8,7 @@
 const { poolPromise, sql } = require("../config/db");
 
 /**
- * @desc    Printing Dashboard Statistics
+ * @desc    Printing Dashboard Data
  * @route   GET /api/printing/dashboard
  * @access  Private - PrintingAdmin / SuperAdmin
  */
@@ -17,46 +17,225 @@ const getPrintingDashboard = async (req, res) => {
     const printingAdminId = req.user.id;
     const pool = await poolPromise;
 
-    const result = await pool
+    // ============================================
+    // KPI Counts
+    // ============================================
+    const kpiResult = await pool
       .request()
       .input("printingAdminId", sql.Int, printingAdminId)
       .query(`
         SELECT
-          COUNT(*) AS TotalAssigned,
-
-          SUM(CASE
-            WHEN Status IN (
-              'Approved by HOD',
-              'Approved by HOS',
-              'Forwarded to Printing'
-            )
+          SUM(CASE 
+            WHEN Status IN ('Approved by HOD', 'Approved by HOS', 'Forwarded to Printing')
              AND CurrentApproverId = @printingAdminId
-            THEN 1 ELSE 0
-          END) AS PendingPrintQueue,
+            THEN 1 ELSE 0 
+          END) AS PendingJobs,
 
-          SUM(CASE
+          SUM(CASE 
             WHEN Status = 'Printing'
              AND CurrentApproverId = @printingAdminId
-            THEN 1 ELSE 0
-          END) AS InProgress,
+            THEN 1 ELSE 0 
+          END) AS PrintingNow,
 
-          SUM(CASE
-            WHEN Status = 'Completed'
-            THEN 1 ELSE 0
-          END) AS Completed,
-
-          SUM(CASE
+          SUM(CASE 
             WHEN Status = 'Completed'
              AND CAST(CompletedAt AS DATE) = CAST(GETDATE() AS DATE)
-            THEN 1 ELSE 0
-          END) AS CompletedToday
+            THEN 1 ELSE 0 
+          END) AS CompletedToday,
 
+          SUM(CASE 
+            WHEN Status = 'Completed'
+             AND MONTH(CompletedAt) = MONTH(GETDATE())
+             AND YEAR(CompletedAt) = YEAR(GETDATE())
+            THEN 1 ELSE 0 
+          END) AS CompletedMonth
         FROM PhotocopyRequests
-        WHERE CurrentApproverId = @printingAdminId
-           OR Status = 'Completed'
       `);
 
-    return res.status(200).json(result.recordset[0]);
+    const kpis = kpiResult.recordset[0] || {};
+
+    // ============================================
+    // Paper Inventory
+    // ============================================
+    const inventoryResult = await pool.request().query(`
+      SELECT PaperType, CurrentStock
+      FROM PaperInventory
+    `);
+
+    const a4 = inventoryResult.recordset.find((x) => x.PaperType === "A4");
+    const a3 = inventoryResult.recordset.find((x) => x.PaperType === "A3");
+
+    const a4Stock = a4?.CurrentStock || 0;
+    const a3Stock = a3?.CurrentStock || 0;
+
+    // ============================================
+    // Job Status Chart
+    // ============================================
+    const jobStatusResult = await pool
+      .request()
+      .input("printingAdminId", sql.Int, printingAdminId)
+      .query(`
+        SELECT
+          SUM(CASE 
+            WHEN Status IN ('Approved by HOD', 'Approved by HOS', 'Forwarded to Printing')
+             AND CurrentApproverId = @printingAdminId
+            THEN 1 ELSE 0 
+          END) AS Pending,
+
+          SUM(CASE 
+            WHEN Status = 'Printing'
+             AND CurrentApproverId = @printingAdminId
+            THEN 1 ELSE 0 
+          END) AS Printing,
+
+          SUM(CASE 
+            WHEN Status = 'Completed'
+            THEN 1 ELSE 0 
+          END) AS Completed,
+
+          SUM(CASE 
+            WHEN Status LIKE '%Rejected%'
+            THEN 1 ELSE 0 
+          END) AS Rejected
+        FROM PhotocopyRequests
+      `);
+
+    const status = jobStatusResult.recordset[0] || {};
+
+    // ============================================
+    // Top Departments This Month
+    // ============================================
+    const departmentResult = await pool.request().query(`
+      SELECT TOP 5
+        ISNULL(d.DepartmentName, 'No Department') AS label,
+        ISNULL(SUM(r.TotalSheets), 0) AS value
+      FROM PhotocopyRequests r
+      LEFT JOIN Departments d 
+        ON r.DepartmentId = d.DepartmentId
+      WHERE MONTH(r.SubmittedAt) = MONTH(GETDATE())
+        AND YEAR(r.SubmittedAt) = YEAR(GETDATE())
+      GROUP BY d.DepartmentName
+      ORDER BY SUM(r.TotalSheets) DESC
+    `);
+
+    // ============================================
+    // Recent Print Jobs
+    // Safer SQL Server version
+    // ============================================
+    const recentResult = await pool.request().query(`
+      SELECT TOP 4
+        RequestNumber,
+        Status,
+        TotalSheets,
+        CompletedAt,
+        PrintedAt,
+        SubmittedAt,
+        CASE
+          WHEN CompletedAt IS NOT NULL THEN CompletedAt
+          WHEN PrintedAt IS NOT NULL THEN PrintedAt
+          ELSE SubmittedAt
+        END AS ActivityDate
+      FROM PhotocopyRequests
+      ORDER BY
+        CASE
+          WHEN CompletedAt IS NOT NULL THEN CompletedAt
+          WHEN PrintedAt IS NOT NULL THEN PrintedAt
+          ELSE SubmittedAt
+        END DESC
+    `);
+
+    // ============================================
+    // Final Backend Response
+    // IMPORTANT:
+    // Backend returns semantic strings only.
+    // Frontend maps icon/color strings.
+    // ============================================
+    return res.status(200).json({
+      stats: [
+        {
+          title: "Pending Jobs",
+          value: kpis.PendingJobs || 0,
+          subtitle: "Awaiting action",
+          status: "+5",
+          color: "warning",
+          icon: "pending",
+        },
+        {
+          title: "Printing Now",
+          value: kpis.PrintingNow || 0,
+          subtitle: "Currently printing",
+          color: "info",
+          icon: "printing",
+        },
+        {
+          title: "Completed Today",
+          value: kpis.CompletedToday || 0,
+          subtitle: "Completed today",
+          status: "+6",
+          color: "success",
+          icon: "completed",
+        },
+        {
+          title: "Completed Month",
+          value: kpis.CompletedMonth || 0,
+          subtitle: "This month",
+          status: "+42",
+          color: "info",
+          icon: "calendar",
+        },
+        {
+          title: "A4 Stock",
+          value: a4Stock.toLocaleString(),
+          subtitle: "Sheets available",
+          color: "success",
+          icon: "inventory",
+        },
+        {
+          title: "A3 Stock",
+          value: a3Stock.toLocaleString(),
+          subtitle: a3Stock <= 1500 ? "Monitor stock" : "Sheets available",
+          status: a3Stock <= 1500 ? "Low" : "Good",
+          color: a3Stock <= 1500 ? "danger" : "success",
+          icon: "warning",
+        },
+      ],
+
+      jobStatus: [
+        { key: "pending", label: "Pending", value: status.Pending || 0 },
+        { key: "printing", label: "Printing", value: status.Printing || 0 },
+        { key: "completed", label: "Completed", value: status.Completed || 0 },
+        { key: "rejected", label: "Rejected", value: status.Rejected || 0 },
+      ],
+
+      topDepartments: departmentResult.recordset,
+
+      recentJobs: recentResult.recordset.map((job) => ({
+        title: `${job.RequestNumber} ${job.Status}`,
+        description: `${job.TotalSheets || 0} sheets`,
+        time: job.ActivityDate,
+        status:
+          job.Status === "Completed"
+            ? "success"
+            : job.Status === "Printing"
+            ? "warning"
+            : "info",
+      })),
+
+      inventorySummary: [
+        {
+          paperType: "A4 Paper",
+          current: a4Stock,
+          total: 15000,
+          minimum: 3000,
+        },
+        {
+          paperType: "A3 Paper",
+          current: a3Stock,
+          total: 6000,
+          minimum: 1500,
+        },
+      ],
+    });
   } catch (error) {
     console.error("Get Printing Dashboard Error:", error);
 

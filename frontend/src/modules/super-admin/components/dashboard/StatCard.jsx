@@ -1,20 +1,57 @@
 // ============================================
 // ARAB UNITY SCHOOL
 // Reusable KPI Card
+//
+// Supports:
+// 1. Static frontend icon component
+//    icon: PrintOutlinedIcon
+//
+// 2. Backend icon key
+//    icon: "printing"
 // ============================================
 
 import { Card, CardContent, Box, Typography, Avatar } from "@mui/material";
+
+import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
+import PrintOutlinedIcon from "@mui/icons-material/PrintOutlined";
+import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
+import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
+import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
+import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
+import PersonOutlinedIcon from "@mui/icons-material/PersonOutlined";
+
 import { dashboardColors } from "../../../../theme/dashboardColors";
+
+// ============================================
+// Backend Icon Key Map
+// ============================================
+
+const KPI_ICON_MAP = {
+  pending: AssignmentOutlinedIcon,
+  printing: PrintOutlinedIcon,
+  completed: CheckCircleOutlineOutlinedIcon,
+  calendar: CalendarMonthOutlinedIcon,
+  inventory: Inventory2OutlinedIcon,
+  warning: WarningAmberOutlinedIcon,
+};
 
 export default function StatCard({
   title,
   value,
   change,
   changeLabel,
-  icon: Icon,
+  status,
+  subtitle,
+  icon,
   color = dashboardColors.success,
 }) {
-  const isNegative = String(change || "").startsWith("-");
+  const isNegative = String(change || status || "").startsWith("-");
+
+  // Supports icon component OR backend string key
+  const Icon =
+    typeof icon === "string"
+      ? KPI_ICON_MAP[icon] || PersonOutlinedIcon
+      : icon || PersonOutlinedIcon;
 
   return (
     <Card
@@ -56,7 +93,7 @@ export default function StatCard({
               flexShrink: 0,
             }}
           >
-            {Icon && <Icon sx={{ fontSize: 22 }} />}
+            <Icon sx={{ fontSize: 22 }} />
           </Avatar>
 
           <Box sx={{ minWidth: 0 }}>
@@ -88,7 +125,7 @@ export default function StatCard({
               {value}
             </Typography>
 
-            {change && (
+            {(change || status) && (
               <Typography
                 sx={{
                   fontSize: "0.78rem",
@@ -100,11 +137,11 @@ export default function StatCard({
                   mt: 0.3,
                 }}
               >
-                {isNegative ? "↓" : "↑"} {change}
+                {isNegative ? "↓" : "↑"} {change || status}
               </Typography>
             )}
 
-            {changeLabel && (
+            {(changeLabel || subtitle) && (
               <Typography
                 variant="caption"
                 sx={{
@@ -117,7 +154,7 @@ export default function StatCard({
                   mt: 0.2,
                 }}
               >
-                {changeLabel}
+                {changeLabel || subtitle}
               </Typography>
             )}
           </Box>
