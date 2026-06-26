@@ -53,7 +53,7 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-import DashboardLayout from "../../layouts/DashboardLayout";
+import DashboardLayout from "../../components/layout/DashboardLayout";
 import Sidebar from "../../components/sidebar/Sidebar";
 import Topbar from "../../components/common/Topbar";
 import PageHeader from "../../components/common/PageHeader";

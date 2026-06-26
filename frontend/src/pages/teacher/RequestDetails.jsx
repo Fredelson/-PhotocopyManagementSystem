@@ -48,7 +48,7 @@ import InfoIcon from "@mui/icons-material/Info";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 
-import DashboardLayout from "../../layouts/DashboardLayout";
+import DashboardLayout from "../../components/layout/DashboardLayout";
 import Sidebar from "../../components/sidebar/Sidebar";
 import Topbar from "../../components/common/Topbar";
 import usePageTitle from "../../hooks/usePageTitle";

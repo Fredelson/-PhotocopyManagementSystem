@@ -12,7 +12,7 @@ import WorkIcon from "@mui/icons-material/Work";
 import SchoolIcon from "@mui/icons-material/School";
 import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
 
-import DashboardLayout from "../../layouts/DashboardLayout";
+import DashboardLayout from "../../components/layout/DashboardLayout";
 import Sidebar from "../../components/sidebar/Sidebar";
 import Topbar from "../../components/common/Topbar";
 

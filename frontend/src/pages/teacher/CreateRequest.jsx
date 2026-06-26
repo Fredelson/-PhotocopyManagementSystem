@@ -45,7 +45,7 @@ import InfoIcon from "@mui/icons-material/Info";
 import LayersIcon from "@mui/icons-material/Layers";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 
-import DashboardLayout from "../../layouts/DashboardLayout";
+import DashboardLayout from "../../components/layout/DashboardLayout";
 import Sidebar from "../../components/sidebar/Sidebar";
 import Topbar from "../../components/common/Topbar";
 import PageHeader from "../../components/common/PageHeader";

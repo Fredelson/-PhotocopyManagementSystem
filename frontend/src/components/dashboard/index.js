@@ -11,7 +11,6 @@ export { default as AttachmentSummary } from "./AttachmentSummary";
 export { default as DashboardCard } from "../dashboard/DashboardCard";
 export { default as ModulesOverview } from "./ModulesOverview";
 export { default as PendingApprovals } from "./PendingApprovals";
-export { default as QuickActions } from "./QuickActions";
 export { default as RecentActivity } from "./RecentActivity";
 export { default as RecentAttachments } from "./RecentAttachments";
 export { default as RequestProgressTracker } from "./RequestProgressTracker";
