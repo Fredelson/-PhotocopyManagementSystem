@@ -2,65 +2,95 @@
 // ARAB UNITY SCHOOL
 // Main App Routes
 // Role-based protected routes
+//
+// Notes:
+// - Pages are now organized under src/modules
+// - Shared pages like Profile are under modules/shared
+// - ProtectedRoute controls role access
 // ============================================
 
 import { Routes, Route, Navigate } from "react-router-dom";
 
+// ============================================
 // Auth
-import LoginPage from "./pages/auth/LoginPage";
+// ============================================
+import { LoginPage } from "./modules/auth/pages";
 import ProtectedRoute from "./routes/ProtectedRoute";
 
-// Teacher pages
-import TeacherDashboard from "./pages/teacher/TeacherDashboard";
-import MyRequests from "./pages/teacher/MyRequests";
-import CreateRequest from "./pages/teacher/CreateRequest";
-import RequestDetails from "./pages/teacher/RequestDetails";
-import TeacherReports from "./pages/teacher/TeacherReports";
-import Attachments from "./pages/teacher/Attachments";
+// ============================================
+// Teacher Pages
+// ============================================
+import {
+  TeacherDashboard,
+  MyRequests,
+  CreateRequest,
+  RequestDetails,
+  TeacherReports,
+  Attachments,
+} from "./modules/teacher/pages";
 
+// ============================================
+// HOD / HOS Pages
+// ============================================
+import { HodDashboard, HodRequestsPage } from "./modules/hod/pages";
+import { HosDashboard, SubjectAllocationPage } from "./modules/hos/pages";
 
-// HOD / HOS pages
-import HodDashboard from "./pages/hod/HodDashboard";
-import HosDashboard from "./pages/hos/HosDashboard";
-import HodRequestsPage from "./pages/hod/HodRequestsPage";
-import DepartmentLimitsPage from "./pages/printing/DepartmentLimitsPage";
-import SubjectAllocationPage from "./pages/hos/SubjectAllocationPage";
+// ============================================
+// Printing / Platform Admin Pages
+// ============================================
+import {
+  DepartmentLimitsPage,
+  PaperStockPage,
+  PaperPurchases,
+  PaperDistributions,
+  InventoryTransactions,
+  MasterData,
+  AccessLevelsPage,
+} from "./modules/printing-admin/pages";
 
-// Printing page
 import PrintingAdminDashboard from "./modules/printing-admin/pages/PrintingAdminDashboard";
 import printingAdminLayoutRoutes from "./modules/printing-admin/routes/PrintingAdminLayoutRoutes";
 
+// ============================================
+// Admin Pages
+// ============================================
+import { UserManagement } from "./modules/admin/pages";
 
-import UserManagement from "./pages/admin/UserManagement";
-import PaperStockPage from "./pages/printing/PaperStockPage";
-import PaperPurchases from "./pages/printing/PaperPurchases";
-import PaperDistributions from "./pages/printing/PaperDistributions";
-import InventoryTransactions from "./pages/printing/InventoryTransactions";
-import MasterData from "./pages/printing/MasterData";
-import AccessLevelsPage from "./pages/printing/AccessLevelsPage";
-
-
-
+// ============================================
+// Super Admin Routes
+// ============================================
 import superAdminLayoutRoutes from "./modules/super-admin/routes/SuperAdminLayoutRoutes";
 
-// Reusable common page
-import Profile from "./pages/common/Profile";
+// ============================================
+// Shared Pages
+// ============================================
+import { Profile } from "./modules/shared/pages";
 
+// ============================================
+// Role Groups
+// ============================================
+const teacherRoles = ["Teacher", "TeachingAssistant", "SuperAdmin"];
+const hodRoles = ["HOD", "SuperAdmin"];
+const hosRoles = ["HOS", "Secretary", "SuperAdmin"];
+const printingRoles = ["PrintingAdmin", "SuperAdmin"];
+const printingAdminRoles = ["PrintingAdmin", "Admin", "SuperAdmin"];
+
+// ============================================
+// App Routes
+// ============================================
 export default function App() {
   return (
     <Routes>
-      {/* Public route */}
+      {/* ===================================== */}
+      {/* PUBLIC ROUTES */}
+      {/* ===================================== */}
       <Route path="/login" element={<LoginPage />} />
 
-      {/* ================= TEACHER ROUTES ================= */}
-
-      {/* Super Admin Layout Routes */}
+      {/* ===================================== */}
+      {/* SUPER ADMIN LAYOUT ROUTES */}
+      {/* ===================================== */}
       {superAdminLayoutRoutes.map((route) => (
-        <Route
-          key={route.path}
-          path={route.path}
-          element={route.element}
-        >
+        <Route key={route.path} path={route.path} element={route.element}>
           {route.children?.map((child) => (
             <Route
               key={child.path || "index"}
@@ -72,7 +102,9 @@ export default function App() {
         </Route>
       ))}
 
-
+      {/* ===================================== */}
+      {/* TEACHER ROUTES */}
+      {/* ===================================== */}
       <Route
         path="/teacher"
         element={<Navigate to="/teacher/dashboard" replace />}
@@ -81,11 +113,7 @@ export default function App() {
       <Route
         path="/teacher/dashboard"
         element={
-          <ProtectedRoute allowedRoles={[
-            "Teacher",
-            "TeachingAssistant",
-            "SuperAdmin",
-          ]}>
+          <ProtectedRoute allowedRoles={teacherRoles}>
             <TeacherDashboard />
           </ProtectedRoute>
         }
@@ -94,11 +122,7 @@ export default function App() {
       <Route
         path="/teacher/profile"
         element={
-          <ProtectedRoute allowedRoles={[
-  "Teacher",
-  "TeachingAssistant",
-  "SuperAdmin",
-]}>
+          <ProtectedRoute allowedRoles={teacherRoles}>
             <Profile />
           </ProtectedRoute>
         }
@@ -107,11 +131,7 @@ export default function App() {
       <Route
         path="/teacher/my-requests"
         element={
-          <ProtectedRoute allowedRoles={[
-  "Teacher",
-  "TeachingAssistant",
-  "SuperAdmin",
-]}>
+          <ProtectedRoute allowedRoles={teacherRoles}>
             <MyRequests />
           </ProtectedRoute>
         }
@@ -120,11 +140,7 @@ export default function App() {
       <Route
         path="/teacher/create-request"
         element={
-          <ProtectedRoute allowedRoles={[
-  "Teacher",
-  "TeachingAssistant",
-  "SuperAdmin",
-]}>
+          <ProtectedRoute allowedRoles={teacherRoles}>
             <CreateRequest />
           </ProtectedRoute>
         }
@@ -133,21 +149,8 @@ export default function App() {
       <Route
         path="/teacher/attachments"
         element={
-          <ProtectedRoute allowedRoles={[
-  "Teacher",
-  "TeachingAssistant",
-  "SuperAdmin",
-]}>
+          <ProtectedRoute allowedRoles={teacherRoles}>
             <Attachments />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/printing/department-limits"
-        element={
-          <ProtectedRoute allowedRoles={["PrintingAdmin", "SuperAdmin"]}>
-            <DepartmentLimitsPage />
           </ProtectedRoute>
         }
       />
@@ -155,11 +158,7 @@ export default function App() {
       <Route
         path="/teacher/reports"
         element={
-          <ProtectedRoute allowedRoles={[
-  "Teacher",
-  "TeachingAssistant",
-  "SuperAdmin",
-]}>
+          <ProtectedRoute allowedRoles={teacherRoles}>
             <TeacherReports />
           </ProtectedRoute>
         }
@@ -168,40 +167,22 @@ export default function App() {
       <Route
         path="/teacher/request-details/:id"
         element={
-          <ProtectedRoute allowedRoles={[
-  "Teacher",
-  "TeachingAssistant",
-  "SuperAdmin",
-]}>
+          <ProtectedRoute allowedRoles={teacherRoles}>
             <RequestDetails />
           </ProtectedRoute>
         }
       />
 
-      {/* ================= HOD ROUTES ================= */}
-
-      <Route
-        path="/hod"
-        element={<Navigate to="/hod/dashboard" replace />}
-      />
+      {/* ===================================== */}
+      {/* HOD ROUTES */}
+      {/* ===================================== */}
+      <Route path="/hod" element={<Navigate to="/hod/dashboard" replace />} />
 
       <Route
         path="/hod/dashboard"
         element={
-          <ProtectedRoute allowedRoles={["HOD", "SuperAdmin"]}>
+          <ProtectedRoute allowedRoles={hodRoles}>
             <HodDashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/hos/subject-allocation"
-        element={
-          <ProtectedRoute allowedRoles={[
-  "HOS",
-  "Secretary",
-  "SuperAdmin",
-]}>
-            <SubjectAllocationPage />
           </ProtectedRoute>
         }
       />
@@ -209,63 +190,62 @@ export default function App() {
       <Route
         path="/hod/profile"
         element={
-          <ProtectedRoute allowedRoles={["HOD", "SuperAdmin"]}>
+          <ProtectedRoute allowedRoles={hodRoles}>
             <Profile />
           </ProtectedRoute>
         }
       />
 
-                <Route
-            path="/hod/pending-requests"
-            element={
-              <ProtectedRoute allowedRoles={["HOD", "SuperAdmin"]}>
-                <HodRequestsPage type="pending" />
-              </ProtectedRoute>
-            }
-          />
+      <Route
+        path="/hod/pending-requests"
+        element={
+          <ProtectedRoute allowedRoles={hodRoles}>
+            <HodRequestsPage type="pending" />
+          </ProtectedRoute>
+        }
+      />
 
-          <Route
-            path="/hod/approved-requests"
-            element={
-              <ProtectedRoute allowedRoles={["HOD", "SuperAdmin"]}>
-                <HodRequestsPage type="approved" />
-              </ProtectedRoute>
-            }
-          />
+      <Route
+        path="/hod/approved-requests"
+        element={
+          <ProtectedRoute allowedRoles={hodRoles}>
+            <HodRequestsPage type="approved" />
+          </ProtectedRoute>
+        }
+      />
 
-        <Route
-          path="/hod/rejected-requests"
-          element={
-            <ProtectedRoute allowedRoles={["HOD", "SuperAdmin"]}>
-              <HodRequestsPage type="rejected" />
-            </ProtectedRoute>
-          }
-        />
+      <Route
+        path="/hod/rejected-requests"
+        element={
+          <ProtectedRoute allowedRoles={hodRoles}>
+            <HodRequestsPage type="rejected" />
+          </ProtectedRoute>
+        }
+      />
 
-        <Route
-          path="/hod/returned-requests"
-          element={
-            <ProtectedRoute allowedRoles={["HOD", "SuperAdmin"]}>
-              <HodRequestsPage type="returned" />
-            </ProtectedRoute>
-          }
-        />
+      <Route
+        path="/hod/returned-requests"
+        element={
+          <ProtectedRoute allowedRoles={hodRoles}>
+            <HodRequestsPage type="returned" />
+          </ProtectedRoute>
+        }
+      />
 
-      {/* HOD reuses MyRequests page */}
+      {/* HOD reuses teacher request pages */}
       <Route
         path="/hod/my-requests"
         element={
-          <ProtectedRoute allowedRoles={["HOD", "SuperAdmin"]}>
+          <ProtectedRoute allowedRoles={hodRoles}>
             <MyRequests />
           </ProtectedRoute>
         }
       />
 
-      {/* HOD reuses CreateRequest page */}
       <Route
         path="/hod/create-request"
         element={
-          <ProtectedRoute allowedRoles={["HOD", "SuperAdmin"]}>
+          <ProtectedRoute allowedRoles={hodRoles}>
             <CreateRequest />
           </ProtectedRoute>
         }
@@ -274,37 +254,30 @@ export default function App() {
       <Route
         path="/hod/attachments"
         element={
-          <ProtectedRoute allowedRoles={["HOD", "SuperAdmin"]}>
+          <ProtectedRoute allowedRoles={hodRoles}>
             <Attachments />
           </ProtectedRoute>
         }
       />
 
-      {/* HOD reuses RequestDetails page */}
       <Route
         path="/hod/request-details/:id"
         element={
-          <ProtectedRoute allowedRoles={["HOD", "SuperAdmin"]}>
+          <ProtectedRoute allowedRoles={hodRoles}>
             <RequestDetails />
           </ProtectedRoute>
         }
       />
 
-      {/* ================= HOS ROUTES ================= */}
-
-      <Route
-        path="/hos"
-        element={<Navigate to="/hos/dashboard" replace />}
-      />
+      {/* ===================================== */}
+      {/* HOS ROUTES */}
+      {/* ===================================== */}
+      <Route path="/hos" element={<Navigate to="/hos/dashboard" replace />} />
 
       <Route
         path="/hos/dashboard"
         element={
-          <ProtectedRoute allowedRoles={[
-  "HOS",
-  "Secretary",
-  "SuperAdmin",
-]}>
+          <ProtectedRoute allowedRoles={hosRoles}>
             <HosDashboard />
           </ProtectedRoute>
         }
@@ -313,42 +286,58 @@ export default function App() {
       <Route
         path="/hos/profile"
         element={
-          <ProtectedRoute allowedRoles={[
-  "HOS",
-  "Secretary",
-  "SuperAdmin",
-]}>
+          <ProtectedRoute allowedRoles={hosRoles}>
             <Profile />
           </ProtectedRoute>
         }
       />
 
-      {/* ================= PRINTING ADMIN ROUTES ================= */}
+      <Route
+        path="/hos/subject-allocation"
+        element={
+          <ProtectedRoute allowedRoles={hosRoles}>
+            <SubjectAllocationPage />
+          </ProtectedRoute>
+        }
+      />
 
+      {/* ===================================== */}
+      {/* PRINTING ADMIN / PLATFORM ADMIN ROUTES */}
+      {/* ===================================== */}
       <Route
         path="/printing"
         element={<Navigate to="/printing/dashboard" replace />}
       />
 
-      {/* Printing Admin Layout Routes */}
-{printingAdminLayoutRoutes.map((route) => (
-  <Route key={route.path} path={route.path} element={route.element}>
-    {route.children?.map((child) => (
-      <Route
-        key={child.path || "index"}
-        index={child.index}
-        path={child.path}
-        element={child.element}
-      />
-    ))}
-  </Route>
-))}
+      {/* New layout-based printing routes */}
+      {printingAdminLayoutRoutes.map((route) => (
+        <Route key={route.path} path={route.path} element={route.element}>
+          {route.children?.map((child) => (
+            <Route
+              key={child.path || "index"}
+              index={child.index}
+              path={child.path}
+              element={child.element}
+            />
+          ))}
+        </Route>
+      ))}
 
+      {/* Legacy printing routes kept while migration is ongoing */}
       <Route
         path="/printing/dashboard"
         element={
-          <ProtectedRoute allowedRoles={["PrintingAdmin", "SuperAdmin"]}>
+          <ProtectedRoute allowedRoles={printingRoles}>
             <PrintingAdminDashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/printing/department-limits"
+        element={
+          <ProtectedRoute allowedRoles={printingRoles}>
+            <DepartmentLimitsPage />
           </ProtectedRoute>
         }
       />
@@ -356,12 +345,7 @@ export default function App() {
       <Route
         path="/printing/paper-stock"
         element={
-          <ProtectedRoute
-            allowedRoles={[
-              "PrintingAdmin",
-              "SuperAdmin",
-            ]}
-          >
+          <ProtectedRoute allowedRoles={printingRoles}>
             <PaperStockPage />
           </ProtectedRoute>
         }
@@ -370,7 +354,7 @@ export default function App() {
       <Route
         path="/printing/inventory-transactions"
         element={
-          <ProtectedRoute allowedRoles={["PrintingAdmin", "SuperAdmin"]}>
+          <ProtectedRoute allowedRoles={printingRoles}>
             <InventoryTransactions />
           </ProtectedRoute>
         }
@@ -379,7 +363,7 @@ export default function App() {
       <Route
         path="/printing/distributions"
         element={
-          <ProtectedRoute allowedRoles={["PrintingAdmin", "SuperAdmin"]}>
+          <ProtectedRoute allowedRoles={printingRoles}>
             <PaperDistributions />
           </ProtectedRoute>
         }
@@ -388,16 +372,16 @@ export default function App() {
       <Route
         path="/printing/purchases"
         element={
-          <ProtectedRoute allowedRoles={["PrintingAdmin", "SuperAdmin"]}>
+          <ProtectedRoute allowedRoles={printingRoles}>
             <PaperPurchases />
           </ProtectedRoute>
         }
       />
-      
+
       <Route
         path="/printing/user-management"
         element={
-          <ProtectedRoute allowedRoles={["PrintingAdmin", "Admin", "SuperAdmin"]}>
+          <ProtectedRoute allowedRoles={printingAdminRoles}>
             <UserManagement />
           </ProtectedRoute>
         }
@@ -406,7 +390,7 @@ export default function App() {
       <Route
         path="/printing/access-levels"
         element={
-          <ProtectedRoute allowedRoles={["PrintingAdmin", "SuperAdmin"]}>
+          <ProtectedRoute allowedRoles={printingRoles}>
             <AccessLevelsPage />
           </ProtectedRoute>
         }
@@ -415,16 +399,16 @@ export default function App() {
       <Route
         path="/printing/master-data"
         element={
-          <ProtectedRoute allowedRoles={["PrintingAdmin", "SuperAdmin"]}>
+          <ProtectedRoute allowedRoles={printingRoles}>
             <MasterData />
           </ProtectedRoute>
         }
       />
 
-      {/* Default route */}
+      {/* ===================================== */}
+      {/* DEFAULT / FALLBACK ROUTES */}
+      {/* ===================================== */}
       <Route path="/" element={<Navigate to="/login" replace />} />
-
-      {/* Unknown routes */}
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );
