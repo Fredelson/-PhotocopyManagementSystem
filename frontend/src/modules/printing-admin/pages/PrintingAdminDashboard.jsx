@@ -1,6 +1,6 @@
 // ============================================
 // ARAB UNITY SCHOOL
-// Printing Management Dashboard Page
+// Printing Admin Dashboard Page
 //
 // Purpose:
 // Main dashboard for Printing Admin / Platform Admin.
@@ -10,8 +10,10 @@
 // - Printing Admin
 //
 // Architecture:
-// Reuses Super Admin dashboard components
-// and adds printing-specific widgets.
+// - Page stays mostly render-only
+// - Data comes from backend when available
+// - Static demo data is used as fallback
+// - Printing-specific widgets stay inside printing-admin module
 //
 // Backend:
 // GET /api/printing/dashboard
@@ -21,18 +23,17 @@ import { useEffect, useState } from "react";
 import { Box } from "@mui/material";
 
 import PageHeader from "../../../components/common/PageHeader";
-
 import KpiGrid from "../../../components/common/KpiGrid";
-import DashboardMiddleRow from "../../../components/layout/DashboardMiddleRow";
-import TopPrintRequests from "../../../components/dashboard/TopPrintRequests";
-import ModuleStatusChart from "../../../components/charts/ModuleStatusChart";
-import PendingApprovals from "../../../components/dashboard/PendingApprovals";
 
-import InventorySummaryCard from "../components/InventorySummaryCard";
+import {
+  PrintingAnalyticsRow,
+  PrintingOperationsRow,
+} from "../components";
 
 import { getPrintingDashboard } from "../../../services/printingService";
 
 import {
+  defaultPrintingDashboardData,
   printingDashboardStats,
   printActivityData,
   printJobStatus,
@@ -49,17 +50,9 @@ import {
 // ============================================
 
 export default function PrintingAdminDashboard() {
-  const [dashboardData, setDashboardData] = useState({
-    stats: printingDashboardStats,
-    printActivity: printActivityData,
-    jobStatus: printJobStatus,
-    inventoryHealth,
-    recentJobs: recentPrintJobs,
-    topDepartments: topPrintingDepartments,
-    paperUsage: paperUsageStatus,
-    pendingActions: printingPendingActions,
-    inventorySummary: paperInventorySummary,
-  });
+  const [dashboardData, setDashboardData] = useState(
+    defaultPrintingDashboardData
+  );
 
   const [loading, setLoading] = useState(false);
 
@@ -89,6 +82,7 @@ export default function PrintingAdminDashboard() {
         });
       } catch (error) {
         console.error("Failed to load printing dashboard:", error);
+        setDashboardData(defaultPrintingDashboardData);
       } finally {
         setLoading(false);
       }
@@ -118,58 +112,21 @@ export default function PrintingAdminDashboard() {
       {/* KPI Cards */}
       <KpiGrid stats={dashboardData.stats} />
 
-      {/* 
-        Main Analytics Row:
-        Print Activity | Job Status | Inventory Health | Recent Print Jobs
-      */}
-      <DashboardMiddleRow
-        platformActivityData={dashboardData.printActivity}
-        moduleStatusData={dashboardData.jobStatus}
-        systemHealthData={dashboardData.inventoryHealth}
-        recentActivityData={dashboardData.recentJobs}
+      {/* Printing Analytics Row */}
+      <PrintingAnalyticsRow
+        printActivity={dashboardData.printActivity}
+        jobStatus={dashboardData.jobStatus}
+        inventoryHealth={dashboardData.inventoryHealth}
+        recentJobs={dashboardData.recentJobs}
       />
 
-      {/* 
-        Printing Bottom Row:
-        Top Departments | Paper Usage | Inventory Summary | Inventory Alerts
-      */}
-      <Box
-        sx={{
-          mt: 1,
-          display: "grid",
-          gridTemplateColumns: {
-            xs: "1fr",
-            md: "repeat(2, minmax(0, 1fr))",
-            xl: "repeat(4, minmax(0, 1fr))",
-          },
-          gap: 1,
-          alignItems: "stretch",
-        }}
-      >
-        {/* Top Departments */}
-        <TopPrintRequests
-          title="Top Departments"
-          subtitle="This Month"
-          items={dashboardData.topDepartments}
-        />
-
-        {/* Paper Usage */}
-        <ModuleStatusChart
-          title="Paper Usage"
-          subtitle="Current paper consumption"
-          data={dashboardData.paperUsage}
-        />
-
-        {/* Inventory Summary */}
-        <InventorySummaryCard items={dashboardData.inventorySummary} />
-
-        {/* Inventory Alerts */}
-        <PendingApprovals
-          title="Inventory Alerts"
-          subtitle="Items requiring attention"
-          items={dashboardData.pendingActions}
-        />
-      </Box>
+      {/* Printing Operations Row */}
+      <PrintingOperationsRow
+        topDepartments={dashboardData.topDepartments}
+        paperUsage={dashboardData.paperUsage}
+        inventorySummary={dashboardData.inventorySummary}
+        pendingActions={dashboardData.pendingActions}
+      />
     </Box>
   );
 }

@@ -1,7 +1,15 @@
 // ============================================
 // ARAB UNITY SCHOOL
-// Common Role-Based Sidebar
-// Navy + AUS Green Theme
+// Shared Role-Based Sidebar
+//
+// Purpose:
+// - Displays sidebar menu based on logged-in user role
+// - Uses shared navigation config from getSidebarItemsByRole
+// - Uses MUI theme colors instead of hardcoded colors
+//
+// Notes:
+// - Old hardcoded role menu arrays were removed
+// - Sidebar is now cleaner and easier to maintain
 // ============================================
 
 import {
@@ -11,264 +19,52 @@ import {
   ListItemIcon,
   ListItemText,
   Divider,
+  useTheme,
+  alpha,
 } from "@mui/material";
 
 import {
-  Dashboard,
-  Description,
-  AddCircle,
-  AttachFile,
-  Assessment,
-  History,
   Settings,
   Logout,
-  PendingActions,
-  CheckCircle,
-  KeyboardReturn,
-  Cancel,
-  LocalPrintshop,
-  Inventory,
-  AccountBalance,
 } from "@mui/icons-material";
-import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
-import LocalShippingIcon from "@mui/icons-material/LocalShipping";
-import LocalShipping from "@mui/icons-material/LocalShipping";
-import Inventory2Icon from "@mui/icons-material/Inventory2";
-import HistoryIcon from "@mui/icons-material/History";
-import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
-import SettingsIcon from "@mui/icons-material/Settings";
-import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
-import { getSidebarItemsByRole } from "../../platform/navigation/sidebar/getSidebarItemsByRole";
 
 import { useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
 
-const NAVY = "#071B4D";
-const NAVY_DARK = "#041338";
-const GREEN = "#2E8B3C";
-const GREEN_LIGHT = "#4CAF50";
-const WHITE = "#FFFFFF";
+import { useAuth } from "../../context/AuthContext";
+import { getSidebarItemsByRole } from "../../platform/navigation/sidebar/getSidebarItemsByRole";
+
+// ============================================
+// Component
+// ============================================
 
 export default function Sidebar() {
+  const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
 
   const { user, logout } = useAuth();
 
+  // Support both backend casing styles
   const role = user?.role || user?.Role;
 
-  const teacherMenuItems = [
-    {
-      label: "Dashboard",
-      icon: <Dashboard />,
-      path: "/teacher/dashboard",
-    },
-    {
-      label: "My Requests",
-      icon: <Description />,
-      path: "/teacher/my-requests",
-    },
-    {
-      label: "Create Request",
-      icon: <AddCircle />,
-      path: "/teacher/create-request",
-    },
-    {
-      label: "Attachments",
-      icon: <AttachFile />,
-      path: "/teacher/attachments",
-    },
-    {
-      label: "Reports",
-      icon: <Assessment />,
-      path: "/teacher/reports",
-    },
-    {
-      label: "History",
-      icon: <History />,
-      path: "/teacher/history",
-    },
-  ];
-
-  const hodMenuItems = [
-    {
-      label: "Dashboard",
-      icon: <Dashboard />,
-      path: "/hod/dashboard",
-    },
-    {
-      label: "My Requests",
-      icon: <Description />,
-      path: "/hod/my-requests",
-    },
-    {
-      label: "Create Request",
-      icon: <AddCircle />,
-      path: "/hod/create-request",
-    },
-        {
-      label: "Attachments",
-      icon: <AttachFile />,
-      path: "/hod/attachments",
-    },
-    {
-      label: "Pending Approvals",
-      icon: <PendingActions />,
-      path: "/hod/pending-requests",
-    },
-    {
-      label: "Approved Requests",
-      icon: <CheckCircle />,
-      path: "/hod/approved-requests",
-    },
-    {
-      label: "Returned Requests",
-      icon: <KeyboardReturn />,
-      path: "/hod/returned-requests",
-    },
-    {
-      label: "Rejected Requests",
-      icon: <Cancel />,
-      path: "/hod/rejected-requests",
-    },
-    {
-      label: "Reports",
-      icon: <Assessment />,
-      path: "/hod/reports",
-    },
-    {
-      label: "History",
-      icon: <History />,
-      path: "/hod/history",
-    },
-  ];
-
-  const hosMenuItems = [
-    {
-      label: "Dashboard",
-      icon: <Dashboard />,
-      path: "/hos/dashboard",
-    },
-    {
-      label: "Subject Allocation",
-      icon: <AccountBalance />,
-      path: "/hos/subject-allocation",
-    },
-    {
-      label: "Pending Requests",
-      icon: <PendingActions />,
-      path: "/hos/pending-requests",
-    },
-    {
-      label: "Approved Requests",
-      icon: <CheckCircle />,
-      path: "/hos/approved-requests",
-    },
-    {
-      label: "Returned Requests",
-      icon: <KeyboardReturn />,
-      path: "/hos/returned-requests",
-    },
-    {
-      label: "Rejected Requests",
-      icon: <Cancel />,
-      path: "/hos/rejected-requests",
-    },
-    {
-      label: "Reports",
-      icon: <Assessment />,
-      path: "/hos/reports",
-    },
-    {
-      label: "History",
-      icon: <History />,
-      path: "/hos/history",
-    },
-  ];
-
-  const printingMenuItems = [
-    {
-      label: "Dashboard",
-      icon: <Dashboard />,
-      path: "/printing/dashboard",
-    },
-    {
-      label: "Department Limits",
-      icon: <AccountBalance />,
-      path: "/printing/department-limits",
-    },
-    {
-      label: "Access Levels",
-      icon: <AdminPanelSettingsIcon />,
-      path: "/printing/access-levels",
-    },
-    {
-      label: "Master Data",
-      path: "/printing/master-data",
-      icon: <SettingsIcon />,
-    },
-    {
-      label: "User Management",
-      icon: <ManageAccountsIcon />,
-      path: "/printing/user-management",
-    },
-    {
-      label: "Print Queue",
-      icon: <LocalPrintshop />,
-      path: "/printing/queue",
-    },
-    {
-      label: "Completed Jobs",
-      icon: <CheckCircle />,
-      path: "/printing/completed",
-    },
-    {
-      label: "Inventory Logs",
-      path: "/printing/inventory-transactions",
-      icon: <Inventory2Icon />,
-    },
-    {
-      label: "Inventory",
-      icon: <Inventory />,
-      path: "/printing/inventory",
-    },
-    {
-      label: "Paper Distribution",
-      path: "/printing/distributions",
-      icon: <LocalShipping />,
-    },
-    {
-      label: "Paper Stock",
-      icon: <Inventory />,
-      path: "/printing/paper-stock",
-    },
-    {
-      label: "Paper Purchases",
-      icon: <Inventory />,
-      path: "/printing/purchases",
-    },
-    {
-      label: "Reports",
-      icon: <Assessment />,
-      path: "/printing/reports",
-    },
-    {
-      label: "History",
-      icon: <History />,
-      path: "/printing/history",
-    },
-  ];
-
+  // Centralized sidebar config
   const menuItems = getSidebarItemsByRole(role);
+
+  // ============================================
+  // Helpers
+  // ============================================
 
   const isActiveRoute = (path) => {
     return location.pathname === path;
   };
 
   const getSettingsPath = () => {
+    if (role === "SuperAdmin") return "/super-admin/settings";
+    if (role === "PrintingAdmin") return "/printing/settings";
     if (role === "HOD") return "/hod/settings";
     if (role === "HOS") return "/hos/settings";
-    if (role === "PrintingAdmin") return "/printing/settings";
+    if (role === "Admin") return "/admin/settings";
+
     return "/teacher/settings";
   };
 
@@ -277,30 +73,55 @@ export default function Sidebar() {
     navigate("/login");
   };
 
+  // ============================================
+  // Theme-based styles
+  // ============================================
+
+  const sidebarBg = `linear-gradient(
+    180deg,
+    ${theme.palette.primary.dark} 0%,
+    ${theme.palette.primary.main} 100%
+  )`;
+
+  const activeBg = `linear-gradient(
+    135deg,
+    ${theme.palette.success.dark},
+    ${theme.palette.success.main}
+  )`;
+
+  // ============================================
+  // Render
+  // ============================================
+
   return (
     <Box
       sx={{
         width: 240,
         height: "100%",
-        color: WHITE,
+        color: theme.palette.common.white,
         display: "flex",
         flexDirection: "column",
         position: "relative",
         overflow: "hidden",
-        background: `linear-gradient(180deg, ${NAVY} 0%, ${NAVY_DARK} 100%)`,
-        borderRight: "1px solid rgba(255,255,255,0.08)",
+        background: sidebarBg,
+        borderRight: `1px solid ${alpha(theme.palette.common.white, 0.08)}`,
       }}
     >
+      {/* Decorative background glow */}
       <Box
         sx={{
           position: "absolute",
           inset: 0,
-          background:
-            "radial-gradient(circle at 20% 20%, rgba(76,175,80,0.14), transparent 35%)",
+          background: `radial-gradient(
+            circle at 20% 20%,
+            ${alpha(theme.palette.success.main, 0.14)},
+            transparent 35%
+          )`,
           pointerEvents: "none",
         }}
       />
 
+      {/* Main Navigation */}
       <List
         sx={{
           position: "relative",
@@ -321,19 +142,24 @@ export default function Sidebar() {
                 mb: 1.1,
                 minHeight: 50,
                 px: 1.8,
-                color: active ? WHITE : "rgba(255,255,255,0.9)",
-                background: active
-                  ? `linear-gradient(135deg, ${GREEN}, ${GREEN_LIGHT})`
-                  : "transparent",
+                color: active
+                  ? theme.palette.common.white
+                  : alpha(theme.palette.common.white, 0.9),
+                background: active ? activeBg : "transparent",
                 boxShadow: active
-                  ? "0 8px 18px rgba(46,139,60,0.35)"
+                  ? `0 8px 18px ${alpha(theme.palette.success.dark, 0.35)}`
                   : "none",
-                transition: "all 0.2s ease",
+                transition: theme.transitions.create(
+                  ["background", "transform", "box-shadow"],
+                  {
+                    duration: theme.transitions.duration.short,
+                  }
+                ),
 
                 "&:hover": {
                   background: active
-                    ? `linear-gradient(135deg, ${GREEN}, ${GREEN_LIGHT})`
-                    : "rgba(76,175,80,0.14)",
+                    ? activeBg
+                    : alpha(theme.palette.success.main, 0.14),
                   transform: "translateX(4px)",
                 },
               }}
@@ -341,7 +167,9 @@ export default function Sidebar() {
               <ListItemIcon
                 sx={{
                   minWidth: 38,
-                  color: active ? WHITE : "rgba(255,255,255,0.9)",
+                  color: active
+                    ? theme.palette.common.white
+                    : alpha(theme.palette.common.white, 0.9),
                 }}
               >
                 {item.icon}
@@ -352,6 +180,7 @@ export default function Sidebar() {
                 primaryTypographyProps={{
                   fontSize: 14,
                   fontWeight: active ? 900 : 700,
+                  noWrap: true,
                 }}
               />
             </ListItemButton>
@@ -359,27 +188,49 @@ export default function Sidebar() {
         })}
       </List>
 
+      {/* Push settings/logout to bottom */}
       <Box sx={{ flexGrow: 1 }} />
 
-      <Divider sx={{ mx: 2, borderColor: "rgba(255,255,255,0.16)" }} />
+      <Divider
+        sx={{
+          mx: 2,
+          borderColor: alpha(theme.palette.common.white, 0.16),
+        }}
+      />
 
-      <List sx={{ position: "relative", zIndex: 1, px: 1.8, py: 2 }}>
+      {/* Bottom Actions */}
+      <List
+        sx={{
+          position: "relative",
+          zIndex: 1,
+          px: 1.8,
+          py: 2,
+        }}
+      >
+        {/* Settings */}
         <ListItemButton
           onClick={() => navigate(getSettingsPath())}
           sx={{
             borderRadius: 2,
             mb: 1,
             minHeight: 50,
-            color: WHITE,
-            transition: "all 0.2s ease",
+            color: theme.palette.common.white,
+            transition: theme.transitions.create(["background", "transform"], {
+              duration: theme.transitions.duration.short,
+            }),
 
             "&:hover": {
-              background: "rgba(76,175,80,0.14)",
+              background: alpha(theme.palette.success.main, 0.14),
               transform: "translateX(4px)",
             },
           }}
         >
-          <ListItemIcon sx={{ minWidth: 38, color: WHITE }}>
+          <ListItemIcon
+            sx={{
+              minWidth: 38,
+              color: theme.palette.common.white,
+            }}
+          >
             <Settings />
           </ListItemIcon>
 
@@ -388,25 +239,34 @@ export default function Sidebar() {
             primaryTypographyProps={{
               fontSize: 14,
               fontWeight: 700,
+              noWrap: true,
             }}
           />
         </ListItemButton>
 
+        {/* Logout */}
         <ListItemButton
           onClick={handleLogout}
           sx={{
             borderRadius: 2,
             minHeight: 50,
-            color: WHITE,
-            transition: "all 0.2s ease",
+            color: theme.palette.common.white,
+            transition: theme.transitions.create(["background", "transform"], {
+              duration: theme.transitions.duration.short,
+            }),
 
             "&:hover": {
-              background: "rgba(239,68,68,0.16)",
+              background: alpha(theme.palette.error.main, 0.16),
               transform: "translateX(4px)",
             },
           }}
         >
-          <ListItemIcon sx={{ minWidth: 38, color: WHITE }}>
+          <ListItemIcon
+            sx={{
+              minWidth: 38,
+              color: theme.palette.common.white,
+            }}
+          >
             <Logout />
           </ListItemIcon>
 
@@ -415,12 +275,20 @@ export default function Sidebar() {
             primaryTypographyProps={{
               fontSize: 14,
               fontWeight: 700,
+              noWrap: true,
             }}
           />
         </ListItemButton>
       </List>
 
-      <Box sx={{ height: 4, width: "100%", bgcolor: GREEN_LIGHT }} />
+      {/* Bottom accent bar */}
+      <Box
+        sx={{
+          height: 4,
+          width: "100%",
+          bgcolor: theme.palette.success.main,
+        }}
+      />
     </Box>
   );
 }

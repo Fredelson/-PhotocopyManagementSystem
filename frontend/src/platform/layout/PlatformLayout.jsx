@@ -88,12 +88,14 @@ export default function SuperAdminLayout() {
           ModalProps={{
             keepMounted: true,
           }}
-          PaperProps={{
-            sx: {
-              width: MOBILE_SIDEBAR_WIDTH,
-              maxWidth: "85vw",
-              bgcolor: "#061B52",
-              overflowX: "hidden",
+          slotProps={{
+            paper: {
+              sx: {
+                width: MOBILE_SIDEBAR_WIDTH,
+                maxWidth: "85vw",
+                bgcolor: "#061B52",
+                overflowX: "hidden",
+              },
             },
           }}
         >

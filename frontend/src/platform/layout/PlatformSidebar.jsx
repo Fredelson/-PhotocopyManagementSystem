@@ -110,10 +110,14 @@ export default function PlatformSidebar({ width = 340, topOffset = 78 }) {
 
                   <ListItemText
                     primary={item.label}
-                    primaryTypographyProps={{
-                      fontSize: 14.5,
-                      fontWeight: 750,
-                      noWrap: true,
+                    slotProps={{
+                      primary: {
+                        sx: {
+                          fontSize: 14.5,
+                          fontWeight: 750,
+                          whiteSpace: "nowrap",
+                        },
+                      },
                     }}
                   />
                 </ListItemButton>

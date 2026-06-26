@@ -234,3 +234,19 @@ export const paperInventorySummary = [
     minimum: 1500,
   },
 ];
+
+// ============================================
+// DEFAULT DASHBOARD DATA
+// ============================================
+
+export const defaultPrintingDashboardData = {
+  stats: printingDashboardStats,
+  printActivity: printActivityData,
+  jobStatus: printJobStatus,
+  inventoryHealth,
+  recentJobs: recentPrintJobs,
+  topDepartments: topPrintingDepartments,
+  paperUsage: paperUsageStatus,
+  pendingActions: printingPendingActions,
+  inventorySummary: paperInventorySummary,
+};

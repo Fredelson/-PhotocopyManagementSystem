@@ -14,6 +14,7 @@ import { Box } from "@mui/material";
 
 import AllModules from "../../../components/dashboard/AllModules";
 import KpiGrid from "../../../components/common/KpiGrid";
+
 import DashboardHeader from "../../../components/layout/DashboardHeader";
 import DashboardMiddleRow from "../../../components/layout/DashboardMiddleRow";
 import DashboardBottomRow from "../../../components/layout/DashboardBottomRow";
@@ -50,10 +51,7 @@ export default function SuperAdminDashboard() {
       {/* KPI Cards */}
       <KpiGrid stats={dashboardStats} />
 
-      {/* 
-        Middle Row:
-        System Overview | Module Status | System Health | Recent Activities
-      */}
+      {/* Platform Analytics */}
       <DashboardMiddleRow
         platformActivityData={platformActivityData}
         moduleStatusData={moduleStatus}
@@ -61,10 +59,10 @@ export default function SuperAdminDashboard() {
         recentActivityData={recentActivities}
       />
 
-      {/* All Modules Section */}
+      {/* Platform Modules */}
       <AllModules modules={modulesOverview} />
 
-      {/* Bottom Analytics Row */}
+      {/* Bottom Dashboard Row */}
       <DashboardBottomRow
         topPrintRequests={topPrintRequests}
         ticketStatus={ticketStatus}
